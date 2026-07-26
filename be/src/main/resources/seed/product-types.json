@@ -1,0 +1,7 @@
+[
+  { "name": "RAW_MATERIAL",   "description": "Input material used in production" },
+  { "name": "SEMI_FINISHED",  "description": "Partially processed product" },
+  { "name": "FINISHED_GOOD",  "description": "Final product ready for delivery" },
+  { "name": "CONSUMABLE",     "description": "Consumable used during production (e.g. lubricant)" },
+  { "name": "SPARE_PART",     "description": "Replacement part for machine maintenance" }
+]

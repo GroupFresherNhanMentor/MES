@@ -1,0 +1,4 @@
+[
+  { "name": "ACTIVE",   "description": "Product is in use" },
+  { "name": "INACTIVE", "description": "Product is discontinued and no longer used" }
+]

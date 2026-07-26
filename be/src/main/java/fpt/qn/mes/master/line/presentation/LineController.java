@@ -1,0 +1,71 @@
+package fpt.qn.mes.master.line.presentation;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import fpt.qn.mes.common.dto.ApiResponse;
+import fpt.qn.mes.common.dto.PageResponse;
+import fpt.qn.mes.master.line.application.dto.CreateLineRequest;
+import fpt.qn.mes.master.line.application.dto.ProductionLineDto;
+import fpt.qn.mes.master.line.application.dto.UpdateLineRequest;
+import fpt.qn.mes.master.line.application.port.in.LineUseCase;
+import jakarta.validation.Valid;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+@RestController
+@RequestMapping("/api/production-lines")
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class LineController {
+
+    LineUseCase lineUseCase;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<ProductionLineDto>>> getLines(
+            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<ProductionLineDto>> getLineById(@PathVariable UUID id) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<ProductionLineDto>> createLine(
+            @Valid @RequestBody CreateLineRequest request, @AuthenticationPrincipal Jwt jwt) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<ProductionLineDto>> updateLine(
+            @PathVariable UUID id, @RequestBody UpdateLineRequest request, @AuthenticationPrincipal Jwt jwt) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteLine(@PathVariable UUID id) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @GetMapping("/statuses")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLineStatuses() {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+}

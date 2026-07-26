@@ -1,0 +1,13 @@
+package fpt.qn.mes.master.line.application.dto;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.*;
+import lombok.experimental.FieldDefaults;
+
+@Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductionLineDto {
+    UUID id; String code; String name; UUID lineStatusId;
+    Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
+}

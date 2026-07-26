@@ -1,0 +1,6 @@
+[
+  { "name": "START",    "description": "Operator starts production on a machine" },
+  { "name": "PAUSE",    "description": "Production is temporarily paused" },
+  { "name": "RESUME",   "description": "Production is resumed after a pause" },
+  { "name": "COMPLETE", "description": "Operator completes production and reports quantities" }
+]

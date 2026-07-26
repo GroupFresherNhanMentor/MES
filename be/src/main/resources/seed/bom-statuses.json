@@ -1,0 +1,5 @@
+[
+  { "name": "DRAFT",    "description": "BOM is being prepared and not yet approved" },
+  { "name": "ACTIVE",   "description": "BOM is approved and available for production" },
+  { "name": "INACTIVE", "description": "BOM is retired and no longer used" }
+]

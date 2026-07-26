@@ -1,0 +1,5 @@
+[
+  { "name": "PREVENTIVE",  "description": "Scheduled maintenance to prevent failure" },
+  { "name": "CORRECTIVE",  "description": "Repair after a fault or breakdown has occurred" },
+  { "name": "EMERGENCY",   "description": "Unplanned urgent repair to restore production" }
+]

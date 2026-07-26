@@ -1,0 +1,14 @@
+[
+  { "name": "PCS",  "description": "Pieces" },
+  { "name": "KG",   "description": "Kilogram" },
+  { "name": "G",    "description": "Gram" },
+  { "name": "L",    "description": "Liter" },
+  { "name": "ML",   "description": "Milliliter" },
+  { "name": "M",    "description": "Meter" },
+  { "name": "M2",   "description": "Square Meter" },
+  { "name": "M3",   "description": "Cubic Meter" },
+  { "name": "BOX",  "description": "Box" },
+  { "name": "SET",  "description": "Set" },
+  { "name": "ROLL", "description": "Roll" },
+  { "name": "TON",  "description": "Metric Ton" }
+]

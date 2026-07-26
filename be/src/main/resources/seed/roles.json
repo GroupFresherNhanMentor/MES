@@ -1,0 +1,10 @@
+[
+  { "name": "ADMIN",                "description": "Full system access" },
+  { "name": "WAREHOUSE_MANAGER",    "description": "Manages stock, locations, and movements" },
+  { "name": "PLANNER",              "description": "Creates BOMs and Work Orders, reserves materials" },
+  { "name": "OPERATOR",             "description": "Executes production on machines and lines" },
+  { "name": "QC_INSPECTOR",         "description": "Performs quality inspections and records defects" },
+  { "name": "MAINTENANCE_ENGINEER", "description": "Creates and resolves maintenance tickets" },
+  { "name": "FACTORY_MANAGER",      "description": "Read-only access to all data and reports" },
+  { "name": "AUDITOR",              "description": "Read-only access to stock movements and audit logs" }
+]

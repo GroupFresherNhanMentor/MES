@@ -1,0 +1,6 @@
+[
+  { "name": "LOW",    "description": "Non-urgent, schedule when capacity allows" },
+  { "name": "MEDIUM", "description": "Standard priority" },
+  { "name": "HIGH",   "description": "Urgent, prioritize scheduling" },
+  { "name": "URGENT", "description": "Critical, must be executed immediately" }
+]

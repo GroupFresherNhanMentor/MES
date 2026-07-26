@@ -1,0 +1,8 @@
+[
+  { "name": "DRAFT",       "description": "Work order is being planned",                   "isInitial": true,  "isFinal": false },
+  { "name": "PLANNED",     "description": "Work order is planned and materials calculated", "isInitial": false, "isFinal": false },
+  { "name": "RELEASED",    "description": "Work order is released for production",          "isInitial": false, "isFinal": false },
+  { "name": "IN_PROGRESS", "description": "Production is currently running",                "isInitial": false, "isFinal": false },
+  { "name": "COMPLETED",   "description": "Production is finished successfully",            "isInitial": false, "isFinal": true  },
+  { "name": "CANCELLED",   "description": "Work order has been cancelled",                  "isInitial": false, "isFinal": true  }
+]

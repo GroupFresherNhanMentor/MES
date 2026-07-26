@@ -1,0 +1,17 @@
+---
+# Test overrides — merged on top of main application.yaml by Spring Boot
+app:
+  jwt:
+    secret: test-secret-key-must-be-at-least-32-chars-long-for-hmac256
+    access-token-expiration: 3600000
+    refresh-token-expiration: 3600000
+  cors:
+    allowed-origins: http://localhost:4200
+
+logging:
+  level:
+    fpt.qn.mes: WARN
+    org.springframework.security: WARN
+    org.jooq: WARN
+    org.testcontainers: WARN
+    com.zaxxer.hikari: WARN

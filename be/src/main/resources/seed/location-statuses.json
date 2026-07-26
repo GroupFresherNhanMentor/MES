@@ -1,0 +1,4 @@
+[
+  { "name": "ACTIVE",   "description": "Location is available for stock" },
+  { "name": "INACTIVE", "description": "Location is blocked and cannot receive stock" }
+]

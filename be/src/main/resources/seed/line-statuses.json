@@ -1,0 +1,5 @@
+[
+  { "name": "ACTIVE",      "description": "Production line is operational" },
+  { "name": "INACTIVE",    "description": "Production line is decommissioned" },
+  { "name": "MAINTENANCE", "description": "Production line is under maintenance" }
+]

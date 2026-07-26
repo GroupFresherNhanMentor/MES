@@ -1,0 +1,10 @@
+[
+  { "name": "INBOUND",    "description": "Goods received into warehouse from supplier" },
+  { "name": "OUTBOUND",   "description": "Goods issued out of warehouse" },
+  { "name": "RESERVE",    "description": "Stock reserved for a work order" },
+  { "name": "RELEASE",    "description": "Reserved stock released back to available" },
+  { "name": "CONSUME",    "description": "Reserved stock consumed during production" },
+  { "name": "SCRAP",      "description": "Stock written off as scrap" },
+  { "name": "TRANSFER",   "description": "Stock moved between warehouses or locations" },
+  { "name": "ADJUSTMENT", "description": "Manual stock adjustment by warehouse manager" }
+]

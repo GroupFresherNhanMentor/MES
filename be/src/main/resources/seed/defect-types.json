@@ -1,0 +1,12 @@
+[
+  { "code": "SCRATCH",          "name": "Scratch",              "description": "Surface scratch or abrasion" },
+  { "code": "DIMENSION_ERROR",  "name": "Dimension Error",      "description": "Product dimensions out of tolerance" },
+  { "code": "WEIGHT_ERROR",     "name": "Weight Error",         "description": "Product weight out of specification" },
+  { "code": "COLOR_DEFECT",     "name": "Color Defect",         "description": "Incorrect color or uneven coating" },
+  { "code": "CRACK",            "name": "Crack",                "description": "Structural crack or fracture" },
+  { "code": "CONTAMINATION",    "name": "Contamination",        "description": "Foreign material present in product" },
+  { "code": "FUNCTIONAL_FAIL",  "name": "Functional Failure",   "description": "Product does not function as expected" },
+  { "code": "ASSEMBLY_ERROR",   "name": "Assembly Error",       "description": "Incorrect or incomplete assembly" },
+  { "code": "LABEL_ERROR",      "name": "Label Error",          "description": "Missing, incorrect, or unreadable label" },
+  { "code": "OTHER",            "name": "Other",                "description": "Defect not covered by other categories" }
+]

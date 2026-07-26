@@ -1,0 +1,6 @@
+[
+  { "name": "LOW",      "description": "Minor issue, can be scheduled at convenience" },
+  { "name": "MEDIUM",   "description": "Standard priority maintenance" },
+  { "name": "HIGH",     "description": "Significant impact on production, resolve soon" },
+  { "name": "CRITICAL", "description": "Machine is down, production is blocked" }
+]

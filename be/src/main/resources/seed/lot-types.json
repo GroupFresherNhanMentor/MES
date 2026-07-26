@@ -1,0 +1,5 @@
+[
+  { "name": "PURCHASED",   "description": "Lot received from external supplier" },
+  { "name": "PRODUCTION",  "description": "Lot created from internal production output" },
+  { "name": "RETURNED",    "description": "Lot returned from customer or production line" }
+]

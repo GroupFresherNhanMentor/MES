@@ -1,0 +1,6 @@
+[
+  { "name": "OPEN",        "description": "Ticket has been created and is awaiting assignment" },
+  { "name": "IN_PROGRESS", "description": "Maintenance work is currently being performed" },
+  { "name": "COMPLETED",   "description": "Maintenance work is finished and machine is restored" },
+  { "name": "CANCELLED",   "description": "Ticket has been cancelled" }
+]

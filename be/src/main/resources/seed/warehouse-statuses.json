@@ -1,0 +1,4 @@
+[
+  { "name": "ACTIVE",   "description": "Warehouse is operational" },
+  { "name": "INACTIVE", "description": "Warehouse is closed or decommissioned" }
+]
