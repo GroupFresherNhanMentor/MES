@@ -5,10 +5,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.machine.application.dto.CreateMachineRequest;
-import fpt.qn.mes.master.machine.application.dto.MachineDto;
-import fpt.qn.mes.master.machine.application.dto.UpdateMachineRequest;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.machine.application.dto.request.CreateMachineRequest;
+import fpt.qn.mes.master.machine.application.dto.response.MachineDto;
+import fpt.qn.mes.master.machine.application.dto.request.UpdateMachineRequest;
 import fpt.qn.mes.master.machine.application.mapper.MachineDtoMapper;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.machine.domain.repository.MachineRepository;

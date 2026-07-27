@@ -6,9 +6,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.master.location.application.dto.CreateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.UpdateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.WarehouseLocationDto;
+import fpt.qn.mes.master.location.application.dto.request.CreateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.request.UpdateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
 import fpt.qn.mes.master.location.application.mapper.LocationDtoMapper;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import fpt.qn.mes.master.location.domain.repository.WarehouseLocationRepository;

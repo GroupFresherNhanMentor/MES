@@ -2,8 +2,9 @@ package fpt.qn.mes.bom.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.bom.application.dto.*;
-import fpt.qn.mes.common.dto.PageResponse;
+import fpt.qn.mes.bom.application.dto.request.*;
+import fpt.qn.mes.bom.application.dto.response.*;
+import fpt.qn.mes.common.dto.response.PageResponse;
 
 public interface BomUseCase {
     PageResponse<BomDto> getBoms(int page, int size);

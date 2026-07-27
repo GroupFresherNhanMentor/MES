@@ -2,10 +2,10 @@ package fpt.qn.mes.master.warehouse.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.warehouse.application.dto.CreateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.UpdateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.WarehouseDto;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.warehouse.application.dto.request.CreateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.request.UpdateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
 
 public interface WarehouseUseCase {
     PageResponse<WarehouseDto> getWarehouses(int page, int size);

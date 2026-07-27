@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.master.location.application.dto.CreateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.UpdateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.WarehouseLocationDto;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.master.location.application.dto.request.CreateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.request.UpdateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

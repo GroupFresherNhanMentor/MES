@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.warehouse.application.dto.CreateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.UpdateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.WarehouseDto;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.warehouse.application.dto.request.CreateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.request.UpdateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

@@ -1,20 +1,16 @@
 package fpt.qn.mes.bom.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.bom.application.dto.BomDto;
-import fpt.qn.mes.bom.application.dto.BomItemDto;
+import fpt.qn.mes.bom.application.dto.response.BomDto;
+import fpt.qn.mes.bom.application.dto.response.BomItemDto;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 
-@Component
-public class BomDtoMapper {
+@Mapper(componentModel = "spring")
+public interface BomDtoMapper {
 
-    public BomDto toDto(Bom b) {
-        return null;
-    }
+    BomDto toDto(Bom bom);
 
-    public BomItemDto toDto(BomItem i) {
-        return null;
-    }
+    BomItemDto toDto(BomItem bomItem);
 }

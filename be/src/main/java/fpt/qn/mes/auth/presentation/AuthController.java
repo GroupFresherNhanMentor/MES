@@ -6,11 +6,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.auth.application.dto.LoginRequest;
-import fpt.qn.mes.auth.application.dto.RefreshRequest;
-import fpt.qn.mes.auth.application.dto.TokenResponse;
+import fpt.qn.mes.auth.application.dto.request.LoginRequest;
+import fpt.qn.mes.auth.application.dto.request.RefreshRequest;
+import fpt.qn.mes.auth.application.dto.response.TokenResponse;
 import fpt.qn.mes.auth.application.port.in.AuthUseCase;
-import fpt.qn.mes.common.dto.ApiResponse;
+import fpt.qn.mes.common.dto.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

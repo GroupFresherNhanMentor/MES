@@ -3,10 +3,10 @@ package fpt.qn.mes.role.application.port.in;
 import java.util.List;
 import java.util.UUID;
 
-import fpt.qn.mes.role.application.dto.AssignPermissionsRequest;
-import fpt.qn.mes.role.application.dto.CreateRoleRequest;
-import fpt.qn.mes.role.application.dto.RoleDto;
-import fpt.qn.mes.role.application.dto.UpdateRoleRequest;
+import fpt.qn.mes.role.application.dto.request.AssignPermissionsRequest;
+import fpt.qn.mes.role.application.dto.request.CreateRoleRequest;
+import fpt.qn.mes.role.application.dto.response.RoleDto;
+import fpt.qn.mes.role.application.dto.request.UpdateRoleRequest;
 
 public interface RoleUseCase {
     List<RoleDto> getRoles();

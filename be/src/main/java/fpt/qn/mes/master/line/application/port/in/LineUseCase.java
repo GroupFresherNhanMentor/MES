@@ -2,10 +2,10 @@ package fpt.qn.mes.master.line.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.line.application.dto.CreateLineRequest;
-import fpt.qn.mes.master.line.application.dto.ProductionLineDto;
-import fpt.qn.mes.master.line.application.dto.UpdateLineRequest;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.line.application.dto.request.CreateLineRequest;
+import fpt.qn.mes.master.line.application.dto.response.ProductionLineDto;
+import fpt.qn.mes.master.line.application.dto.request.UpdateLineRequest;
 
 public interface LineUseCase {
     PageResponse<ProductionLineDto> getLines(int page, int size);

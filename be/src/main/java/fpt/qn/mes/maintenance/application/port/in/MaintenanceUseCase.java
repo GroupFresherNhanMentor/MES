@@ -2,8 +2,9 @@ package fpt.qn.mes.maintenance.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.maintenance.application.dto.*;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.maintenance.application.dto.request.*;
+import fpt.qn.mes.maintenance.application.dto.response.*;
 
 public interface MaintenanceUseCase {
     PageResponse<MaintenanceTicketDto> getTickets(int page, int size);

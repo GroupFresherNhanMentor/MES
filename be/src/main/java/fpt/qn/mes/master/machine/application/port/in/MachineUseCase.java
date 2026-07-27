@@ -2,10 +2,10 @@ package fpt.qn.mes.master.machine.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.machine.application.dto.CreateMachineRequest;
-import fpt.qn.mes.master.machine.application.dto.MachineDto;
-import fpt.qn.mes.master.machine.application.dto.UpdateMachineRequest;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.machine.application.dto.request.CreateMachineRequest;
+import fpt.qn.mes.master.machine.application.dto.response.MachineDto;
+import fpt.qn.mes.master.machine.application.dto.request.UpdateMachineRequest;
 
 public interface MachineUseCase {
     PageResponse<MachineDto> getMachines(int page, int size);

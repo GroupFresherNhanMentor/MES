@@ -3,7 +3,7 @@ package fpt.qn.mes.maintenance.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PaginationResult;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.maintenance.domain.entities.MachineDowntime;
 import fpt.qn.mes.maintenance.domain.entities.MaintenanceTicket;
 

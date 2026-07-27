@@ -5,12 +5,12 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.maintenance.application.dto.CreateDowntimeRequest;
-import fpt.qn.mes.maintenance.application.dto.CreateMaintenanceTicketRequest;
-import fpt.qn.mes.maintenance.application.dto.MachineDowntimeDto;
-import fpt.qn.mes.maintenance.application.dto.MaintenanceTicketDto;
-import fpt.qn.mes.maintenance.application.dto.UpdateMaintenanceTicketRequest;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.maintenance.application.dto.request.CreateDowntimeRequest;
+import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
+import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeDto;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketDto;
+import fpt.qn.mes.maintenance.application.dto.request.UpdateMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.mapper.MaintenanceDtoMapper;
 import fpt.qn.mes.maintenance.application.port.in.MaintenanceUseCase;
 import fpt.qn.mes.maintenance.domain.repository.MaintenanceRepository;

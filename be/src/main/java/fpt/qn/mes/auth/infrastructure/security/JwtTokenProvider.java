@@ -1,8 +1,12 @@
 package fpt.qn.mes.auth.infrastructure.security;
 
+import java.time.Instant;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Component;
 
 import fpt.qn.mes.auth.application.port.out.TokenPort;
@@ -26,21 +30,36 @@ public class JwtTokenProvider implements TokenPort {
 
     @Override
     public String generateAccessToken(String username, String role) {
-        throw new UnsupportedOperationException("Not implemented");
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .subject(username)
+            .issuedAt(now)
+            .expiresAt(now.plusMillis(accessTokenExpiration))
+            .claim("role", role)
+            .claim("tokenType", "access")
+            .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     @Override
     public String generateRefreshToken(String username) {
-        throw new UnsupportedOperationException("Not implemented");
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .subject(username)
+            .issuedAt(now)
+            .expiresAt(now.plusMillis(refreshTokenExpiration))
+            .claim("tokenType", "refresh")
+            .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 
     @Override
     public boolean isRefreshToken(String token) {
-        throw new UnsupportedOperationException("Not implemented");
+        return "refresh".equals(jwtDecoder.decode(token).getClaimAsString("tokenType"));
     }
 
     @Override
     public String extractUsername(String token) {
-        throw new UnsupportedOperationException("Not implemented");
+        return jwtDecoder.decode(token).getSubject();
     }
 }

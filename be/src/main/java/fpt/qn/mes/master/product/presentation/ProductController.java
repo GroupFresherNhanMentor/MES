@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.product.application.dto.CreateProductRequest;
-import fpt.qn.mes.master.product.application.dto.ProductDto;
-import fpt.qn.mes.master.product.application.dto.UpdateProductRequest;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.product.application.dto.request.CreateProductRequest;
+import fpt.qn.mes.master.product.application.dto.response.ProductDto;
+import fpt.qn.mes.master.product.application.dto.request.UpdateProductRequest;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
