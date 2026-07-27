@@ -3,7 +3,7 @@ package fpt.qn.mes.master.machine.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PaginationResult;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
 
 public interface MachineRepository {

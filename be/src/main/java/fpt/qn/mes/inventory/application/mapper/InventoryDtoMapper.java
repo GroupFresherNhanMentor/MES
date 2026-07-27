@@ -1,26 +1,20 @@
 package fpt.qn.mes.inventory.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.inventory.application.dto.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
+import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
+import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 
-@Component
-public class InventoryDtoMapper {
+@Mapper(componentModel = "spring")
+public interface InventoryDtoMapper {
 
-    public StockLotDto toDto(StockLot l) {
-        return null;
-    }
+    StockLotDto toDto(StockLot stockLot);
 
-    public StockMovementDto toDto(StockMovement m) {
-        return null;
-    }
+    StockMovementDto toDto(StockMovement stockMovement);
 
-    public StockBalanceDto toDto(StockBalance b) {
-        return null;
-    }
+    StockBalanceDto toDto(StockBalance stockBalance);
 }

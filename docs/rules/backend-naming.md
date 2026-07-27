@@ -9,6 +9,7 @@
 | Use case interface | `{Entity}UseCase` | `BomUseCase` |
 | Service | `{Entity}Service` | `BomService` |
 | Response DTO | `{Entity}Dto` | `BomDto`, `BomItemDto` |
+| Auth/token response | `{Action}Response` | `TokenResponse` |
 | Create request | `Create{Entity}Request` | `CreateBomRequest` |
 | Update request | `Update{Entity}Request` | `UpdateBomRequest` |
 | DTO mapper | `{Entity}DtoMapper` | `BomDtoMapper` |
@@ -24,7 +25,8 @@ fpt.qn.mes.{module}.domain.entities
 fpt.qn.mes.{module}.domain.repository
 fpt.qn.mes.{module}.application.port.in
 fpt.qn.mes.{module}.application.service
-fpt.qn.mes.{module}.application.dto
+fpt.qn.mes.{module}.application.dto.request
+fpt.qn.mes.{module}.application.dto.response
 fpt.qn.mes.{module}.application.mapper
 fpt.qn.mes.{module}.application.exception
 fpt.qn.mes.{module}.infrastructure.persistence

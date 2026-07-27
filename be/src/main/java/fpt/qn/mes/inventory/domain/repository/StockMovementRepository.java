@@ -2,7 +2,7 @@ package fpt.qn.mes.inventory.domain.repository;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PaginationResult;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 
 public interface StockMovementRepository {

@@ -3,7 +3,7 @@ package fpt.qn.mes.quality.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PaginationResult;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.quality.domain.entities.QualityInspection;
 import fpt.qn.mes.quality.domain.entities.QualityInspectionResult;
 

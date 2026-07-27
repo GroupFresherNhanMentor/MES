@@ -1,14 +1,12 @@
 package fpt.qn.mes.master.product.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.master.product.application.dto.ProductDto;
+import fpt.qn.mes.master.product.application.dto.response.ProductDto;
 import fpt.qn.mes.master.product.domain.entities.Product;
 
-@Component
-public class ProductDtoMapper {
+@Mapper(componentModel = "spring")
+public interface ProductDtoMapper {
 
-    public ProductDto toDto(Product product) {
-        return null;
-    }
+    ProductDto toDto(Product product);
 }

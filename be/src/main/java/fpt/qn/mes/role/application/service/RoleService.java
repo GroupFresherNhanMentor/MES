@@ -6,10 +6,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.role.application.dto.AssignPermissionsRequest;
-import fpt.qn.mes.role.application.dto.CreateRoleRequest;
-import fpt.qn.mes.role.application.dto.RoleDto;
-import fpt.qn.mes.role.application.dto.UpdateRoleRequest;
+import fpt.qn.mes.role.application.dto.request.AssignPermissionsRequest;
+import fpt.qn.mes.role.application.dto.request.CreateRoleRequest;
+import fpt.qn.mes.role.application.dto.response.RoleDto;
+import fpt.qn.mes.role.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.role.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.role.application.port.in.RoleUseCase;
 import fpt.qn.mes.role.domain.repository.RoleRepository;

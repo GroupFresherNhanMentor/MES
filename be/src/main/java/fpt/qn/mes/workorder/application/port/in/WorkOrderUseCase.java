@@ -2,8 +2,9 @@ package fpt.qn.mes.workorder.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.workorder.application.dto.*;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.workorder.application.dto.request.*;
+import fpt.qn.mes.workorder.application.dto.response.*;
 
 public interface WorkOrderUseCase {
     PageResponse<WorkOrderDto> getWorkOrders(int page, int size);

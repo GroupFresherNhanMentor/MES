@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.quality.application.dto.CreateInspectionResultRequest;
-import fpt.qn.mes.quality.application.dto.CreateQualityInspectionRequest;
-import fpt.qn.mes.quality.application.dto.QualityInspectionDto;
-import fpt.qn.mes.quality.application.dto.QualityInspectionResultDto;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.quality.application.dto.request.CreateInspectionResultRequest;
+import fpt.qn.mes.quality.application.dto.request.CreateQualityInspectionRequest;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionDto;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionResultDto;
 import fpt.qn.mes.quality.application.port.in.QualityUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

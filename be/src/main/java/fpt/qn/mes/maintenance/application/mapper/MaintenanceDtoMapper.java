@@ -1,20 +1,16 @@
 package fpt.qn.mes.maintenance.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.maintenance.application.dto.MachineDowntimeDto;
-import fpt.qn.mes.maintenance.application.dto.MaintenanceTicketDto;
+import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeDto;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketDto;
 import fpt.qn.mes.maintenance.domain.entities.MachineDowntime;
 import fpt.qn.mes.maintenance.domain.entities.MaintenanceTicket;
 
-@Component
-public class MaintenanceDtoMapper {
+@Mapper(componentModel = "spring")
+public interface MaintenanceDtoMapper {
 
-    public MaintenanceTicketDto toDto(MaintenanceTicket t) {
-        return null;
-    }
+    MaintenanceTicketDto toDto(MaintenanceTicket maintenanceTicket);
 
-    public MachineDowntimeDto toDto(MachineDowntime d) {
-        return null;
-    }
+    MachineDowntimeDto toDto(MachineDowntime machineDowntime);
 }

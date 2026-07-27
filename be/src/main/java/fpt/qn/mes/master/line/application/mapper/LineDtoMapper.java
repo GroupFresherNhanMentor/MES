@@ -1,14 +1,12 @@
 package fpt.qn.mes.master.line.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.master.line.application.dto.ProductionLineDto;
+import fpt.qn.mes.master.line.application.dto.response.ProductionLineDto;
 import fpt.qn.mes.master.line.domain.entities.ProductionLine;
 
-@Component
-public class LineDtoMapper {
+@Mapper(componentModel = "spring")
+public interface LineDtoMapper {
 
-    public ProductionLineDto toDto(ProductionLine l) {
-        return null;
-    }
+    ProductionLineDto toDto(ProductionLine productionLine);
 }

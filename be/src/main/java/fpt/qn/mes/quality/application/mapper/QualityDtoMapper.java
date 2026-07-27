@@ -1,20 +1,16 @@
 package fpt.qn.mes.quality.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.quality.application.dto.QualityInspectionDto;
-import fpt.qn.mes.quality.application.dto.QualityInspectionResultDto;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionDto;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionResultDto;
 import fpt.qn.mes.quality.domain.entities.QualityInspection;
 import fpt.qn.mes.quality.domain.entities.QualityInspectionResult;
 
-@Component
-public class QualityDtoMapper {
+@Mapper(componentModel = "spring")
+public interface QualityDtoMapper {
 
-    public QualityInspectionDto toDto(QualityInspection i) {
-        return null;
-    }
+    QualityInspectionDto toDto(QualityInspection qualityInspection);
 
-    public QualityInspectionResultDto toDto(QualityInspectionResult r) {
-        return null;
-    }
+    QualityInspectionResultDto toDto(QualityInspectionResult qualityInspectionResult);
 }

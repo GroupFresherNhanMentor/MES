@@ -2,8 +2,9 @@ package fpt.qn.mes.quality.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.quality.application.dto.*;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.quality.application.dto.request.*;
+import fpt.qn.mes.quality.application.dto.response.*;
 
 public interface QualityUseCase {
     PageResponse<QualityInspectionDto> getInspections(int page, int size);

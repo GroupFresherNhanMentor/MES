@@ -3,8 +3,8 @@ package fpt.qn.mes.role.application.port.in;
 import java.util.List;
 import java.util.UUID;
 
-import fpt.qn.mes.role.application.dto.CreatePermissionRequest;
-import fpt.qn.mes.role.application.dto.PermissionDto;
+import fpt.qn.mes.role.application.dto.request.CreatePermissionRequest;
+import fpt.qn.mes.role.application.dto.response.PermissionDto;
 
 public interface PermissionUseCase {
     List<PermissionDto> getPermissions();

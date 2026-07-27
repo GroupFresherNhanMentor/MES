@@ -1,26 +1,20 @@
 package fpt.qn.mes.workorder.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.workorder.application.dto.WorkOrderDto;
-import fpt.qn.mes.workorder.application.dto.WorkOrderEventDto;
-import fpt.qn.mes.workorder.application.dto.WorkOrderMaterialDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 
-@Component
-public class WorkOrderDtoMapper {
+@Mapper(componentModel = "spring")
+public interface WorkOrderDtoMapper {
 
-    public WorkOrderDto toDto(WorkOrder w) {
-        return null;
-    }
+    WorkOrderDto toDto(WorkOrder workOrder);
 
-    public WorkOrderMaterialDto toDto(WorkOrderMaterial m) {
-        return null;
-    }
+    WorkOrderMaterialDto toDto(WorkOrderMaterial workOrderMaterial);
 
-    public WorkOrderEventDto toDto(WorkOrderEvent e) {
-        return null;
-    }
+    WorkOrderEventDto toDto(WorkOrderEvent workOrderEvent);
 }

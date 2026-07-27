@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.role.application.dto.CreatePermissionRequest;
-import fpt.qn.mes.role.application.dto.PermissionDto;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.role.application.dto.request.CreatePermissionRequest;
+import fpt.qn.mes.role.application.dto.response.PermissionDto;
 import fpt.qn.mes.role.application.port.in.PermissionUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

@@ -51,10 +51,24 @@ public interface BomRepository {
 public interface BomUseCase {
     PageResponse<BomDto> getBoms(int page, int size);
     BomDto getBomById(UUID id);
-    BomDto createBom(CreateBomRequest request, UUID currentUserId);
+    BomDto createBom(CreateBomRequest request);  // service fetches current user itself
     void deleteBom(UUID id);
 }
 ```
+
+## Output Port (external dependency interface)
+
+```java
+// application/port/out/BomExternalPort.java  (example)
+public interface SomeExternalPort {
+    void doSomething(String param);
+}
+```
+
+For auth specifically, the pre-built ports are:
+- `CurrentUserPort` — `getCurrentUser()`, `getCurrentUserId()`, `getCurrentUsername()`
+- `PasswordPort` — `encode(raw)`, `matches(raw, encoded)`
+- `TokenPort` — `generateAccessToken(...)`, `generateRefreshToken(...)`
 
 ## Service
 
@@ -65,14 +79,16 @@ public interface BomUseCase {
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BomService implements BomUseCase {
 
-    BomRepository bomRepository;   // domain interface — never the adapter
+    BomRepository bomRepository;      // domain interface — never the adapter
     BomDtoMapper mapper;
+    CurrentUserPort currentUserPort;  // auth output port — never SecurityUtil directly
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BomDto> getBoms(int page, int size) {
         PaginationResult<Bom> result = bomRepository.findAll(page, size);
-        return PageResponse.of(result.items().stream().map(mapper::toDto).toList(),
+        return PageResponse.of(
+            result.items().stream().map(b -> mapper.toDto(b)).toList(),
             result.total(), page, size);
     }
 
@@ -80,13 +96,14 @@ public class BomService implements BomUseCase {
     @Transactional(readOnly = true)
     public BomDto getBomById(UUID id) {
         return bomRepository.findById(id)
-            .map(mapper::toDto)
-            .orElseThrow(() -> new BomNotFoundException(id));
+            .map(b -> mapper.toDto(b))
+            .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
     }
 
     @Override
     @Transactional
-    public BomDto createBom(CreateBomRequest request, UUID currentUserId) {
+    public BomDto createBom(CreateBomRequest request) {
+        UUID currentUserId = currentUserPort.getCurrentUserId();  // fetched here, not passed from controller
         Bom bom = Bom.create(request.getFinishedProductId(), request.getVersion(),
             request.getBomStatusId(), currentUserId);
         return mapper.toDto(bomRepository.save(bom));
@@ -95,7 +112,7 @@ public class BomService implements BomUseCase {
     @Override
     @Transactional
     public void deleteBom(UUID id) {
-        if (bomRepository.findById(id).isEmpty()) throw new BomNotFoundException(id);
+        if (bomRepository.findById(id).isEmpty()) throw new BomNotFoundException("BOM not found: " + id);
         bomRepository.deleteById(id);
     }
 }
@@ -112,14 +129,44 @@ public class BomNotFoundException extends AppException {
 }
 ```
 
-## MapStruct DTO Mapper
+## DTO Mapper — MapStruct (application layer)
 
 ```java
 // application/mapper/BomDtoMapper.java
 @Mapper(componentModel = "spring")
 public interface BomDtoMapper {
     BomDto toDto(Bom bom);
-    List<BomDto> toDtoList(List<Bom> boms);
+
+    // field name differs between request and entity → use @Mapping
+    @Mapping(target = "bomStatusId", source = "statusId")
+    Bom toDomain(CreateBomRequest request);
+}
+```
+
+## Record Mapper — manual (infrastructure layer)
+
+```java
+// infrastructure/persistence/BomRecordMapper.java
+@Component
+public class BomRecordMapper {
+
+    public Bom toDomain(BomsRecord r) {
+        return Bom.builder()
+            .id(r.getId())
+            .finishedProductId(r.getFinishedProductId())
+            .version(r.getVersion())
+            .createdAt(r.getCreatedAt().toInstant())
+            .build();
+    }
+
+    public BomsRecord toRecord(Bom bom) {
+        BomsRecord r = new BomsRecord();
+        r.setId(bom.getId());
+        r.setFinishedProductId(bom.getFinishedProductId());
+        r.setVersion(bom.getVersion());
+        r.setCreatedAt(bom.getCreatedAt().atOffset(ZoneOffset.UTC));
+        return r;
+    }
 }
 ```
 
@@ -144,7 +191,7 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
     public Optional<Bom> findById(UUID id) {
         return dslCtx.selectFrom(BOMS)
             .where(BOMS.ID.eq(id))
-            .fetchOptional(mapper::toDomain);
+            .fetchOptional(r -> mapper.toDomain(r));
     }
 
     @Override
@@ -166,7 +213,7 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         int offset = page * size;
         List<Bom> items = dslCtx.selectFrom(BOMS)
             .limit(size).offset(offset)
-            .fetch(mapper::toDomain);
+            .fetch(r -> mapper.toDomain(r));
         int total = dslCtx.fetchCount(BOMS);
         return new PaginationResult<>(items, total);
     }
@@ -199,11 +246,10 @@ public class BomController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<BomDto>> createBom(
-            @Valid @RequestBody CreateBomRequest request,
-            @AuthenticationPrincipal Jwt jwt) {
-        UUID userId = UUID.fromString(jwt.getSubject());
+            @Valid @RequestBody CreateBomRequest request) {
+        // do NOT extract userId here — the service fetches it from CurrentUserPort
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success(bomUseCase.createBom(request, userId), "Created"));
+            .body(ApiResponse.success(bomUseCase.createBom(request), "Created"));
     }
 
     @DeleteMapping("/{id}")

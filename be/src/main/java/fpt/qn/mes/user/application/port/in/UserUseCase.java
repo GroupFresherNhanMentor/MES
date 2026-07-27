@@ -2,10 +2,10 @@ package fpt.qn.mes.user.application.port.in;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.user.application.dto.CreateUserRequest;
-import fpt.qn.mes.user.application.dto.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.UserDto;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
+import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
+import fpt.qn.mes.user.application.dto.response.UserDto;
 
 public interface UserUseCase {
 

@@ -6,8 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.role.application.dto.CreatePermissionRequest;
-import fpt.qn.mes.role.application.dto.PermissionDto;
+import fpt.qn.mes.role.application.dto.request.CreatePermissionRequest;
+import fpt.qn.mes.role.application.dto.response.PermissionDto;
 import fpt.qn.mes.role.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.role.application.port.in.PermissionUseCase;
 import fpt.qn.mes.role.domain.repository.PermissionRepository;

@@ -1,14 +1,12 @@
 package fpt.qn.mes.user.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.user.application.dto.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserDto;
 import fpt.qn.mes.user.domain.entities.User;
 
-@Component
-public class UserDtoMapper {
+@Mapper(componentModel = "spring")
+public interface UserDtoMapper {
 
-    public UserDto toDto(User user) {
-        return null;
-    }
+    UserDto toDto(User user);
 }

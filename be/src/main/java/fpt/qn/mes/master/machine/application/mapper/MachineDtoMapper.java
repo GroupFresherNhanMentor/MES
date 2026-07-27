@@ -1,14 +1,12 @@
 package fpt.qn.mes.master.machine.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.master.machine.application.dto.MachineDto;
+import fpt.qn.mes.master.machine.application.dto.response.MachineDto;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
 
-@Component
-public class MachineDtoMapper {
+@Mapper(componentModel = "spring")
+public interface MachineDtoMapper {
 
-    public MachineDto toDto(Machine m) {
-        return null;
-    }
+    MachineDto toDto(Machine machine);
 }

@@ -6,12 +6,12 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.inventory.application.dto.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.StockMovementDto;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
+import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
+import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
+import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;

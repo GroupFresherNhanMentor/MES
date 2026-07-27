@@ -3,9 +3,9 @@ package fpt.qn.mes.master.location.application.port.in;
 import java.util.List;
 import java.util.UUID;
 
-import fpt.qn.mes.master.location.application.dto.CreateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.UpdateLocationRequest;
-import fpt.qn.mes.master.location.application.dto.WarehouseLocationDto;
+import fpt.qn.mes.master.location.application.dto.request.CreateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.request.UpdateLocationRequest;
+import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
 
 public interface LocationUseCase {
     List<WarehouseLocationDto> getLocations(UUID warehouseId);

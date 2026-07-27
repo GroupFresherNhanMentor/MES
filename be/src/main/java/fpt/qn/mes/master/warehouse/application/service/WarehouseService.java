@@ -5,10 +5,10 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.master.warehouse.application.dto.CreateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.UpdateWarehouseRequest;
-import fpt.qn.mes.master.warehouse.application.dto.WarehouseDto;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.warehouse.application.dto.request.CreateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.request.UpdateWarehouseRequest;
+import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
 import fpt.qn.mes.master.warehouse.application.mapper.WarehouseDtoMapper;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.master.warehouse.domain.repository.WarehouseRepository;

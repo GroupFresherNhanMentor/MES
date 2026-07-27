@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import fpt.qn.mes.common.dto.ApiResponse;
-import fpt.qn.mes.role.application.dto.AssignPermissionsRequest;
-import fpt.qn.mes.role.application.dto.CreateRoleRequest;
-import fpt.qn.mes.role.application.dto.RoleDto;
-import fpt.qn.mes.role.application.dto.UpdateRoleRequest;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+import fpt.qn.mes.role.application.dto.request.AssignPermissionsRequest;
+import fpt.qn.mes.role.application.dto.request.CreateRoleRequest;
+import fpt.qn.mes.role.application.dto.response.RoleDto;
+import fpt.qn.mes.role.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.role.application.port.in.RoleUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;

@@ -5,11 +5,11 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.PageResponse;
-import fpt.qn.mes.quality.application.dto.CreateInspectionResultRequest;
-import fpt.qn.mes.quality.application.dto.CreateQualityInspectionRequest;
-import fpt.qn.mes.quality.application.dto.QualityInspectionDto;
-import fpt.qn.mes.quality.application.dto.QualityInspectionResultDto;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.quality.application.dto.request.CreateInspectionResultRequest;
+import fpt.qn.mes.quality.application.dto.request.CreateQualityInspectionRequest;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionDto;
+import fpt.qn.mes.quality.application.dto.response.QualityInspectionResultDto;
 import fpt.qn.mes.quality.application.mapper.QualityDtoMapper;
 import fpt.qn.mes.quality.application.port.in.QualityUseCase;
 import fpt.qn.mes.quality.domain.repository.QualityInspectionRepository;

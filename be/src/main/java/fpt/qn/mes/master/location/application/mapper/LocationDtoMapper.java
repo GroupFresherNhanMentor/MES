@@ -1,14 +1,12 @@
 package fpt.qn.mes.master.location.application.mapper;
 
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
 
-import fpt.qn.mes.master.location.application.dto.WarehouseLocationDto;
+import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
 import fpt.qn.mes.master.location.domain.entities.WarehouseLocation;
 
-@Component
-public class LocationDtoMapper {
+@Mapper(componentModel = "spring")
+public interface LocationDtoMapper {
 
-    public WarehouseLocationDto toDto(WarehouseLocation l) {
-        return null;
-    }
+    WarehouseLocationDto toDto(WarehouseLocation warehouseLocation);
 }

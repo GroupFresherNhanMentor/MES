@@ -1,7 +1,7 @@
 package fpt.qn.mes.auth.application.port.in;
 
-import fpt.qn.mes.auth.application.dto.LoginRequest;
-import fpt.qn.mes.auth.application.dto.TokenResponse;
+import fpt.qn.mes.auth.application.dto.request.LoginRequest;
+import fpt.qn.mes.auth.application.dto.response.TokenResponse;
 
 public interface AuthUseCase {
 
