@@ -9,7 +9,7 @@ import fpt.qn.mes.bom.application.dto.response.BomItemDto;
 import fpt.qn.mes.common.dto.response.PageResponse;
 
 public interface BomUseCase {
-    PageResponse<BomDto> getBoms(int page, int size);
+    PageResponse<BomDto> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId);
     BomDto getBomById(UUID id);
     BomDto createBom(CreateBomRequest request);
     BomDto activateBom(UUID id);

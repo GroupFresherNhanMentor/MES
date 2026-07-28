@@ -39,8 +39,11 @@ public class BomController {
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'FACTORY_MANAGER', 'OPERATOR', 'QC_INSPECTOR')")
     public ResponseEntity<ApiResponse<PageResponse<BomDto>>> getBoms(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBoms(page, size), "OK"));
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID finishedProductId,
+            @RequestParam(required = false) UUID bomStatusId) {
+        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBoms(page, size, finishedProductId, bomStatusId), "OK"));
     }
 
     @GetMapping("/{id}")
