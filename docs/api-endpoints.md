@@ -796,14 +796,22 @@
 
 ## 13. Quality Control
 
+> Full API spec with request/response details: [`docs/api-spec/QC/api.md`](docs/api-spec/QC/api.md)
+
+### 13.1 Quality Inspections
+
 ### GET `/quality-inspections`
 > **Roles:** `ADMIN` · `QC_INSPECTOR` · `FACTORY_MANAGER`
 
-**Query params:** `page` · `size` · `statusId` · `workOrderId`
+**Query params:** `page` · `size` · `statusId` · `workOrderId` · `productId`
 
 **Response `200`:** `PageResponse<QualityInspectionDto>`
 ```json
-{ "id": "uuid", "workOrderId": "uuid", "productId": "uuid", "lotId": "uuid", "quantity": 100.0, "qcStatusId": "uuid", "createdAt": "instant", "results": [] }
+{
+  "id": "uuid", "workOrderId": "uuid", "productId": "uuid", "productCode": "string",
+  "lotId": "uuid", "lotNumber": "string", "quantity": 100.0,
+  "qcStatusId": "uuid", "qcStatusName": "PENDING_INSPECTION", "createdAt": "instant"
+}
 ```
 
 ---
@@ -817,6 +825,7 @@
 
 ### POST `/quality-inspections`
 > **Roles:** `ADMIN` · `QC_INSPECTOR`
+> **Note:** Normally auto-created after Complete Production.
 
 **Request body:**
 ```json
@@ -826,53 +835,102 @@
 
 ---
 
-### DELETE `/quality-inspections/{id}`
-> **Roles:** `ADMIN`
+### POST `/quality-inspections/{inspectionId}/pass`
+> **Roles:** `ADMIN` · `QC_INSPECTOR`
+> **QC status:** `PENDING_INSPECTION → PASSED`  
+> **Stock:** `QUALITY_INSPECTION → AVAILABLE`, tạo movement `QC_PASS`
 
-**Response `200`:** no data
-
----
-
-### GET `/quality-inspections/{inspectionId}/results`
-> **Roles:** `ADMIN` · `QC_INSPECTOR` · `FACTORY_MANAGER` · `AUDITOR`
-
-**Response `200`:** `[QualityInspectionResultDto]`
+**Request body:**
 ```json
-{
-  "id": "uuid", "inspectionId": "uuid", "isPass": true, "quantity": 95.0,
-  "defectTypeId": "uuid", "reason": "string", "action": "string",
-  "inspectorId": "uuid", "inspectedAt": "instant", "note": "string"
-}
+{ "passedQuantity": 95.0, "note": "All dimensions within tolerance" }
+```
+**Response `200`:**
+```json
+{ "resultId": "uuid", "qcStatusName": "PASSED", "stockMovementId": "uuid" }
 ```
 
 ---
 
-### POST `/quality-inspections/{inspectionId}/results`
-> **Roles:** `QC_INSPECTOR`
+### POST `/quality-inspections/{inspectionId}/fail`
+> **Roles:** `ADMIN` · `QC_INSPECTOR`
+> Chọn 1 trong 3 action:
+
+| Action | QC status | Stock | Movement |
+|--------|-----------|-------|----------|
+| `SCRAP` | `FAILED` | `QUALITY_INSPECTION → SCRAPPED` | `SCRAP` |
+| `HOLD` | `ON_HOLD` | `QUALITY_INSPECTION → ON_HOLD` | `QC_HOLD` |
+| `REWORK` | `REWORK_REQUIRED` | giữ `QUALITY_INSPECTION` | *(không tạo)* |
 
 **Request body:**
 ```json
 {
-  "isPass": false, "quantity": 5.0,
-  "defectTypeId": "uuid", "reason": "Scratch on surface", "action": "SCRAP",
-  "inspectorId": "uuid", "note": "string"
+  "failedQuantity": 5.0,
+  "actionId": "uuid",
+  "defectTypeId": "uuid",
+  "reason": "Surface scratch exceeds tolerance",
+  "note": "string"
 }
 ```
-**Response `201`:** `QualityInspectionResultDto`
+**Response `200`:**
+```json
+{ "resultId": "uuid", "qcStatusName": "FAILED | ON_HOLD | REWORK_REQUIRED", "stockMovementId": "uuid" }
+```
 
 ---
+
+### 13.2 Lookup Tables — Read & Create
 
 ### GET `/quality-inspections/statuses`
 > **Roles:** All authenticated
 
-**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+**Response `200`:**
+```json
+[{ "id": "uuid", "name": "PENDING_INSPECTION", "description": "Inspection has not been performed yet" }]
+```
+
+---
+
+### POST `/quality-inspections/statuses`
+> **Roles:** `ADMIN`
+
+**Request body:** `{ "name": "string", "description": "string" }`
+**Response `201`:** `QcStatusDto`
+
+---
+
+### GET `/quality-inspections/actions`
+> **Roles:** All authenticated
+
+**Response `200`:**
+```json
+[{ "id": "uuid", "name": "HOLD", "description": "Hold the lot for further investigation" }]
+```
+
+---
+
+### POST `/quality-inspections/actions`
+> **Roles:** `ADMIN`
+
+**Request body:** `{ "name": "string", "description": "string" }`
+**Response `201`:** `QcActionDto`
 
 ---
 
 ### GET `/quality-inspections/defect-types`
 > **Roles:** All authenticated
 
-**Response `200`:** `[{ "id": "uuid", "code": "string", "name": "string", "description": "string" }]`
+**Response `200`:**
+```json
+[{ "id": "uuid", "code": "SCRATCH", "name": "Scratch", "description": "Surface scratch or abrasion" }]
+```
+
+---
+
+### POST `/quality-inspections/defect-types`
+> **Roles:** `ADMIN`
+
+**Request body:** `{ "code": "string", "name": "string", "description": "string" }`
+**Response `201`:** `DefectTypeDto`
 
 ---
 
