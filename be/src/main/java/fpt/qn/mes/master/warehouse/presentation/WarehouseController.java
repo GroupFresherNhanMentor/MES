@@ -1,13 +1,9 @@
 package fpt.qn.mes.master.warehouse.presentation;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.master.warehouse.application.dto.request.CreateWarehouseRequest;
@@ -38,34 +35,39 @@ public class WarehouseController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WarehouseDto>>> getWarehouses(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID statusId) {
+        var result = (statusId != null)
+                ? warehouseUseCase.getWarehousesByStatus(page, size, statusId)
+                : warehouseUseCase.getWarehouses(page, size);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<WarehouseDto>> getWarehouseById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getWarehouseById(id), "OK"));
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<WarehouseDto>> createWarehouse(
-            @Valid @RequestBody CreateWarehouseRequest request, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+            @Valid @RequestBody CreateWarehouseRequest request,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        var result = warehouseUseCase.createWarehouse(request, principal.getId());
+        return ResponseEntity.status(201).body(ApiResponse.success(result, "Created"));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<WarehouseDto>> updateWarehouse(
-            @PathVariable UUID id, @RequestBody UpdateWarehouseRequest request, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+            @PathVariable UUID id, @RequestBody UpdateWarehouseRequest request,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        var result = warehouseUseCase.updateWarehouse(id, request, principal.getId());
+        return ResponseEntity.ok(ApiResponse.success(result, "Updated"));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteWarehouse(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @GetMapping("/statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWarehouseStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<ApiResponse<Void>> deactivateWarehouse(@PathVariable UUID id) {
+        warehouseUseCase.deleteWarehouse(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Deactivated"));
     }
 }

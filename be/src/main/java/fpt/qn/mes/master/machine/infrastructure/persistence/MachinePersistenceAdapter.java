@@ -26,10 +26,36 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
         super(ctx, MACHINES); this.mapper = mapper;
     }
 
-    @Override public Optional<Machine> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public Machine save(Machine m) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public Machine update(Machine m) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public void deleteById(UUID id) {}
-    @Override public PaginationResult<Machine> findAll(int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public boolean existsByCode(String code) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public Optional<Machine> findById(UUID id) { return fetchById(id).map(mapper::toDomain); }
+    @Override
+    public Machine save(Machine m) { return mapper.toDomain(create(mapper.toRecord(m))); }
+    @Override
+    public Machine update(Machine m) { return mapper.toDomain(update(mapper.toRecord(m))); }
+    @Override
+    public void deleteById(UUID id) {}
+
+    @Override
+    public PaginationResult<Machine> findAll(int page, int size) {
+        var records = ctx.selectFrom(MACHINES).orderBy(MACHINES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(MACHINES));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public PaginationResult<Machine> findAllByStatus(int page, int size, UUID statusId) {
+        var records = ctx.selectFrom(MACHINES)
+                .where(MACHINES.MACHINE_STATUS_ID.eq(statusId))
+                .orderBy(MACHINES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(MACHINES)
+                .where(MACHINES.MACHINE_STATUS_ID.eq(statusId)));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public boolean existsByCode(String code) {
+        return ctx.fetchExists(ctx.selectFrom(MACHINES).where(MACHINES.CODE.eq(code)));
+    }
 }

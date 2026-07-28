@@ -12,5 +12,6 @@ public interface MachineRepository {
     Machine update(Machine machine);
     void deleteById(UUID id);
     PaginationResult<Machine> findAll(int page, int size);
+    PaginationResult<Machine> findAllByStatus(int page, int size, UUID statusId);
     boolean existsByCode(String code);
 }
