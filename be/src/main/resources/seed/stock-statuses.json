@@ -1,7 +1,10 @@
 [
-  { "name": "AVAILABLE",   "description": "Stock is available for use or reservation" },
-  { "name": "RESERVED",    "description": "Stock is reserved for a work order" },
-  { "name": "QC_PENDING",  "description": "Stock is awaiting quality inspection" },
-  { "name": "ON_HOLD",     "description": "Stock is held pending investigation or decision" },
-  { "name": "SCRAPPED",    "description": "Stock has been scrapped and written off" }
+  { "name": "AVAILABLE",          "description": "Stock is available for use or reservation" },
+  { "name": "RESERVED",           "description": "Stock is reserved for a work order" },
+  { "name": "ON_HOLD",            "description": "Stock is held pending investigation or decision" },
+  { "name": "QUALITY_INSPECTION", "description": "Stock is undergoing quality inspection" },
+  { "name": "DAMAGED",            "description": "Stock is physically damaged and under assessment" },
+  { "name": "SCRAPPED",           "description": "Stock has been scrapped and written off" },
+  { "name": "CONSUMED",           "description": "Stock has been consumed in production" },
+  { "name": "SHIPPED",            "description": "Stock has been shipped to a customer" }
 ]

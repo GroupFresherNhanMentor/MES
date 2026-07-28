@@ -1,7 +1,7 @@
 [
-  { "name": "AVAILABLE",         "description": "Machine is ready for production" },
-  { "name": "IN_USE",            "description": "Machine is currently running production" },
-  { "name": "UNDER_MAINTENANCE", "description": "Machine is being serviced and unavailable" },
-  { "name": "BROKEN",            "description": "Machine has a fault and cannot be used" },
-  { "name": "INACTIVE",          "description": "Machine is decommissioned" }
+  { "name": "AVAILABLE",         "description": "Machine is idle and ready to accept a work order" },
+  { "name": "RUNNING",           "description": "Machine is actively executing a work order" },
+  { "name": "DOWN",              "description": "Machine has a fault and cannot be used" },
+  { "name": "UNDER_MAINTENANCE", "description": "Machine is being serviced and unavailable for production" },
+  { "name": "RETIRED",           "description": "Machine is permanently decommissioned" }
 ]
