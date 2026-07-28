@@ -63,6 +63,20 @@ public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> im
     }
 
     @Override
+    public PaginationResult<Product> findAllByStatus(int page, int size, UUID statusId) {
+        var records = ctx.selectFrom(PRODUCTS)
+                .where(PRODUCTS.PRODUCT_STATUS_ID.eq(statusId))
+                .orderBy(PRODUCTS.CREATED_AT.desc())
+                .limit(size)
+                .offset((long) page * size)
+                .fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(PRODUCTS)
+                .where(PRODUCTS.PRODUCT_STATUS_ID.eq(statusId)));
+        var items = records.stream().map(mapper::toDomain).toList();
+        return PaginationResult.of(items, total, page, size);
+    }
+
+    @Override
     public boolean existsByCode(String code) {
         return ctx.fetchExists(
                 ctx.selectFrom(PRODUCTS).where(PRODUCTS.CODE.eq(code)));

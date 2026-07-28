@@ -12,5 +12,6 @@ public interface ProductRepository {
     Product update(Product product);
     void deleteById(UUID id);
     PaginationResult<Product> findAll(int page, int size);
+    PaginationResult<Product> findAllByStatus(int page, int size, UUID statusId);
     boolean existsByCode(String code);
 }

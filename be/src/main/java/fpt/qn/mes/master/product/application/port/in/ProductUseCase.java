@@ -9,6 +9,7 @@ import fpt.qn.mes.master.product.application.dto.request.UpdateProductRequest;
 
 public interface ProductUseCase {
     PageResponse<ProductDto> getProducts(int page, int size);
+    PageResponse<ProductDto> getProductsByStatus(int page, int size, UUID statusId);
     ProductDto getProductById(UUID id);
     ProductDto createProduct(CreateProductRequest request, UUID currentUserId);
     ProductDto updateProduct(UUID id, UpdateProductRequest request, UUID currentUserId);

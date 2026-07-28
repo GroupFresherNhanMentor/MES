@@ -38,8 +38,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductDto>>> getProducts(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        var result = productUseCase.getProducts(page, size);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID statusId) {
+        var result = (statusId != null)
+                ? productUseCase.getProductsByStatus(page, size, statusId)
+                : productUseCase.getProducts(page, size);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 

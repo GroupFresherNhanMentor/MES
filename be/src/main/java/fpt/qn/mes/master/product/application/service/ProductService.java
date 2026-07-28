@@ -3,6 +3,7 @@ package fpt.qn.mes.master.product.application.service;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
+import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -27,11 +31,29 @@ public class ProductService implements ProductUseCase {
 
     ProductRepository productRepository;
     ProductDtoMapper mapper;
+    DSLContext ctx;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<ProductDto> getProducts(int page, int size) {
-        var result = productRepository.findAll(page, size);
+        UUID activeStatusId = getActiveStatusId();
+        var result = productRepository.findAllByStatus(page, size, activeStatusId);
+        var items = result.getItems().stream()
+                .map(mapper::toDto)
+                .toList();
+        return PageResponse.<ProductDto>builder()
+                .items(items)
+                .totalElements(result.getTotal())
+                .pageNumber(page)
+                .pageSize(size)
+                .totalPages((int) Math.ceil((double) result.getTotal() / size))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ProductDto> getProductsByStatus(int page, int size, UUID statusId) {
+        var result = productRepository.findAllByStatus(page, size, statusId);
         var items = result.getItems().stream()
                 .map(mapper::toDto)
                 .toList();
@@ -98,13 +120,19 @@ public class ProductService implements ProductUseCase {
     public void deleteProduct(UUID id) {
         var existing = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+
+        if (hasStockMovements(id)) {
+            throw new ProductConflictException("Cannot deactivate product — referenced in stock movements: " + id);
+        }
+
+        UUID inactiveStatusId = getInactiveStatusId();
         var deactivated = Product.builder()
                 .id(existing.getId())
                 .code(existing.getCode())
                 .name(existing.getName())
                 .productTypeId(existing.getProductTypeId())
                 .unitId(existing.getUnitId())
-                .productStatusId(null)
+                .productStatusId(inactiveStatusId)
                 .version(existing.getVersion())
                 .createdAt(existing.getCreatedAt())
                 .createdBy(existing.getCreatedBy())
@@ -112,5 +140,27 @@ public class ProductService implements ProductUseCase {
                 .updatedBy(existing.getUpdatedBy())
                 .build();
         productRepository.update(deactivated);
+    }
+
+    private boolean hasStockMovements(UUID productId) {
+        return ctx.fetchExists(
+                ctx.selectFrom(STOCK_MOVEMENTS)
+                        .where(STOCK_MOVEMENTS.PRODUCT_ID.eq(productId)));
+    }
+
+    private UUID getActiveStatusId() {
+        return ctx.select(PRODUCT_STATUSES.ID)
+                .from(PRODUCT_STATUSES)
+                .where(PRODUCT_STATUSES.NAME.eq("ACTIVE"))
+                .fetchOptionalInto(UUID.class)
+                .orElseThrow(() -> new IllegalStateException("ACTIVE status not found in product_statuses"));
+    }
+
+    private UUID getInactiveStatusId() {
+        return ctx.select(PRODUCT_STATUSES.ID)
+                .from(PRODUCT_STATUSES)
+                .where(PRODUCT_STATUSES.NAME.eq("INACTIVE"))
+                .fetchOptionalInto(UUID.class)
+                .orElseThrow(() -> new IllegalStateException("INACTIVE status not found in product_statuses"));
     }
 }
