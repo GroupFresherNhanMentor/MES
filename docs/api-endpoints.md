@@ -850,7 +850,7 @@
 ### POST `/quality-inspections/{inspectionId}/pass`
 > **Roles:** `ADMIN` · `QC_INSPECTOR`
 > **QC status:** `PENDING_INSPECTION → PASSED`  
-> **Stock:** `QUALITY_INSPECTION → AVAILABLE`, tạo movement `QC_PASS`
+> **Stock:** `QUALITY_INSPECTION → AVAILABLE`, tạo movement `QC_RELEASE`
 
 **Request body:**
 ```json
