@@ -9,6 +9,7 @@ import fpt.qn.mes.master.line.application.dto.request.UpdateLineRequest;
 
 public interface LineUseCase {
     PageResponse<ProductionLineDto> getLines(int page, int size);
+    PageResponse<ProductionLineDto> getLinesByStatus(int page, int size, UUID statusId);
     ProductionLineDto getLineById(UUID id);
     ProductionLineDto createLine(CreateLineRequest request, UUID currentUserId);
     ProductionLineDto updateLine(UUID id, UpdateLineRequest request, UUID currentUserId);

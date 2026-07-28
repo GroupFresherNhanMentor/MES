@@ -26,9 +26,34 @@ public class LocationPersistenceAdapter extends BaseRepository<WarehouseLocation
         super(ctx, WAREHOUSE_LOCATIONS); this.mapper = mapper;
     }
 
-    @Override public Optional<WarehouseLocation> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public List<WarehouseLocation> findByWarehouseId(UUID warehouseId) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public WarehouseLocation save(WarehouseLocation l) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public WarehouseLocation update(WarehouseLocation l) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public void deleteById(UUID id) {}
+    @Override
+    public Optional<WarehouseLocation> findById(UUID id) {
+        return fetchById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public List<WarehouseLocation> findByWarehouseId(UUID warehouseId) {
+        return ctx.selectFrom(WAREHOUSE_LOCATIONS)
+                .where(WAREHOUSE_LOCATIONS.WAREHOUSE_ID.eq(warehouseId))
+                .fetch().stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    public WarehouseLocation save(WarehouseLocation location) {
+        return mapper.toDomain(create(mapper.toRecord(location)));
+    }
+
+    @Override
+    public WarehouseLocation update(WarehouseLocation location) {
+        return mapper.toDomain(update(mapper.toRecord(location)));
+    }
+
+    @Override
+    public void deleteById(UUID id) {}
+
+    public boolean existsByWarehouseIdAndCode(UUID warehouseId, String code) {
+        return ctx.fetchExists(ctx.selectFrom(WAREHOUSE_LOCATIONS)
+                .where(WAREHOUSE_LOCATIONS.WAREHOUSE_ID.eq(warehouseId))
+                .and(WAREHOUSE_LOCATIONS.CODE.eq(code)));
+    }
 }
