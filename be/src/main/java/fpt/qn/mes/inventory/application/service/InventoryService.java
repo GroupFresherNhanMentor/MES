@@ -27,6 +27,9 @@ import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
+import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
+import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -40,6 +43,9 @@ public class InventoryService implements InventoryUseCase {
     StockMovementRepository movementRepository;
     StockBalanceRepository balanceRepository;
     InventoryDtoMapper mapper;
+    WarehouseUseCase warehouseUseCase;
+    ProductUseCase productUseCase;
+    LocationUseCase locationUseCase;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,6 +95,13 @@ public class InventoryService implements InventoryUseCase {
     public StockMovementDto recordMovement(CreateMovementRequest request, UUID currentUserId) {
         if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InsufficientStockException("Movement quantity must be positive");
+        }
+
+        // Validate FK references — each getXxxById() throws NotFoundException if absent
+        warehouseUseCase.getWarehouseById(request.getWarehouseId());
+        productUseCase.getProductById(request.getProductId());
+        if (request.getLocationId() != null) {
+            locationUseCase.getLocationById(request.getLocationId());
         }
 
         Optional<StockBalance> optBalance = balanceRepository.findForUpdate(

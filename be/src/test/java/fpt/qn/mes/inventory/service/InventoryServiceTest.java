@@ -38,6 +38,9 @@ import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
+import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
+import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -53,6 +56,15 @@ class InventoryServiceTest {
 
     @Mock
     InventoryDtoMapper mapper;
+
+    @Mock
+    WarehouseUseCase warehouseUseCase;
+
+    @Mock
+    ProductUseCase productUseCase;
+
+    @Mock
+    LocationUseCase locationUseCase;
 
     @InjectMocks
     InventoryService inventoryService;
