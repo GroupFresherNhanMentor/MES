@@ -1,0 +1,132 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Create BOM Header API",
+    "version": "1.0.0",
+    "description": "API contract for creating a Bill of Materials header in MES"
+  },
+  "paths": {
+    "/api/boms": {
+      "post": {
+        "summary": "Create a new BOM Header",
+        "operationId": "createBom",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBomRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "BOM Header created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponseBomDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or invalid product type"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Target product not found"
+          },
+          "409": {
+            "description": "Version conflict - BOM version already exists for this product"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateBomRequest": {
+        "type": "object",
+        "required": [
+          "finishedProductId",
+          "version"
+        ],
+        "properties": {
+          "finishedProductId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the finished or semi-finished product"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "BOM version number (must be >= 1)"
+          }
+        }
+      },
+      "BomDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "finishedProductId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "bomStatusId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "ApiResponseBomDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/BomDto"
+          },
+          "message": {
+            "type": "string",
+            "example": "Created"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

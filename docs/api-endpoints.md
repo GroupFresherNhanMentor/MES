@@ -503,7 +503,7 @@
 ## 10. BOM — Bill of Materials
 
 ### GET `/boms`
-> **Roles:** `ADMIN` · `PLANNER` · `FACTORY_MANAGER`
+> **Roles:** `ADMIN` · `PLANNER` · `FACTORY_MANAGER` · `OPERATOR` · `QC_INSPECTOR`
 
 **Query params:** `page` · `size`
 
@@ -515,32 +515,35 @@
 ---
 
 ### GET `/boms/{id}`
-> **Roles:** `ADMIN` · `PLANNER` · `FACTORY_MANAGER`
+> **Roles:** `ADMIN` · `PLANNER` · `FACTORY_MANAGER` · `OPERATOR` · `QC_INSPECTOR`
 
 **Response `200`:** `BomDto` (includes `items`)
 
 ---
 
 ### POST `/boms`
-> **Roles:** `ADMIN` · `PLANNER`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-001` — Create BOM Header (Status: `DRAFT`)
 
 **Request body:**
 ```json
-{ "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid" }
+{ "finishedProductId": "uuid", "version": 1 }
 ```
 **Response `201`:** `BomDto`
 
 ---
 
-### DELETE `/boms/{id}`
-> **Roles:** `ADMIN` · `PLANNER`
+### POST `/boms/{id}/activate`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
 
-**Response `200`:** no data
+**Response `200`:** `BomDto`
 
 ---
 
 ### POST `/boms/{bomId}/items`
-> **Roles:** `ADMIN` · `PLANNER`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
 
 **Request body:**
 ```json
@@ -551,7 +554,8 @@
 ---
 
 ### DELETE `/boms/{bomId}/items/{itemId}`
-> **Roles:** `ADMIN` · `PLANNER`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
 
 **Response `200`:** no data
 
@@ -968,6 +972,7 @@
 
 ---
 
+
 ## Role × Endpoint Matrix
 
 | Module | `ADMIN` | `WH_MGR` | `PLANNER` | `OPERATOR` | `QC` | `MAINT` | `MGR` | `AUDITOR` |
@@ -979,7 +984,7 @@
 | Locations | CRUD | CRU | R | — | — | — | R | R |
 | Machines | CRUD | — | R | R | — | RU | R | — |
 | Production Lines | CRUD | — | R | R | — | R | R | — |
-| BOM | CRUD | — | CRUD | — | — | — | R | — |
+| BOM | CRU | — | CRU | R | R | — | R | — |
 | Stock Lots | CRUD | CRU | R | — | R | — | R | R |
 | Stock Balances | R | R | R | — | — | — | R | R |
 | Stock Movements | CRUD | CRU | R | — | — | — | R | R |
