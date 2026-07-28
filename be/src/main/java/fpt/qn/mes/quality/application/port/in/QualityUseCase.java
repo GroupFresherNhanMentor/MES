@@ -1,5 +1,6 @@
 package fpt.qn.mes.quality.application.port.in;
 
+import java.util.List;
 import java.util.UUID;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
@@ -11,6 +12,14 @@ public interface QualityUseCase {
     QualityInspectionDto getInspectionById(UUID id);
     QualityInspectionDto createInspection(CreateQualityInspectionRequest request);
     void deleteInspection(UUID id);
-    PageResponse<QualityInspectionResultDto> getResults(UUID inspectionId, int page, int size);
-    QualityInspectionResultDto addResult(UUID inspectionId, CreateInspectionResultRequest request);
+
+    PassQcResponse passInspection(UUID inspectionId, PassQcRequest request);
+    FailQcResponse failInspection(UUID inspectionId, FailQcRequest request);
+
+    List<QcStatusDto> getQcStatuses();
+    QcStatusDto createQcStatus(CreateLookupRequest request);
+    List<QcActionDto> getQcActions();
+    QcActionDto createQcAction(CreateLookupRequest request);
+    List<DefectTypeDto> getDefectTypes();
+    DefectTypeDto createDefectType(CreateDefectTypeRequest request);
 }
