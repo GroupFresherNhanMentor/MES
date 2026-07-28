@@ -12,6 +12,8 @@ import fpt.qn.mes.bom.application.dto.response.BomDto;
 import fpt.qn.mes.bom.application.dto.response.BomItemDto;
 import fpt.qn.mes.bom.application.exception.BomAlreadyExistsException;
 import fpt.qn.mes.bom.application.exception.BomNotFoundException;
+import fpt.qn.mes.bom.application.exception.EmptyBomException;
+import fpt.qn.mes.bom.application.exception.InvalidBomStatusException;
 import fpt.qn.mes.bom.application.mapper.BomDtoMapper;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
 import fpt.qn.mes.bom.domain.entities.Bom;
@@ -93,7 +95,41 @@ public class BomService implements BomUseCase {
     @Override
     @Transactional
     public BomDto activateBom(UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        // 1. Fetch target BOM
+        Bom bom = bomRepository.findById(id)
+                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
+
+        // 2. Resolve status IDs
+        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        UUID activeStatusId = bomRepository.findStatusIdByName("ACTIVE")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+        UUID inactiveStatusId = bomRepository.findStatusIdByName("INACTIVE")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+
+        // 3. Validate status is DRAFT
+        if (!draftStatusId.equals(bom.getBomStatusId())) {
+            throw new InvalidBomStatusException("Only DRAFT BOMs can be activated");
+        }
+
+        // 4. Validate BOM contains items (> 0)
+        int itemCount = bomRepository.countItemsByBomId(id);
+        if (itemCount == 0 && (bom.getItems() == null || bom.getItems().isEmpty())) {
+            throw new EmptyBomException("Cannot activate an empty BOM (must contain at least 1 item)");
+        }
+
+        // 5. Deactivate any existing ACTIVE BOM for this product
+        bomRepository.deactivateActiveBomsForProduct(
+                bom.getFinishedProductId(),
+                activeStatusId,
+                inactiveStatusId
+        );
+
+        // 6. Transition target BOM to ACTIVE
+        bom.updateStatus(activeStatusId);
+        Bom savedBom = bomRepository.save(bom);
+
+        return mapper.toDto(savedBom);
     }
 
     @Override

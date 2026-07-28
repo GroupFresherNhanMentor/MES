@@ -100,6 +100,23 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
     }
 
     @Override
+    public void deactivateActiveBomsForProduct(UUID finishedProductId, UUID activeStatusId, UUID inactiveStatusId) {
+        dslCtx.update(BOMS)
+                .set(BOMS.BOM_STATUS_ID, inactiveStatusId)
+                .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
+                .and(BOMS.BOM_STATUS_ID.eq(activeStatusId))
+                .execute();
+    }
+
+    @Override
+    public int countItemsByBomId(UUID bomId) {
+        return dslCtx.fetchCount(
+                dslCtx.selectFrom(BOM_ITEMS)
+                        .where(BOM_ITEMS.BOM_ID.eq(bomId))
+        );
+    }
+
+    @Override
     public BomItem saveItem(BomItem item) {
         BomItemsRecord record = mapper.toRecord(item);
         dslCtx.insertInto(BOM_ITEMS)

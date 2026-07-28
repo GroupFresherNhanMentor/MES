@@ -2,6 +2,9 @@
 __pycache__/
 *.pyc
 
+# SpecKit Local Working State
+.specify/feature.json
+
 # Maven & Build output
 **/target/
 *.class

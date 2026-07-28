@@ -60,7 +60,7 @@ public class BomController {
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     public ResponseEntity<ApiResponse<BomDto>> activateBom(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(bomUseCase.activateBom(id), "OK"));
     }
 
     @PostMapping("/{bomId}/items")
