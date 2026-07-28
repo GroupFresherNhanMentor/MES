@@ -74,14 +74,14 @@ public class MaintenancePersistenceAdapter extends BaseRepository<MaintenanceTic
         return dslCtx.selectFrom(MAINTENANCE_TICKETS)
                 .where(MAINTENANCE_TICKETS.ID.eq(ticketId))
                 .fetchOptional()
-                .map(recordMapper::toDomain);
+                .map(mapper::toDomain);
     }
 
     @Override
-    public Optional<UUID> findStatusIdByCode(String statusCode) {
+    public Optional<UUID> findStatusIdByCode(String statusName) {
         return dslCtx.select(MAINTENANCE_TICKET_STATUSES.ID)
                 .from(MAINTENANCE_TICKET_STATUSES)
-                .where(MAINTENANCE_TICKET_STATUSES.CODE.eq(statusCode))
+                .where(MAINTENANCE_TICKET_STATUSES.NAME.eq(statusName))
                 .fetchOptionalInto(UUID.class);
     }
 
@@ -93,7 +93,6 @@ public class MaintenancePersistenceAdapter extends BaseRepository<MaintenanceTic
                 .execute();
     }
 
-    @Override public Optional<MaintenanceTicket> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public MaintenanceTicket save(MaintenanceTicket t) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public MaintenanceTicket update(MaintenanceTicket t) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public void deleteById(UUID id) {}
