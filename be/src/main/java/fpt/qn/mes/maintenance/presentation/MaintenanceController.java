@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -21,8 +23,8 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.maintenance.application.dto.request.CreateDowntimeRequest;
 import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
-import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeResponse;
-import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
+import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeDto;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketDto;
 import fpt.qn.mes.maintenance.application.dto.request.UpdateMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.port.in.MaintenanceUseCase;
 import jakarta.validation.Valid;
@@ -39,24 +41,38 @@ public class MaintenanceController {
     MaintenanceUseCase maintenanceUseCase;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<MaintenanceTicketResponse>>> getAll(
+    public ResponseEntity<ApiResponse<PageResponse<MaintenanceTicketDto>>> getAll(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<MaintenanceTicketResponse>> getById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<MaintenanceTicketDto>> getById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<MaintenanceTicketResponse>> create(
-            @Valid @RequestBody CreateMaintenanceTicketRequest req, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<MaintenanceTicketDto>> create(
+            @Valid @RequestBody CreateMaintenanceTicketRequest req) {
+        MaintenanceTicketDto ticketDto = maintenanceUseCase.createTicket(req);
+        ApiResponse<MaintenanceTicketDto> response = ApiResponse.success(ticketDto, "Tạo ticket bảo trì thành công.");
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{id}/cancle")
+    @Operation(summary = "Hủy vé bảo trì", description = "Chuyển trạng thái ticket sang CANCELLED (Chỉ áp dụng cho ticket đang ở trạng thái OPEN)")
+    public ResponseEntity<ApiResponse<Void>> cancelTicket(@PathVariable("id") UUID ticketId) {
+
+        // Gọi xuống Application Service để xử lý logic kiểm tra trạng thái và cập nhật DB
+        maintenanceUseCase.cancelTicket(ticketId);
+
+        // Trả về response cấu trúc chuẩn thông qua Factory Method của ApiResponse
+        return ResponseEntity.ok(ApiResponse.success(null, "Hủy ticket thành công"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<MaintenanceTicketResponse>> update(
+    public ResponseEntity<ApiResponse<MaintenanceTicketDto>> update(
             @PathVariable UUID id, @RequestBody UpdateMaintenanceTicketRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -67,14 +83,14 @@ public class MaintenanceController {
     }
 
     @GetMapping("/{ticketId}/downtime")
-    public ResponseEntity<ApiResponse<PageResponse<MachineDowntimeResponse>>> getDowntimes(
+    public ResponseEntity<ApiResponse<PageResponse<MachineDowntimeDto>>> getDowntimes(
             @PathVariable UUID ticketId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/{ticketId}/downtime")
-    public ResponseEntity<ApiResponse<MachineDowntimeResponse>> addDowntime(
+    public ResponseEntity<ApiResponse<MachineDowntimeDto>> addDowntime(
             @PathVariable UUID ticketId, @Valid @RequestBody CreateDowntimeRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }

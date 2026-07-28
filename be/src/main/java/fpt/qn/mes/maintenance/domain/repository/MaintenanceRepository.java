@@ -15,4 +15,10 @@ public interface MaintenanceRepository {
 
     MachineDowntime saveDowntime(MachineDowntime downtime);
     PaginationResult<MachineDowntime> findDowntimesByTicketId(UUID ticketId, int page, int size);
+    Optional<UUID> findStatusIdByName(String statusName);
+    void updateMachineStatus(UUID machineId, UUID statusId);
+    Optional<UUID> findStatusIdByTicketId(UUID ticketId);
+    void updateTicketStatus(UUID ticketId, UUID statusId);
+    Optional<UUID> findStatusIdByCode(String statusCode);
+    void saveStatus(UUID ticketId, UUID statusId);
 }
