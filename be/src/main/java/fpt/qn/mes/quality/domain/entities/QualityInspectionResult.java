@@ -19,13 +19,24 @@ public class QualityInspectionResult {
     BigDecimal quantity;
     UUID defectTypeId;
     String reason;
-    String action;
+    UUID actionId;
     UUID inspectorId;
     Instant inspectedAt;
     String note;
 
     public static QualityInspectionResult create(UUID inspectionId, Boolean isPass, BigDecimal quantity,
-            UUID defectTypeId, String reason, String action, UUID inspectorId, String note) {
-        throw new UnsupportedOperationException("Not implemented");
+            UUID defectTypeId, String reason, UUID actionId, UUID inspectorId, String note) {
+        return QualityInspectionResult.builder()
+            .id(UUID.randomUUID())
+            .inspectionId(inspectionId)
+            .isPass(isPass)
+            .quantity(quantity)
+            .defectTypeId(defectTypeId)
+            .reason(reason)
+            .actionId(actionId)
+            .inspectorId(inspectorId)
+            .inspectedAt(Instant.now())
+            .note(note)
+            .build();
     }
 }

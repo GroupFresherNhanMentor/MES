@@ -15,4 +15,19 @@ public interface QualityInspectionRepository {
 
     QualityInspectionResult saveResult(QualityInspectionResult result);
     PaginationResult<QualityInspectionResult> findResultsByInspectionId(UUID inspectionId, int page, int size);
+
+    /**
+     * Compute the sum of all result quantities for a given inspection.
+     */
+    java.math.BigDecimal sumResultQuantities(UUID inspectionId);
+
+    /**
+     * Update the inspection's qc_status_id.
+     */
+    void updateStatus(UUID inspectionId, UUID newStatusId);
+
+    /**
+     * Find the number of results for an inspection.
+     */
+    int countResults(UUID inspectionId);
 }

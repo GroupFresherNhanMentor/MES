@@ -2,6 +2,7 @@ package fpt.qn.mes.quality.domain.entities;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +25,29 @@ public class QualityInspection {
     List<QualityInspectionResult> results;
 
     public static QualityInspection create(UUID workOrderId, UUID productId, UUID lotId, BigDecimal quantity, UUID qcStatusId) {
-        throw new UnsupportedOperationException("Not implemented");
+        return QualityInspection.builder()
+            .id(UUID.randomUUID())
+            .workOrderId(workOrderId)
+            .productId(productId)
+            .lotId(lotId)
+            .quantity(quantity)
+            .qcStatusId(qcStatusId)
+            .createdAt(Instant.now())
+            .results(new ArrayList<>())
+            .build();
+    }
+
+    public BigDecimal getRemainingQuantity() {
+        if (results == null || results.isEmpty()) {
+            return quantity;
+        }
+        BigDecimal processed = results.stream()
+            .map(r -> r.getQuantity())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return quantity.subtract(processed);
+    }
+
+    public boolean isFullyProcessed() {
+        return getRemainingQuantity().compareTo(BigDecimal.ZERO) <= 0;
     }
 }
