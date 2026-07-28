@@ -33,4 +33,8 @@ public class Bom {
                 .items(new ArrayList<>())
                 .build();
     }
+
+    public void updateStatus(UUID newStatusId) {
+        this.bomStatusId = newStatusId;
+    }
 }

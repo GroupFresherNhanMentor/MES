@@ -13,6 +13,8 @@ public interface BomRepository {
     PaginationResult<Bom> findAll(int page, int size);
     boolean existsByFinishedProductIdAndVersion(UUID finishedProductId, Integer version);
     Optional<UUID> findStatusIdByName(String name);
+    void deactivateActiveBomsForProduct(UUID finishedProductId, UUID activeStatusId, UUID inactiveStatusId);
+    int countItemsByBomId(UUID bomId);
     BomItem saveItem(BomItem item);
     Optional<BomItem> findItemById(UUID itemId);
     void deleteItemById(UUID itemId);

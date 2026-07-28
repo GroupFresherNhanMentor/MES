@@ -1,0 +1,88 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Activate BOM API",
+    "version": "1.0.0",
+    "description": "API contract for activating a draft Bill of Materials header."
+  },
+  "paths": {
+    "/api/boms/{id}/activate": {
+      "post": {
+        "summary": "Activate a draft BOM",
+        "operationId": "activateBom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "BOM unique identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "BOM activated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "finishedProductId": { "type": "string", "format": "uuid" },
+                        "version": { "type": "integer", "example": 1 },
+                        "bomStatusId": { "type": "string", "format": "uuid" },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": { "type": "string", "format": "date-time" }
+                      }
+                    },
+                    "message": { "type": "string", "example": "OK" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (Empty BOM or invalid status transition)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "errorCode": { "type": "string", "example": "INVALID_INPUT" },
+                    "message": { "type": "string", "example": "Cannot activate an empty BOM" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "BOM not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "errorCode": { "type": "string", "example": "NOT_FOUND" },
+                    "message": { "type": "string", "example": "BOM not found: 123e4567-e89b-12d3-a456-426614174000" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
