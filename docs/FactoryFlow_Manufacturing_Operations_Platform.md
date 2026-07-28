@@ -373,7 +373,6 @@ Mọi thay đổi tồn kho phải tạo stock movement.
 - CONSUME_IN_PRODUCTION
 - PRODUCTION_OUTPUT
 - QC_HOLD
-- QC_RELEASE
 - SCRAP
 - ADJUSTMENT
 - SHIP_OUT
@@ -603,20 +602,28 @@ Operator có thể hoàn thành Work Order.
 Sau khi Work Order completed, hệ thống phải tự tạo QC inspection.
 
 **QC inspection gồm:**
-- id, workOrderId, finishedProductId, lotId, quantity, status, createdAt
+- id, workOrderId, productId, lotId, quantity, status, createdAt
 
-**QC status:**
-- PENDING_INSPECTION
-- PASSED
-- FAILED
-- ON_HOLD
-- REWORK_REQUIRED
-- SCRAPPED
+**QC status (6 giá trị):**
+- `PENDING_INSPECTION` — Chờ kiểm tra (initial)
+- `PASSED` — Đạt QC, hàng chuyển AVAILABLE
+- `FAILED` — Không đạt QC
+- `ON_HOLD` — Hàng đang giữ để điều tra
+- `REWORK_REQUIRED` — Hàng cần làm lại
+- `SCRAPPED` — Hàng đã loại bỏ
+
+**Stock status liên quan:**
+- `QUALITY_INSPECTION` — Hàng chờ QC
+- `AVAILABLE` — Hàng đã pass QC, sẵn sàng
+- `ON_HOLD` — Hàng đang giữ
+- `SCRAPPED` — Hàng đã loại bỏ
 
 **Business rule:**
 - Finished goods sau production output mặc định ở trạng thái QUALITY_INSPECTION.
-- Hàng chưa QC PASSED không được chuyển AVAILABLE.
-- Hàng chưa QC PASSED không được ship out.
+- Hàng ở QUALITY_INSPECTION không được chuyển AVAILABLE trừ khi QC pass.
+- Hàng ở QUALITY_INSPECTION không được ship out.
+- Mỗi inspection có `quantity` (tổng số). Số lượng còn lại chưa xử lý = quantity − sum(pass qty) − sum(SCRAP qty) − sum(HOLD qty). (fail action=REWORK không count vì stock không đổi)
+- inspection giữ PENDING_INSPECTION cho tới khi quantity đã xử lý (pass + SCRAP + HOLD) = quantity. Khi đó: nếu tất cả pass → PASSED; nếu có fail → FAILED.
 
 #### FR-QC-002 — Pass QC
 QC Inspector có thể pass QC.
@@ -626,32 +633,65 @@ QC Inspector có thể pass QC.
 
 **Business rule:**
 - passedQuantity phải > 0.
-- passedQuantity không được vượt quantity inspection.
-- Pass QC chuyển stock từ QUALITY_INSPECTION sang AVAILABLE.
-- Tạo movement QC_RELEASE.
+- passedQuantity không được vượt số lượng còn lại: quantity − sum(pass) − sum(SCRAP) − sum(HOLD).
+- Pass QC chuyển stock từ QUALITY_INSPECTION sang AVAILABLE với số lượng = passedQuantity.
+- Tạo movement QC_PASS.
+- Mỗi lần pass ghi 1 dòng `quality_inspection_results` với `isPass = true`.
+
+**API:** `POST /api/quality-inspections/{inspectionId}/pass`
 
 **Acceptance criteria:**
-- Given 100 finished goods đang QUALITY_INSPECTION, When QC pass 95, Then 95 chuyển AVAILABLE And movement QC_RELEASE được tạo.
+- Given 100 finished goods đang QUALITY_INSPECTION, When QC pass 95, Then 95 chuyển AVAILABLE And movement QC_PASS được tạo.
 
 #### FR-QC-003 — Fail QC
 QC Inspector có thể fail QC.
 
 **Input:**
-- inspectionId, failedQuantity, defectType, reason, action
+- inspectionId, failedQuantity, action, defectTypeId, reason, note
 
-**Action:**
-- HOLD
-- REWORK
-- SCRAP
+**Action (3 giá trị):**
+- `SCRAP` — Hàng lỗi nặng, loại bỏ vĩnh viễn
+- `HOLD` — Cần điều tra thêm, giữ hàng lại
+- `REWORK` — Có thể sửa, quay về chờ QC kiểm tra lại
 
 **Business rule:**
-- Fail QC phải có defectType và reason.
-- Nếu HOLD, stock chuyển ON_HOLD.
-- Nếu SCRAP, stock chuyển SCRAPPED.
-- Nếu REWORK, tạo trạng thái REWORK_REQUIRED.
+- Fail QC bắt buộc có `defectTypeId` và `reason`.
+- `failedQuantity` > 0 và ≤ quantity − sum(pass) − sum(SCRAP) − sum(HOLD) (REWORK không count vào remaining).
+- Mỗi lần fail ghi 1 dòng `quality_inspection_results` với `isPass = false`.
 
-**Acceptance criteria:**
+**Stock transition theo action:**
+
+| Action | Stock transition | Movement | QC status |
+|--------|-----------------|----------|-----------|
+| SCRAP  | QUALITY_INSPECTION → SCRAPPED | SCRAP | FAILED |
+| HOLD   | QUALITY_INSPECTION → ON_HOLD  | QC_HOLD | ON_HOLD |
+| REWORK | QUALITY_INSPECTION → QUALITY_INSPECTION *(giữ nguyên)* | *(không tạo)* | REWORK_REQUIRED |
+
+**API:** `POST /api/quality-inspections/{inspectionId}/fail`
+
+**Acceptance criteria (SCRAP):**
 - Given QC fail 5 sản phẩm với action SCRAP, Then 5 sản phẩm chuyển SCRAPPED And movement SCRAP được tạo And defect reason được lưu.
+
+**Acceptance criteria (REWORK):**
+- Given QC fail 5 sản phẩm với action REWORK, Then stock giữ QUALITY_INSPECTION And QC chờ kiểm tra lại after rework.
+
+#### FR-QC-004 — QC Status & Action Management (Master Data)
+
+Hệ thống cho phép quản lý danh mục QC statuses, QC actions, và defect types.
+
+**QC Statuses:** `PENDING, PASSED, FAILED, ON_HOLD`
+**QC Actions:** `HOLD, REWORK, SCRAP`
+**Defect Types:** 10 loại (SCRATCH, DIMENSION_ERROR, WEIGHT_ERROR, COLOR_DEFECT, CRACK, CONTAMINATION, FUNCTIONAL_FAIL, ASSEMBLY_ERROR, LABEL_ERROR, OTHER)
+
+**API:**
+- `GET/POST /api/quality-inspections/statuses` — List/Create
+- `PUT/DELETE /api/quality-inspections/statuses/{id}` — Update/Delete
+- `GET/POST /api/quality-inspections/actions` — List/Create
+- `PUT/DELETE /api/quality-inspections/actions/{id}` — Update/Delete
+- `GET/POST /api/quality-inspections/defect-types` — List/Create
+- `PUT/DELETE /api/quality-inspections/defect-types/{id}` — Update/Delete
+
+**Roles:** `ADMIN` được CRUD; các role khác read-only. Chi tiết: [`docs/api-spec/QC/api.md`](docs/api-spec/QC/api.md)
 
 ### 5.10. Maintenance Management
 
@@ -763,7 +803,6 @@ Hệ thống phải ghi audit log cho các action quan trọng:
 - QC_PASS
 - QC_FAIL
 - QC_HOLD
-- QC_RELEASE
 - SCRAP_STOCK
 - CREATE_MAINTENANCE_TICKET
 - START_MAINTENANCE
@@ -963,11 +1002,15 @@ Angular UI chỉ cần đơn giản, không yêu cầu đẹp.
 ### QC
 - `GET /api/quality-inspections`
 - `GET /api/quality-inspections/{id}`
-- `POST /api/quality-inspections/{id}/pass`
-- `POST /api/quality-inspections/{id}/fail`
-- `POST /api/quality-inspections/{id}/hold`
-- `POST /api/quality-inspections/{id}/release`
-- `POST /api/quality-inspections/{id}/scrap`
+- `POST /api/quality-inspections`
+- `POST /api/quality-inspections/{inspectionId}/pass`
+- `POST /api/quality-inspections/{inspectionId}/fail`
+- `GET /api/quality-inspections/statuses`
+- `POST /api/quality-inspections/statuses`
+- `GET /api/quality-inspections/actions`
+- `POST /api/quality-inspections/actions`
+- `GET /api/quality-inspections/defect-types`
+- `POST /api/quality-inspections/defect-types`
 
 ### Maintenance
 - `POST /api/maintenance-tickets`
@@ -1084,7 +1127,7 @@ Nhóm phải demo được flow sau:
 **TC-008 — QC pass chuyển stock available**
 - Given 95 finished goods đang QUALITY_INSPECTION
 - When QC Inspector pass 95
-- Then 95 finished goods chuyển AVAILABLE And movement QC_RELEASE được tạo
+- Then 95 finished goods chuyển AVAILABLE And movement QC_PASS được tạo
 
 ---
 
@@ -1116,7 +1159,7 @@ Nên có để đạt mức khá:
 - BOM versioning
 - Machine double-booking prevention
 - Stock transfer
-- QC hold/release/scrap
+- QC pass/fail/hold/rework/scrap
 - Material shortage report
 - Machine downtime report
 - Swagger đầy đủ

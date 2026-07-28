@@ -1,0 +1,5 @@
+[
+  { "name": "HOLD",   "description": "Hold the lot for further investigation" },
+  { "name": "REWORK", "description": "Send the lot back for rework" },
+  { "name": "SCRAP",  "description": "Scrap the defective lot" }
+]

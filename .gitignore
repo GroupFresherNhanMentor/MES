@@ -1,4 +1,25 @@
-# .sisyphus/
-# .specify/
-# __pycache__/
-# *.pyc
+# Python & SpecKit Scripts
+__pycache__/
+*.pyc
+
+# Maven & Build output
+**/target/
+*.class
+
+# IDE & Editors
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+*.settings/
+
+# AI Tooling Local State & Logs
+.gemini/
+.claude/
+.opencode/
+*.log
+
+# OS Junk
+.DS_Store
+Thumbs.db
