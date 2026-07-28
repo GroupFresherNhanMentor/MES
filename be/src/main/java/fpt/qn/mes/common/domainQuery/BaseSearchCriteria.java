@@ -1,4 +1,7 @@
-package fpt.qn.mes.common.dto;
+package fpt.qn.mes.common.domainQuery;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -22,4 +25,7 @@ public abstract class BaseSearchCriteria {
 
     @Builder.Default
     int size = 20;
+
+    @Builder.Default
+    List<String> sort = new ArrayList<>();
 }

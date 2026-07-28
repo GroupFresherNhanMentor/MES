@@ -4,14 +4,17 @@ import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.SortField;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
@@ -22,6 +25,14 @@ import lombok.experimental.FieldDefaults;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StockMovementPersistenceAdapter extends BaseRepository<StockMovementsRecord> implements StockMovementRepository {
+
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "createdAt",   STOCK_MOVEMENTS.CREATED_AT,
+            "quantity",    STOCK_MOVEMENTS.QUANTITY,
+            "referenceNo", STOCK_MOVEMENTS.REFERENCE_NO
+    );
+
+    private static final Field<?> DEFAULT_SORT_FIELD = STOCK_MOVEMENTS.CREATED_AT;
 
     InventoryRecordMapper mapper;
 
@@ -68,12 +79,14 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
         int page = criteria.getPage();
         int size = criteria.getSize();
 
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+
         return ctx.selectFrom(STOCK_MOVEMENTS)
                 .where(conditions)
-                .orderBy(STOCK_MOVEMENTS.CREATED_AT.desc())
+                .orderBy(orderBy)
                 .limit(size)
                 .offset(page * size)
                 .fetch()
-                .map(mapper::toDomain);
+                .map(r -> mapper.toDomain(r));
     }
 }

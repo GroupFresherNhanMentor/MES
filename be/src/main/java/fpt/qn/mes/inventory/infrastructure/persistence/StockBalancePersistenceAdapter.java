@@ -4,14 +4,17 @@ import static fpt.qn.mes.jooq.Tables.STOCK_BALANCES;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.SortField;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
@@ -24,6 +27,13 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StockBalancePersistenceAdapter implements StockBalanceRepository {
+
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "createdAt", STOCK_BALANCES.CREATED_AT,
+            "quantity",  STOCK_BALANCES.QUANTITY
+    );
+
+    private static final Field<?> DEFAULT_SORT_FIELD = STOCK_BALANCES.CREATED_AT;
 
     DSLContext ctx;
     InventoryRecordMapper mapper;
@@ -95,12 +105,15 @@ public class StockBalancePersistenceAdapter implements StockBalanceRepository {
         int page = criteria.getPage();
         int size = criteria.getSize();
 
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+
         return ctx.selectFrom(STOCK_BALANCES)
                 .where(conditions)
-                .orderBy(STOCK_BALANCES.UPDATED_AT.desc())
+                .orderBy(orderBy)
                 .limit(size)
                 .offset(page * size)
                 .fetch()
-                .map(mapper::toDomain);
+                .map(r -> mapper.toDomain(r));
     }
+
 }
