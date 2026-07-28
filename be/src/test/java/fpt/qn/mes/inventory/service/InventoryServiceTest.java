@@ -21,7 +21,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
@@ -36,7 +35,9 @@ import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
+import fpt.qn.mes.inventory.domain.repository.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
+import fpt.qn.mes.inventory.domain.repository.StockMovementSearchCriteria;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
@@ -234,9 +235,15 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
-        PaginationResult<StockMovement> paginationResult = new PaginationResult<>(1L, List.of(movement));
+        PageResponse<StockMovement> pageResponse = PageResponse.<StockMovement>builder()
+                .items(List.of(movement))
+                .totalElements(1L)
+                .totalPages(1)
+                .pageNumber(0)
+                .pageSize(10)
+                .build();
 
-        when(movementRepository.findAll(0, 10)).thenReturn(paginationResult);
+        when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(pageResponse);
         when(mapper.toDto(movement)).thenReturn(dto);
 
         PageResponse<StockMovementDto> response = inventoryService.getMovements(0, 10);

@@ -1,0 +1,9 @@
+target/
+*.class
+*.jar
+.idea/
+.vscode/
+*.log
+.DS_Store
+.specify/scripts/python/__pycache__/
+.specify/feature.json

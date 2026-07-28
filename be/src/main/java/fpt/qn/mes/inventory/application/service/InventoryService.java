@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
@@ -25,7 +24,9 @@ import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
+import fpt.qn.mes.inventory.domain.repository.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
+import fpt.qn.mes.inventory.domain.repository.StockMovementSearchCriteria;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -43,18 +44,12 @@ public class InventoryService implements InventoryUseCase {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<StockLotDto> getStockLots(int page, int size) {
-        PaginationResult<StockLot> result = lotRepository.findAll(page, size);
-        List<StockLotDto> content = result.getItems().stream()
-                .map(mapper::toDto)
-                .toList();
-        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
-        return PageResponse.<StockLotDto>builder()
-                .items(content)
-                .totalElements(result.getTotal())
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
+        StockLotSearchCriteria criteria = StockLotSearchCriteria.builder()
+                .page(page)
+                .size(size)
                 .build();
+        PageResponse<StockLot> result = lotRepository.search(criteria);
+        return result.map(mapper::toDto);
     }
 
     @Override
@@ -81,18 +76,12 @@ public class InventoryService implements InventoryUseCase {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<StockMovementDto> getMovements(int page, int size) {
-        PaginationResult<StockMovement> result = movementRepository.findAll(page, size);
-        List<StockMovementDto> content = result.getItems().stream()
-                .map(mapper::toDto)
-                .toList();
-        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
-        return PageResponse.<StockMovementDto>builder()
-                .items(content)
-                .totalElements(result.getTotal())
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
+        StockMovementSearchCriteria criteria = StockMovementSearchCriteria.builder()
+                .page(page)
+                .size(size)
                 .build();
+        PageResponse<StockMovement> result = movementRepository.search(criteria);
+        return result.map(mapper::toDto);
     }
 
     @Override
