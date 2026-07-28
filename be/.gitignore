@@ -31,3 +31,11 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Tooling logs & runtime states ###
+.sisyphus/
+.specify/
+
+# Python cache
+__pycache__/
+*.pyc

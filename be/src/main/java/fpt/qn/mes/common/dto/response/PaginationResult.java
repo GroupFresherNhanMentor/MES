@@ -17,4 +17,11 @@ import lombok.experimental.FieldDefaults;
 public class PaginationResult<T> {
      long total;
      List<T> items;
+
+     public static <T> PaginationResult<T> of(List<T> items, long total, int page, int size) {
+         PaginationResult<T> result = new PaginationResult<>();
+         result.items = items;
+         result.total = total;
+         return result;
+     }
 }
