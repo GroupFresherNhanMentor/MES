@@ -3,6 +3,7 @@ package fpt.qn.mes.common.repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Table;
 import org.jooq.UpdatableRecord;
@@ -56,6 +57,13 @@ public abstract class BaseRepository<R extends UpdatableRecord<R>> {
         return ctx.fetchExists(
                 ctx.selectFrom(table)
                         .where(table.field("id", UUID.class).eq(id))
+        );
+    }
+
+    protected int count(Condition condition) {
+        return ctx.fetchCount(
+                ctx.selectFrom(table)
+                        .where(condition)
         );
     }
 }
