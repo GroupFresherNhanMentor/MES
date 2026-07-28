@@ -109,8 +109,8 @@ Factory Manager xem báo cáo | Auditor xem audit log
 | 6 | `work_order_event_types` gồm giá trị gì | `START, PAUSE, RESUME, COMPLETE` (suy từ FR-AUD-001) |
 | 7 | Consume material tính theo `reserved` hay theo tỷ lệ `actual/planned` | Consume = toàn bộ `reservedQuantity` (không tính tỷ lệ) |
 | 8 | `quality_inspections.status` khi xử lý pass/fail một phần | Giữ `PENDING_INSPECTION` cho tới khi `SUM(quality_inspection_results.quantity) = quality_inspections.quantity` |
-| 9 | `REWORK_REQUIRED` (QC) không có giá trị tương ứng trong `stock_status` | Map tạm về `ON_HOLD` |
-| 10 | `/quality-inspections/{id}/release` chuyển về đâu | `ON_HOLD → AVAILABLE` |
+| 9 | `REWORK_REQUIRED` (QC) — status đã được đồng bộ: `REWORK` là action của fail(), không phải status riêng | Khi fail(action=REWORK): stock giữ `QUALITY_INSPECTION`, QC status → `REWORK_REQUIRED` |
+| 10 | `/quality-inspections/{id}/release` đã được thay bằng endpoint fail() với action HOLD | fail(action=HOLD) chuyển `ON_HOLD`, muốn release thì cần pass() lại hoặc fail(action=HOLD) với quantity khác |
 | 11 | Validate cộng dồn pass/fail vượt tổng quantity | Tự thêm check ở tầng service (URS chỉ check từng lần riêng lẻ) |
 | 12 | `DAMAGED` (stock status) không có luồng nghiệp vụ | Không dùng ở mức Must Have, hoặc gán qua Stock Adjustment nếu cần |
 | 13 | Locking cho Reserve Material / Start Production | Optimistic locking qua cột `version` (đã có ở `products`, `stock_balances`); Start Production dùng pessimistic lock (`SELECT FOR UPDATE`) trên `machines` do bảng này chưa có `version` |
@@ -220,7 +220,7 @@ Cài đặt cần transaction-safe (tránh 2 request cùng lúc sinh trùng `seq
 **Actor:** Hệ thống (tự động, mọi module khác gọi vào).
 
 **FR-MOV-001 — Create Stock Movement**
-- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
+- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
 - Immutable — không update/delete (⚠️ hiện **không** được DB enforce, xem mục 2.6 #17). Quantity > 0.
 
 **Thiết kế cột vị trí (khác URS field list gốc):**
@@ -230,11 +230,11 @@ Thay vì `warehouseId/locationId` đơn, bảng dùng `from_warehouse_id/from_lo
 |---|---|---|
 | PURCHASE_IN | NULL | có |
 | TRANSFER_OUT / TRANSFER_IN | có | có (2 dòng cùng giá trị) |
-| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_RELEASE / ADJUSTMENT | có | = from (không đổi vị trí) |
+| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_PASS / ADJUSTMENT | có | = from (không đổi vị trí) |
 | CONSUME_IN_PRODUCTION / SCRAP / SHIP_OUT | có | NULL |
 | PRODUCTION_OUTPUT / RETURN_TO_WAREHOUSE | NULL | có |
 
-**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
+**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
 
 **Data model:** `stock_movements, movement_types`
 
@@ -347,14 +347,40 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 - Chỉ áp dụng cho **output của Work Order** (bán thành phẩm/thành phẩm) — **không** áp dụng cho nguyên vật liệu Stock In.
 
 **FR-QC-002 — Pass QC**
-- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển QUALITY_INSPECTION→AVAILABLE, tạo movement QC_RELEASE.
+- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển `QUALITY_INSPECTION→AVAILABLE`, tạo movement `QC_PASS`. QC status: `PENDING_INSPECTION → PASSED`.
 
 **FR-QC-003 — Fail QC**
-- Bắt buộc `defectType + reason`. `action ∈ {HOLD, REWORK, SCRAP}` → HOLD: ON_HOLD; SCRAP: SCRAPPED (+movement SCRAP); REWORK: `quality_inspections.status = REWORK_REQUIRED` (không có stock_status tương ứng, xem mục 2.6 #9).
+- Bắt buộc `defectTypeId + reason`. `action ∈ {SCRAP, HOLD, REWORK}`:
+  - `SCRAP` → stock `QUALITY_INSPECTION→SCRAPPED`, movement `SCRAP`, QC status → `FAILED`
+  - `HOLD` → stock `QUALITY_INSPECTION→ON_HOLD`, movement `QC_HOLD`, QC status → `ON_HOLD`
+  - `REWORK` → stock giữ `QUALITY_INSPECTION`, ko tạo movement, QC status → `REWORK_REQUIRED`
 
 **Thiết kế bảng kết quả:** `quality_inspection_results` gộp chung Pass/Fail (`is_pass` boolean), 1 `quality_inspection` có thể có **nhiều** dòng kết quả (xử lý một phần qua nhiều lần gọi). `CHECK` đảm bảo Fail luôn có `defect_type_id + reason`.
 
-**Data model:** `quality_inspections, qc_statuses, quality_inspection_results, defect_types`
+**FR-RES-004 — QC Status & Action Management (Master Data lookup CRUD)**
+- `GET/POST /quality-inspections/statuses` — admin CRUD, others read-only
+- `GET/POST /quality-inspections/actions` — admin CRUD, others read-only
+- `GET/POST /quality-inspections/defect-types` — admin CRUD, others read-only
+
+**REWORK flow:**
+- fail(action=REWORK) → QC status `REWORK_REQUIRED`, stock giữ `QUALITY_INSPECTION`
+- Operator rework xong → QC Inspector gọi **pass()** hoặc **fail()** lần tiếp theo trên cùng inspection
+- Hàng rework xong có thể pass (→ `PASSED`) hoặc fail lại — không cần API riêng
+
+**Partial QC handling:**
+- `quality_inspection_results` gộp chung Pass/Fail (`is_pass` boolean), 1 inspection có thể có nhiều dòng.
+- Giữ `PENDING_INSPECTION` cho tới khi `SUM(pass) + SUM(SCRAP) + SUM(HOLD) = inspection.quantity`. (REWORK không count vì stock không đổi)
+- Khi đã hết: tất cả pass → `PASSED`; có fail → `FAILED`.
+
+**Data model:** `quality_inspections, qc_statuses, qc_actions, quality_inspection_results, defect_types`
+
+**API:** full spec tại [`docs/api-spec/QC/api.md`](docs/api-spec/QC/api.md)
+- `GET /quality-inspections`, `GET /quality-inspections/{id}` — list/detail
+- `POST /quality-inspections/{inspectionId}/pass` — pass QC
+- `POST /quality-inspections/{inspectionId}/fail` — fail QC (SCRAP/HOLD/REWORK)
+- `GET/POST /quality-inspections/statuses` — CRUD status
+- `GET/POST /quality-inspections/actions` — CRUD action
+- `GET/POST /quality-inspections/defect-types` — CRUD defect type
 
 ---
 
@@ -400,6 +426,8 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 **Actor:** Hệ thống (tự động ghi), Admin/Factory Manager/Auditor (xem).
 
 **FR-AUD-001** — Ghi log cho 17 action: `CREATE_WORK_ORDER, RESERVE_MATERIAL, RELEASE_RESERVATION, START_PRODUCTION, PAUSE_PRODUCTION, RESUME_PRODUCTION, COMPLETE_PRODUCTION, QC_PASS, QC_FAIL, QC_HOLD, QC_RELEASE, SCRAP_STOCK, CREATE_MAINTENANCE_TICKET, START_MAINTENANCE, CLOSE_MAINTENANCE_TICKET, ADJUST_STOCK, ACTIVATE_BOM`.
+
+> `QC_RELEASE` trong audit log tương ứng với movement `QC_PASS` — đây là log hành động "QC Inspector pass", không phải tên movement.
 - Không sửa/xóa (⚠️ không được DB enforce, xem mục 2.6 #17). Action quan trọng thiếu log = chưa đạt requirement.
 
 **Data model:** `audit_logs`

@@ -79,6 +79,7 @@ All lookup/reference table data (statuses, types, priorities) must be seeded via
 | `work-order-priorities.json` | `work_order_priorities` |
 | `work-order-event-types.json` | `work_order_event_types` |
 | `qc-statuses.json` | `qc_statuses` |
+| `qc-actions.json` | `qc_actions` |
 | `defect-types.json` | `defect_types` |
 | `maintenance-ticket-types.json` | `maintenance_ticket_types` |
 | `maintenance-ticket-statuses.json` | `maintenance_ticket_statuses` |

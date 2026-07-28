@@ -6,5 +6,7 @@
   { "name": "CONSUME",    "description": "Reserved stock consumed during production" },
   { "name": "SCRAP",      "description": "Stock written off as scrap" },
   { "name": "TRANSFER",   "description": "Stock moved between warehouses or locations" },
-  { "name": "ADJUSTMENT", "description": "Manual stock adjustment by warehouse manager" }
+  { "name": "ADJUSTMENT", "description": "Manual stock adjustment by warehouse manager" },
+  { "name": "QC_HOLD",    "description": "Stock placed on hold during QC inspection" },
+  { "name": "QC_PASS",    "description": "Stock passed quality inspection and released to available" }
 ]

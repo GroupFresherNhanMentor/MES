@@ -4,5 +4,6 @@
   { "name": "RELEASED",    "description": "Work order is released for production",          "isInitial": false, "isFinal": false },
   { "name": "IN_PROGRESS", "description": "Production is currently running",                "isInitial": false, "isFinal": false },
   { "name": "COMPLETED",   "description": "Production is finished successfully",            "isInitial": false, "isFinal": true  },
-  { "name": "CANCELLED",   "description": "Work order has been cancelled",                  "isInitial": false, "isFinal": true  }
+  { "name": "CANCELLED",   "description": "Work order has been cancelled",                  "isInitial": false, "isFinal": true  },
+  { "name": "QC_HOLD",     "description": "Work order output is held by QC",                "isInitial": false, "isFinal": false }
 ]
