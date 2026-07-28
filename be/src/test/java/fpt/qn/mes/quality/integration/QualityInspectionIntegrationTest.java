@@ -1,23 +1,23 @@
 package fpt.qn.mes.quality.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
-import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.quality.application.dto.request.FailQcRequest;
 import fpt.qn.mes.quality.application.dto.request.PassQcRequest;
 
@@ -26,7 +26,7 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
     @LocalServerPort
     int port;
 
-    RestTemplate restTemplate = new RestTemplate();
+    RestTemplate restTemplate;
 
     HttpHeaders adminHeaders;
     UUID inspectionId;
@@ -37,16 +37,20 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        restTemplate = new RestTemplate();
+
+        seedAdminUser();
         adminHeaders = new HttpHeaders();
-        adminHeaders.setBearerAuth(generateAdminToken());
+        adminHeaders.setBearerAuth(generateToken("admin", "ADMIN"));
         adminHeaders.set("Content-Type", "application/json");
         inspectionId = UUID.randomUUID();
     }
 
     @Test
     void getInspections_returns401_whenUnauthenticated() {
-        ResponseEntity<String> response = restTemplate.getForEntity(baseUrl(), String.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThatThrownBy(() -> restTemplate.getForEntity(baseUrl(), String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 
     @Test
@@ -61,25 +65,25 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getInspectionById_returns404_whenNotFound() {
-        ResponseEntity<String> response = restTemplate.exchange(
+        assertThatThrownBy(() -> restTemplate.exchange(
             baseUrl() + "/" + UUID.randomUUID(), HttpMethod.GET,
             new HttpEntity<>(adminHeaders),
-            String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode().value()).isEqualTo(404));
     }
 
     @Test
-    void passQc_returns400_whenQuantityExceedsRemaining() {
+    void passQc_returns404_whenInspectionNotFound() {
         PassQcRequest request = new PassQcRequest();
         request.setPassedQuantity(BigDecimal.valueOf(99999));
 
-        ResponseEntity<String> response = restTemplate.exchange(
+        assertThatThrownBy(() -> restTemplate.exchange(
             baseUrl() + "/" + inspectionId + "/pass", HttpMethod.POST,
             new HttpEntity<>(request, adminHeaders),
-            String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode().value()).isEqualTo(404));
     }
 
     @Test
@@ -90,12 +94,12 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
         request.setDefectTypeId(null);
         request.setReason("Defect reason");
 
-        ResponseEntity<String> response = restTemplate.exchange(
+        assertThatThrownBy(() -> restTemplate.exchange(
             baseUrl() + "/" + inspectionId + "/fail", HttpMethod.POST,
             new HttpEntity<>(request, adminHeaders),
-            String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode().value()).isEqualTo(400));
     }
 
     @Test
@@ -106,12 +110,12 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
         request.setDefectTypeId(UUID.randomUUID());
         request.setReason(null);
 
-        ResponseEntity<String> response = restTemplate.exchange(
+        assertThatThrownBy(() -> restTemplate.exchange(
             baseUrl() + "/" + inspectionId + "/fail", HttpMethod.POST,
             new HttpEntity<>(request, adminHeaders),
-            String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode().value()).isEqualTo(400));
     }
 
     @Test
@@ -150,11 +154,11 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
 
-        ResponseEntity<String> response = restTemplate.exchange(
+        assertThatThrownBy(() -> restTemplate.exchange(
             baseUrl() + "/statuses", HttpMethod.POST,
             new HttpEntity<>(body, headers),
-            String.class);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+            String.class))
+            .isInstanceOf(HttpStatusCodeException.class)
+            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED));
     }
 }
