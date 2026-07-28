@@ -9,5 +9,6 @@ import lombok.experimental.FieldDefaults;
 @Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
 public class WarehouseDto {
     UUID id; String code; String name; String address;
-    UUID warehouseStatusId; Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
+    UUID warehouseStatusId; String warehouseStatusName;
+    Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
 }

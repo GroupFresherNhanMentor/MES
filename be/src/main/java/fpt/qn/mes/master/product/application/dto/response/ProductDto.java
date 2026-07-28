@@ -13,8 +13,11 @@ public class ProductDto {
     String code;
     String name;
     UUID productTypeId;
-    String unit;
+    String productTypeName;
+    UUID unitId;
+    String unitName;
     UUID productStatusId;
+    String productStatusName;
     Long version;
     Instant createdAt;
     UUID createdBy;

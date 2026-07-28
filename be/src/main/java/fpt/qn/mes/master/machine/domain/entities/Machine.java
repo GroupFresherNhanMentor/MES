@@ -12,6 +12,15 @@ public class Machine {
     Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
 
     public static Machine create(UUID productionLineId, String code, String name, UUID machineStatusId, UUID createdBy) {
-        throw new UnsupportedOperationException("Not implemented");
+        return Machine.builder()
+                .id(UUID.randomUUID())
+                .productionLineId(productionLineId)
+                .code(code)
+                .name(name)
+                .machineStatusId(machineStatusId)
+                .createdBy(createdBy)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
     }
 }
