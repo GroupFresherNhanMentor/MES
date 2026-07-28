@@ -22,7 +22,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import static fpt.qn.mes.jooq.Tables.LINE_STATUSES;
 import static fpt.qn.mes.jooq.Tables.MACHINE_STATUSES;
+import static fpt.qn.mes.jooq.Tables.PRODUCTION_LINES;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +68,17 @@ public class MachineService implements MachineUseCase {
         if (machineRepository.existsByCode(request.getCode())) {
             throw new MachineConflictException("Machine code already exists: " + request.getCode());
         }
+        UUID activeLineStatusId = ctx.select(LINE_STATUSES.ID)
+                .from(LINE_STATUSES).where(LINE_STATUSES.NAME.eq("ACTIVE"))
+                .fetchOptionalInto(UUID.class)
+                .orElseThrow(() -> new IllegalStateException("ACTIVE not found in line_statuses"));
+        UUID lineStatusId = ctx.select(PRODUCTION_LINES.LINE_STATUS_ID)
+                .from(PRODUCTION_LINES).where(PRODUCTION_LINES.ID.eq(request.getProductionLineId()))
+                .fetchOptionalInto(UUID.class)
+                .orElseThrow(() -> new IllegalArgumentException("Production line not found: " + request.getProductionLineId()));
+        if (!activeLineStatusId.equals(lineStatusId)) {
+            throw new MachineConflictException("Cannot assign machine to INACTIVE production line");
+        }
         var machine = Machine.create(request.getProductionLineId(), request.getCode(),
                 request.getName(), request.getMachineStatusId(), currentUserId);
         return mapper.toDto(machineRepository.save(machine));
@@ -101,9 +114,9 @@ public class MachineService implements MachineUseCase {
         }
 
         UUID inactiveStatusId = ctx.select(MACHINE_STATUSES.ID)
-                .from(MACHINE_STATUSES).where(MACHINE_STATUSES.NAME.eq("INACTIVE"))
+                .from(MACHINE_STATUSES).where(MACHINE_STATUSES.NAME.eq("RETIRED"))
                 .fetchOptionalInto(UUID.class)
-                .orElseThrow(() -> new IllegalStateException("INACTIVE not found in machine_statuses"));
+                .orElseThrow(() -> new IllegalStateException("RETIRED not found in machine_statuses"));
 
         var deactivated = Machine.builder()
                 .id(existing.getId()).productionLineId(existing.getProductionLineId()).code(existing.getCode())
@@ -146,11 +159,11 @@ public class MachineService implements MachineUseCase {
 
     private boolean isValidTransition(String from, String to) {
         return switch (from) {
-            case "AVAILABLE" -> Set.of("IN_USE", "UNDER_MAINTENANCE", "INACTIVE").contains(to);
-            case "IN_USE" -> Set.of("AVAILABLE", "BROKEN").contains(to);
-            case "BROKEN" -> Set.of("UNDER_MAINTENANCE").contains(to);
-            case "UNDER_MAINTENANCE" -> Set.of("AVAILABLE", "BROKEN").contains(to);
-            case "INACTIVE" -> false;
+            case "AVAILABLE" -> Set.of("RUNNING", "UNDER_MAINTENANCE", "RETIRED").contains(to);
+            case "RUNNING" -> Set.of("AVAILABLE", "DOWN").contains(to);
+            case "DOWN" -> Set.of("UNDER_MAINTENANCE").contains(to);
+            case "UNDER_MAINTENANCE" -> Set.of("AVAILABLE", "DOWN").contains(to);
+            case "RETIRED" -> false;
             default -> false;
         };
     }

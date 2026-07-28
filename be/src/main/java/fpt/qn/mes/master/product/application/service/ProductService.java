@@ -21,6 +21,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import static fpt.qn.mes.jooq.Tables.BOM_ITEMS;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
 import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 
@@ -121,8 +122,8 @@ public class ProductService implements ProductUseCase {
         var existing = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
 
-        if (hasStockMovements(id)) {
-            throw new ProductConflictException("Cannot deactivate product — referenced in stock movements: " + id);
+        if (hasStockMovements(id) || hasBomReferences(id)) {
+            throw new ProductConflictException("Cannot deactivate product — referenced in stock movements or BOM: " + id);
         }
 
         UUID inactiveStatusId = getInactiveStatusId();
@@ -146,6 +147,12 @@ public class ProductService implements ProductUseCase {
         return ctx.fetchExists(
                 ctx.selectFrom(STOCK_MOVEMENTS)
                         .where(STOCK_MOVEMENTS.PRODUCT_ID.eq(productId)));
+    }
+
+    private boolean hasBomReferences(UUID productId) {
+        return ctx.fetchExists(
+                ctx.selectFrom(BOM_ITEMS)
+                        .where(BOM_ITEMS.MATERIAL_PRODUCT_ID.eq(productId)));
     }
 
     private UUID getActiveStatusId() {
