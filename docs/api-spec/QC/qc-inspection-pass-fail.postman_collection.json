@@ -1,0 +1,1159 @@
+{
+	"info": {
+		"name": "QC Inspection — Pass/Fail",
+		"description": "# QC Inspection — Pass/Fail\n\nBộ Postman Collection test manual cho usecase QC Inspector.\n\n## Activity Diagram — QC Inspection Flow\n\n```\n┌─────────────────────────────────────────────────────────────────┐\n│                      QC INSPECTION FLOW                         │\n└─────────────────────────────────────────────────────────────────┘\n                               │\n                               ▼\n               ┌─────────────────────────────┐\n               │  1. View Pending Inspections │\n               │     GET /quality-inspections  │\n               └─────────────┬───────────────┘\n                             │\n                             ▼\n               ┌─────────────────────────────┐\n               │  2. Select Inspection Detail│\n               │     GET /quality-inspections │\n               │     /{id}                   │\n               └─────────────┬───────────────┘\n                             │\n                             ▼\n           ┌─────────────────────────────────────┐\n           │  3. QC Inspector Decision           │\n           │  ┌───────────────────────────────┐  │\n           │  │  Pass                         │  │\n           │  │  POST /{id}/pass              │  │\n           │  │  Body: passedQuantity, note   │  │\n           │  │  → Stock: QI → AVAILABLE      │  │\n           │  │  → Movement: QC_RELEASE       │  │\n           │  └───────────┬───────────────────┘  │\n           │              │                       │\n           │  ┌───────────┴───────────────────┐  │\n           │  │  Fail                         │  │\n           │  │  POST /{id}/fail              │  │\n           │  │  Body: failedQuantity,        │  │\n           │  │  actionId, defectTypeId,      │  │\n           │  │  reason                       │  │\n           │  │                                │  │\n           │  │  Action → Result:              │  │\n           │  │  ┌──────┬──────────┬────────┐ │  │\n           │  │  │SCRAP │FAILED    │SCRAPPED│ │  │\n           │  │  ├──────┼──────────┼────────┤ │  │\n           │  │  │HOLD  │ON_HOLD   │ON_HOLD │ │  │\n           │  │  ├──────┼──────────┼────────┤ │  │\n           │  │  │REWORK│REWORK_REQ│(same)  │ │  │\n           │  │  └──────┴──────────┴────────┘ │  │\n           │  └───────────────────────────────┘  │\n           └─────────────────────────────────────┘\n                             │\n                             ▼\n           ┌─────────────────────────────────────┐\n           │  4. Check Remaining                 │\n           │     ┌────────────────────────┐       │\n           │     │ remaining > 0 → PENDING │──────│──→ quay lại bước 3\n           │     │ remaining = 0 → TERMINAL│       │\n           │     └────────────────────────┘       │\n           │     Terminal statuses:               │\n           │     PASSED / FAILED / ON_HOLD /      │\n           │     REWORK_REQUIRED / SCRAPPED       │\n           └─────────────────────────────────────┘\n```\n\n## Cách dùng\n\n1. Bấm **\"Run\"** folder **\"🔐 0. Auth & Setup\"** trước để sinh JWT token\n2. Vào từng use case folder, bấm **\"Send\"** theo thứ tự từ trên xuống\n3. Các ID lookup (statuses, actions, defect-types) được tự động lưu vào biến\n\n## Yêu cầu\n- App đang chạy tại `localhost:8080`\n- Database đã seed data (docker-compose up + ./mvnw spring-boot:run)\n- Không cần copy-paste JWT hay ID — mọi thứ tự động",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_postman_id": "qc-inspection-pass-fail-collection"
+	},
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwtToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "🔐 0. Auth & Setup",
+			"description": "Sinh JWT token và cache lookup IDs vào biến môi trường. Chạy folder này TRƯỚC khi test các use case khác.",
+			"item": [
+				{
+					"name": "[0A] Generate JWT Token",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Generate JWT with HMAC-SHA256 using known secret",
+									"const secret = pm.collectionVariables.get('jwtSecret') || 'k8wT5KF1ZrFojvpXJbhXOcYVv44lCKvOwQudCRY6HjxxTGH3WQbQDHEFZjhS+mCE';",
+									"",
+									"function base64url(source) {",
+									"    return CryptoJS.enc.Base64.stringify(source)",
+									"        .replace(/=/g, '').replace(/\\+/g, '-').replace(/\\//g, '_');",
+									"}",
+									"",
+									"const header = { alg: 'HS256', typ: 'JWT' };",
+									"const now = Math.floor(Date.now() / 1000);",
+									"const payload = {",
+									"    sub: 'admin',",
+									"    role: 'ADMIN',",
+									"    iat: now,",
+									"    exp: now + 3600",
+									"};",
+									"",
+									"const headerB64 = base64url(CryptoJS.enc.Utf8.parse(JSON.stringify(header)));",
+									"const payloadB64 = base64url(CryptoJS.enc.Utf8.parse(JSON.stringify(payload)));",
+									"const signature = CryptoJS.HmacSHA256(headerB64 + '.' + payloadB64, secret);",
+									"const signatureB64 = base64url(signature);",
+									"",
+									"pm.collectionVariables.set('jwtToken', headerB64 + '.' + payloadB64 + '.' + signatureB64);",
+									"console.log('JWT token generated successfully');"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["statuses"]
+						},
+						"description": "Sinh JWT token và kiểm tra kết nối tới API bằng cách gọi GET statuses."
+					},
+					"response": []
+				},
+				{
+					"name": "[0B] Cache Lookup IDs",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"if (json.success && json.data) {",
+									"    const statuses = json.data;",
+									"    statuses.forEach(s => {",
+									"        const key = 'qcStatus_' + s.name;",
+									"        pm.collectionVariables.set(key, s.id);",
+									"        console.log('Cached ' + key + ' = ' + s.id);",
+									"    });",
+									"    pm.collectionVariables.set('qcStatus_PENDING', ",
+									"        statuses.find(s => s.name === 'PENDING_INSPECTION')?.id);",
+									"    pm.collectionVariables.set('qcStatus_PASSED', ",
+									"        statuses.find(s => s.name === 'PASSED')?.id);",
+									"}",
+									"",
+									"// Fetch actions",
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('baseUrl') + '/actions',",
+									"    method: 'GET',",
+									"    header: { 'Authorization': 'Bearer ' + pm.collectionVariables.get('jwtToken') }",
+									"}, (err, res) => {",
+									"    if (err) return;",
+									"    const data = res.json();",
+									"    if (data.success && data.data) {",
+									"        data.data.forEach(a => {",
+									"            pm.collectionVariables.set('qcAction_' + a.name, a.id);",
+									"            console.log('Cached qcAction_' + a.name + ' = ' + a.id);",
+									"        });",
+									"    }",
+									"});",
+									"",
+									"// Fetch defect types",
+									"pm.sendRequest({",
+									"    url: pm.collectionVariables.get('baseUrl') + '/defect-types',",
+									"    method: 'GET',",
+									"    header: { 'Authorization': 'Bearer ' + pm.collectionVariables.get('jwtToken') }",
+									"}, (err, res) => {",
+									"    if (err) return;",
+									"    const data = res.json();",
+									"    if (data.success && data.data) {",
+									"        pm.collectionVariables.set('defectTypeId', data.data[0]?.id);",
+									"        console.log('Cached defectTypeId = ' + data.data[0]?.id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["statuses"]
+						},
+						"description": "Cache QC status IDs, action IDs, defect type IDs vào collection variables."
+					},
+					"response": []
+				},
+				{
+					"name": "[0C] Create Test Inspection (100 units)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"if (json.success && json.data) {",
+									"    pm.collectionVariables.set('inspectionId', json.data.id);",
+									"    console.log('Created inspection: ' + json.data.id);",
+									"} else {",
+									"    console.log('Failed to create inspection:', json);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"workOrderId\": \"a1000000-0000-0000-0000-000000000006\",\n    \"productId\": \"a1000000-0000-0000-0000-000000000001\",\n    \"lotId\": \"a1000000-0000-0000-0000-000000000004\",\n    \"quantity\": 100,\n    \"qcStatusId\": \"{{qcStatus_PENDING}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						},
+						"description": "Tạo QC inspection với 100 units ở trạng thái PENDING_INSPECTION."
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "bearer",
+				"bearer": [
+					{
+						"key": "token",
+						"value": "{{jwtToken}}",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// Auto-generate JWT if not exists",
+							"if (!pm.collectionVariables.get('jwtToken')) {",
+							"    const secret = pm.collectionVariables.get('jwtSecret');",
+							"    function b64u(s) { return CryptoJS.enc.Base64.stringify(s).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_'); }",
+							"    const h = b64u(CryptoJS.enc.Utf8.parse(JSON.stringify({alg:'HS256',typ:'JWT'})));",
+							"    const p = b64u(CryptoJS.enc.Utf8.parse(JSON.stringify({sub:'admin',role:'ADMIN',iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})));",
+							"    const s = b64u(CryptoJS.HmacSHA256(h+'.'+p, secret));",
+							"    pm.collectionVariables.set('jwtToken', h+'.'+p+'.'+s);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			]
+		},
+		{
+			"name": "✅ Use Case 1: Pass QC — Happy Path (Full Quantity)",
+			"description": "QC Inspector pass full lô hàng 100 units → stock chuyển QUALITY_INSPECTION → AVAILABLE, tạo QC_RELEASE movement.\n\n**Flow:**\n1. Kiểm tra inspection trước khi pass\n2. Pass full 100\n3. Xác nhận status = PASSED, remaining = 0\n4. Pass lại → báo lỗi (inspection already closed)",
+			"item": [
+				{
+					"name": "[1A] GET inspection detail (before pass)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}"]
+						},
+						"description": "Xem chi tiết inspection trước khi pass: remainingQuantity = 100, qcStatusName = PENDING_INSPECTION"
+					},
+					"response": []
+				},
+				{
+					"name": "[1B] POST pass 100 units (full)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Pass succeeds', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('PASSED');",
+									"    pm.expect(json.data.resultId).to.not.be.empty;",
+									"    pm.expect(json.data.stockMovementId).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 100,\n    \"note\": \"All dimensions within tolerance\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "pass"]
+						},
+						"description": "Pass full 100 units → status chuyển PASSED (terminal), stock QUALITY_INSPECTION → AVAILABLE, movement QC_RELEASE."
+					},
+					"response": []
+				},
+				{
+					"name": "[1C] GET detail (after pass — verify PASSED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Inspection is PASSED with 0 remaining', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('PASSED');",
+									"    pm.expect(Number(json.data.remainingQuantity)).to.eql(0);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}"]
+						},
+						"description": "Verify: remainingQuantity = 0, qcStatusName = PASSED."
+					},
+					"response": []
+				},
+				{
+					"name": "[1D] POST pass again → 400 (already closed)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Rejected with INVALID_INPUT', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(json.errorCode).to.eql('INVALID_INPUT');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 5\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "pass"]
+						},
+						"description": "Edge case: pass khi inspection đã fully processed → 400 INVALID_INPUT."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "❌ Use Case 2: Fail QC — SCRAP",
+			"description": "QC Inspector fail defective units với action = SCRAP → stock chuyển QUALITY_INSPECTION → SCRAPPED, movement SCRAP.\n\n**Flow:**\n1. Tạo inspection mới\n2. Fail với SCRAP\n3. Xác nhận status FAILED, stock SCRAPPED",
+			"item": [
+				{
+					"name": "[2A] Create test inspection (100 units)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"if (json.success) pm.collectionVariables.set('scrapInspectionId', json.data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"workOrderId\": \"a1000000-0000-0000-0000-000000000006\",\n    \"productId\": \"a1000000-0000-0000-0000-000000000001\",\n    \"lotId\": \"a1000000-0000-0000-0000-000000000004\",\n    \"quantity\": 100,\n    \"qcStatusId\": \"{{qcStatus_PENDING}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[2B] POST fail 100 units with SCRAP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Fail SCRAP succeeds', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('FAILED');",
+									"    pm.expect(json.data.stockMovementId).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 100,\n    \"actionId\": \"{{qcAction_SCRAP}}\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": \"Surface scratch exceeds tolerance\",\n    \"note\": \"Inspected by QC-001\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{scrapInspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{scrapInspectionId}}", "fail"]
+						},
+						"description": "Fail 100 SCRAP → status FAILED, stock QUALITY_INSPECTION → SCRAPPED, movement SCRAP."
+					},
+					"response": []
+				},
+				{
+					"name": "[2C] GET detail — verify FAILED",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{scrapInspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{scrapInspectionId}}"]
+						},
+						"description": "Verify: qcStatusName = FAILED, remainingQuantity = 0."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "❌ Use Case 3: Fail QC — HOLD",
+			"description": "QC Inspector fail với action = HOLD → stock chuyển QUALITY_INSPECTION → ON_HOLD, movement QC_HOLD.\n\n**Flow:**\n1. Tạo inspection\n2. Fail với HOLD\n3. Xác nhận status ON_HOLD",
+			"item": [
+				{
+					"name": "[3A] Create test inspection (50 units)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"if (json.success) pm.collectionVariables.set('holdInspectionId', json.data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"workOrderId\": \"a1000000-0000-0000-0000-000000000006\",\n    \"productId\": \"a1000000-0000-0000-0000-000000000001\",\n    \"lotId\": \"a1000000-0000-0000-0000-000000000004\",\n    \"quantity\": 50,\n    \"qcStatusId\": \"{{qcStatus_PENDING}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[3B] POST fail 50 units with HOLD",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Fail HOLD succeeds', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('ON_HOLD');",
+									"    pm.expect(json.data.stockMovementId).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 50,\n    \"actionId\": \"{{qcAction_HOLD}}\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": \"Color defect — hold for investigation\",\n    \"note\": \"\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{holdInspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{holdInspectionId}}", "fail"]
+						},
+						"description": "Fail 50 HOLD → status ON_HOLD, stock QUALITY_INSPECTION → ON_HOLD, movement QC_HOLD."
+					},
+					"response": []
+				},
+				{
+					"name": "[3C] GET detail — verify ON_HOLD",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{holdInspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{holdInspectionId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "❌ Use Case 4: Fail QC — REWORK (No Stock Movement)",
+			"description": "QC Inspector fail với action = REWORK → status REWORK_REQUIRED, stock giữ nguyên QUALITY_INSPECTION, KHÔNG tạo stock movement.\n\n**Flow:**\n1. Tạo inspection\n2. Fail với REWORK\n3. Xác nhận REWORK_REQUIRED, stockMovementId = null",
+			"item": [
+				{
+					"name": "[4A] Create test inspection (30 units)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"if (json.success) pm.collectionVariables.set('reworkInspectionId', json.data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"workOrderId\": \"a1000000-0000-0000-0000-000000000006\",\n    \"productId\": \"a1000000-0000-0000-0000-000000000001\",\n    \"lotId\": \"a1000000-0000-0000-0000-000000000004\",\n    \"quantity\": 30,\n    \"qcStatusId\": \"{{qcStatus_PENDING}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[4B] POST fail 30 units with REWORK",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Fail REWORK succeeds with no stock movement', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('REWORK_REQUIRED');",
+									"    pm.expect(json.data.stockMovementId).to.be.null;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 30,\n    \"actionId\": \"{{qcAction_REWORK}}\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": \"Assembly error — incorrect wiring\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{reworkInspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{reworkInspectionId}}", "fail"]
+						},
+						"description": "Fail 30 REWORK → status REWORK_REQUIRED. Stock GIỮ NGUYÊN QUALITY_INSPECTION. stockMovementId = null."
+					},
+					"response": []
+				},
+				{
+					"name": "[4C] GET detail — verify REWORK_REQUIRED, no movement",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{reworkInspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{reworkInspectionId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔄 Use Case 5: Partial Inspection (Multiple Rounds)",
+			"description": "QC Inspector thực hiện nhiều vòng pass/fail trên cùng 1 inspection. Inspection chỉ chuyển terminal khi tổng quantity = 100.\n\n**Scenario:**\n1. Pass 30 → còn 70, PENDING\n2. Pass 30 → còn 40, PENDING\n3. Fail 40 SCRAP → hết, FAILED\n4. Stock: AVAILABLE=60, SCRAPPED=40\n\n**Activity Diagram:**\n```\n┌─────────────────────────────────────────────────────────────────┐\n│  Partial Inspection — Multi-round Activity Diagram              │\n│                                                                 │\n│  START (100 PENDING_INSPECTION)                                 │\n│       │                                                         │\n│       ▼                                                         │\n│  ┌──────────────┐  remaining=70                                 │\n│  │ Pass 30      │──→ PENDING (remain partial)                   │\n│  └──────────────┘                                               │\n│       │                                                         │\n│       ▼                                                         │\n│  ┌──────────────┐  remaining=40                                 │\n│  │ Pass 30      │──→ PENDING (remain partial)                   │\n│  └──────────────┘                                               │\n│       │                                                         │\n│       ▼                                                         │\n│  ┌──────────────┐  remaining=0                                  │\n│  │ Fail 40 SCRAP│──→ TERMINAL (FAILED)                          │\n│  └──────────────┘                                               │\n│       │                                                         │\n│       ▼                                                         │\n│  Stock: AVAILABLE=60, SCRAPPED=40                               │\n└─────────────────────────────────────────────────────────────────┘\n```",
+			"item": [
+				{
+					"name": "[5A] POST pass 30 (first round)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Pass 30 keeps PENDING_INSPECTION', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('PENDING_INSPECTION');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 30,\n    \"note\": \"Round 1: pass 30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "pass"]
+						},
+						"description": "Pass 30 → còn 70, inspection vẫn PENDING_INSPECTION."
+					},
+					"response": []
+				},
+				{
+					"name": "[5B] GET detail — remaining=70",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}"]
+						},
+						"description": "Verify: remainingQuantity = 70."
+					},
+					"response": []
+				},
+				{
+					"name": "[5C] POST pass 30 (second round)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Pass 30 keeps PENDING_INSPECTION', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('PENDING_INSPECTION');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 30,\n    \"note\": \"Round 2: pass 30\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "pass"]
+						},
+						"description": "Pass 30 → còn 40, inspection vẫn PENDING."
+					},
+					"response": []
+				},
+				{
+					"name": "[5D] POST fail 40 with SCRAP (final round)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Fail 40 SCRAP completes inspection', () => {",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.qcStatusName).to.eql('FAILED');",
+									"    pm.expect(json.data.stockMovementId).to.not.be.empty;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 40,\n    \"actionId\": \"{{qcAction_SCRAP}}\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": \"Scratch defect on final batch\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "fail"]
+						},
+						"description": "Fail 40 SCRAP → hết, status FAILED. Stock: 60 AVAILABLE (pass 30+30), 40 SCRAPPED."
+					},
+					"response": []
+				},
+				{
+					"name": "[5E] GET detail — verify final FAILED",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}"]
+						},
+						"description": "Verify final state: qcStatusName = FAILED, remainingQuantity = 0."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🚫 Use Case 6: Edge Cases & Validation Errors",
+			"description": "Kiểm tra tất cả validation rules và edge cases:\n\n- Pass với quantity ≤ 0\n- Pass vượt remaining\n- Fail thiếu defectTypeId\n- Fail thiếu reason\n- Fail với actionId không tồn tại\n- GET inspection không tồn tại\n- 401 Unauthenticated",
+			"item": [
+				{
+					"name": "[6A] POST pass with 0 quantity → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Zero quantity rejected', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 0\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "pass"]
+						},
+						"description": "pass quantity = 0 → 400 Bad Request (DecimalMin validation)."
+					},
+					"response": []
+				},
+				{
+					"name": "[6B] POST pass exceed remaining → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Exceed remaining rejected', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"    pm.expect(json.message).to.include('exceeds remaining');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"passedQuantity\": 99999\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/00000000-0000-0000-0000-000000000000/pass",
+							"host": ["{{baseUrl}}"],
+							"path": ["00000000-0000-0000-0000-000000000000", "pass"]
+						},
+						"description": "pass 99999 khi chỉ còn 0 → 400 INVALID_INPUT 'exceeds remaining'."
+					},
+					"response": []
+				},
+				{
+					"name": "[6C] POST fail without defectTypeId → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Missing defectTypeId rejected', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 10,\n    \"actionId\": \"{{qcAction_SCRAP}}\",\n    \"defectTypeId\": null,\n    \"reason\": \"Test reason\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "fail"]
+						},
+						"description": "Fail thiếu defectTypeId → 400 Jakarta validation reject."
+					},
+					"response": []
+				},
+				{
+					"name": "[6D] POST fail without reason → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Missing reason rejected', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 10,\n    \"actionId\": \"{{qcAction_SCRAP}}\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": null\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "fail"]
+						},
+						"description": "Fail thiếu reason → 400 Jakarta validation reject."
+					},
+					"response": []
+				},
+				{
+					"name": "[6E] POST fail with invalid actionId → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Invalid actionId rejected', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(400);",
+									"    pm.expect(json.errorCode).to.eql('INVALID_INPUT');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"failedQuantity\": 10,\n    \"actionId\": \"00000000-0000-0000-0000-000000000000\",\n    \"defectTypeId\": \"{{defectTypeId}}\",\n    \"reason\": \"Test reason\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/{{inspectionId}}/fail",
+							"host": ["{{baseUrl}}"],
+							"path": ["{{inspectionId}}", "fail"]
+						},
+						"description": "Fail với actionId không tồn tại → 400 INVALID_INPUT."
+					},
+					"response": []
+				},
+				{
+					"name": "[6F] GET non-existent inspection → 404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Not found returns 404', () => {",
+									"    pm.expect(json.success).to.be.false;",
+									"    pm.expect(pm.response.code).to.eql(404);",
+									"    pm.expect(json.errorCode).to.eql('NOT_FOUND');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["00000000-0000-0000-0000-000000000000"]
+						},
+						"description": "GET inspection không tồn tại → 404 NOT_FOUND."
+					},
+					"response": []
+				},
+				{
+					"name": "[6G] Unauthenticated request → 401",
+					"request": {
+						"auth": {
+							"type": "noadth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						},
+						"description": "Gọi API KHÔNG có Bearer token → 401 UNAUTHORIZED."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📋 Use Case 7: Admin — Lookup Management",
+			"description": "Admin CRUD cho QC statuses, actions, defect types.\n\nGhi chú: Tất cả authenticated users có thể GET, chỉ ADMIN mới có thể POST.",
+			"item": [
+				{
+					"name": "[7A] POST create QC status",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Create QC status returns 201', () => {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"    pm.expect(json.success).to.be.true;",
+									"    pm.expect(json.data.name).to.eql('REINSPECT');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"REINSPECT\",\n    \"description\": \"Lot returned for re-inspection after rework\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["statuses"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[7B] GET statuses includes new item",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/statuses",
+							"host": ["{{baseUrl}}"],
+							"path": ["statuses"]
+						},
+						"description": "Verify 'REINSPECT' xuất hiện trong list."
+					},
+					"response": []
+				},
+				{
+					"name": "[7C] POST create QC action",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Create QC action returns 201', () => {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"    pm.expect(json.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"SORT\",\n    \"description\": \"Sort defective items for partial rework\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/actions",
+							"host": ["{{baseUrl}}"],
+							"path": ["actions"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[7D] POST create defect type",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('Create defect type returns 201', () => {",
+									"    pm.expect(pm.response.code).to.eql(201);",
+									"    pm.expect(json.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Packaging Damage\",\n    \"description\": \"Damaged packaging during handling\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/defect-types",
+							"host": ["{{baseUrl}}"],
+							"path": ["defect-types"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "[7E] GET defect-types includes new item",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/defect-types",
+							"host": ["{{baseUrl}}"],
+							"path": ["defect-types"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api/quality-inspections"
+		},
+		{
+			"key": "jwtSecret",
+			"value": "k8wT5KF1ZrFojvpXJbhXOcYVv44lCKvOwQudCRY6HjxxTGH3WQbQDHEFZjhS+mCE"
+		},
+		{
+			"key": "jwtToken",
+			"value": ""
+		},
+		{
+			"key": "inspectionId",
+			"value": ""
+		},
+		{
+			"key": "scrapInspectionId",
+			"value": ""
+		},
+		{
+			"key": "holdInspectionId",
+			"value": ""
+		},
+		{
+			"key": "reworkInspectionId",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_PENDING",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_PASSED",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_FAILED",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_ON_HOLD",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_REWORK_REQUIRED",
+			"value": ""
+		},
+		{
+			"key": "qcStatus_SCRAPPED",
+			"value": ""
+		},
+		{
+			"key": "qcAction_SCRAP",
+			"value": ""
+		},
+		{
+			"key": "qcAction_HOLD",
+			"value": ""
+		},
+		{
+			"key": "qcAction_REWORK",
+			"value": ""
+		},
+		{
+			"key": "defectTypeId",
+			"value": ""
+		}
+	]
+}
