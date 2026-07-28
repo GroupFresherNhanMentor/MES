@@ -17,15 +17,29 @@ public class Product {
     String code;
     String name;
     UUID productTypeId;
-    String unit;
+    String productTypeName;
+    UUID unitId;
+    String unitName;
     UUID productStatusId;
+    String productStatusName;
     Long version;
     Instant createdAt;
     UUID createdBy;
     Instant updatedAt;
     UUID updatedBy;
 
-    public static Product create(String code, String name, UUID productTypeId, String unit, UUID productStatusId, UUID createdBy) {
-        throw new UnsupportedOperationException("Not implemented");
+    public static Product create(String code, String name, UUID productTypeId, UUID unitId, UUID productStatusId, UUID createdBy) {
+        return Product.builder()
+                .id(UUID.randomUUID())
+                .code(code)
+                .name(name)
+                .productTypeId(productTypeId)
+                .unitId(unitId)
+                .productStatusId(productStatusId)
+                .version(0L)
+                .createdBy(createdBy)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
     }
 }

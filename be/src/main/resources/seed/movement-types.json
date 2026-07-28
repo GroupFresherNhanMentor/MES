@@ -1,10 +1,16 @@
 [
-  { "name": "INBOUND",    "description": "Goods received into warehouse from supplier" },
-  { "name": "OUTBOUND",   "description": "Goods issued out of warehouse" },
-  { "name": "RESERVE",    "description": "Stock reserved for a work order" },
-  { "name": "RELEASE",    "description": "Reserved stock released back to available" },
-  { "name": "CONSUME",    "description": "Reserved stock consumed during production" },
-  { "name": "SCRAP",      "description": "Stock written off as scrap" },
-  { "name": "TRANSFER",   "description": "Stock moved between warehouses or locations" },
-  { "name": "ADJUSTMENT", "description": "Manual stock adjustment by warehouse manager" }
+  { "name": "PURCHASE_IN",           "description": "Goods received into warehouse from external supplier" },
+  { "name": "TRANSFER_IN",           "description": "Stock moved in from another warehouse or location" },
+  { "name": "TRANSFER_OUT",          "description": "Stock moved out to another warehouse or location" },
+  { "name": "RESERVE",               "description": "Stock reserved for a work order" },
+  { "name": "RELEASE_RESERVATION",   "description": "Previously reserved stock released back to available" },
+  { "name": "ISSUE_TO_PRODUCTION",   "description": "Reserved stock issued to the production floor" },
+  { "name": "CONSUME_IN_PRODUCTION", "description": "Issued stock consumed during production" },
+  { "name": "PRODUCTION_OUTPUT",     "description": "Finished goods lot created from production output" },
+  { "name": "QC_HOLD",               "description": "Stock placed on hold for quality inspection" },
+  { "name": "QC_RELEASE",            "description": "Stock released from quality hold after passing inspection" },
+  { "name": "SCRAP",                 "description": "Stock written off as scrap" },
+  { "name": "ADJUSTMENT",            "description": "Manual stock adjustment by warehouse manager" },
+  { "name": "SHIP_OUT",              "description": "Finished goods shipped out to customer" },
+  { "name": "RETURN_TO_WAREHOUSE",   "description": "Stock returned from production line or customer to warehouse" }
 ]

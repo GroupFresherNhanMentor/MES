@@ -1,6 +1,8 @@
 [
-  { "name": "PENDING", "description": "Inspection has not been performed yet" },
-  { "name": "PASSED",  "description": "Lot passed quality inspection and is available" },
-  { "name": "FAILED",  "description": "Lot failed quality inspection" },
-  { "name": "ON_HOLD", "description": "Lot is on hold pending further investigation" }
+  { "name": "PENDING_INSPECTION", "description": "Inspection has not been performed yet" },
+  { "name": "PASSED",             "description": "Lot passed quality inspection and is available" },
+  { "name": "FAILED",             "description": "Lot failed quality inspection" },
+  { "name": "ON_HOLD",            "description": "Lot is on hold pending further investigation" },
+  { "name": "REWORK_REQUIRED",    "description": "Lot requires rework before reinspection" },
+  { "name": "SCRAPPED",           "description": "Lot has been scrapped and written off" }
 ]

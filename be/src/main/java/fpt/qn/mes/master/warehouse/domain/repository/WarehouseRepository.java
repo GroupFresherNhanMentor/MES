@@ -12,5 +12,6 @@ public interface WarehouseRepository {
     Warehouse update(Warehouse warehouse);
     void deleteById(UUID id);
     PaginationResult<Warehouse> findAll(int page, int size);
+    PaginationResult<Warehouse> findAllByStatus(int page, int size, UUID statusId);
     boolean existsByCode(String code);
 }

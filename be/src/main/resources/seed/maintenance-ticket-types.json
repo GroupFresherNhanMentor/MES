@@ -1,5 +1,6 @@
 [
-  { "name": "PREVENTIVE",  "description": "Scheduled maintenance to prevent failure" },
-  { "name": "CORRECTIVE",  "description": "Repair after a fault or breakdown has occurred" },
-  { "name": "EMERGENCY",   "description": "Unplanned urgent repair to restore production" }
+  { "name": "PREVENTIVE",  "description": "Scheduled maintenance to prevent future failure" },
+  { "name": "CORRECTIVE",  "description": "Repair performed after a fault or breakdown has occurred" },
+  { "name": "EMERGENCY",   "description": "Unplanned urgent repair to immediately restore production" },
+  { "name": "INSPECTION",  "description": "Periodic machine inspection without active repair" }
 ]

@@ -12,4 +12,5 @@ public interface WarehouseLocationRepository {
     WarehouseLocation save(WarehouseLocation location);
     WarehouseLocation update(WarehouseLocation location);
     void deleteById(UUID id);
+    boolean existsByWarehouseIdAndCode(UUID warehouseId, String code);
 }

@@ -12,6 +12,6 @@ public class CreateProductRequest {
     @NotBlank String code;
     @NotBlank String name;
     @NotNull UUID productTypeId;
-    @NotBlank String unit;
+    @NotNull UUID unitId;
     @NotNull UUID productStatusId;
 }

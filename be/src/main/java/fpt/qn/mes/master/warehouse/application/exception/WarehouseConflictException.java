@@ -1,0 +1,8 @@
+package fpt.qn.mes.master.warehouse.application.exception;
+
+import fpt.qn.mes.common.exception.AppException;
+import fpt.qn.mes.common.exception.ErrorCode;
+
+public class WarehouseConflictException extends AppException {
+    public WarehouseConflictException(String message) { super(409, ErrorCode.CONFLICT, message); }
+}

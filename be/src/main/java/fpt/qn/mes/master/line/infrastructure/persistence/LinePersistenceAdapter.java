@@ -26,10 +26,36 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
         super(ctx, PRODUCTION_LINES); this.mapper = mapper;
     }
 
-    @Override public Optional<ProductionLine> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public ProductionLine save(ProductionLine l) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public ProductionLine update(ProductionLine l) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public void deleteById(UUID id) {}
-    @Override public PaginationResult<ProductionLine> findAll(int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public boolean existsByCode(String code) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public Optional<ProductionLine> findById(UUID id) { return fetchById(id).map(mapper::toDomain); }
+    @Override
+    public ProductionLine save(ProductionLine l) { return mapper.toDomain(create(mapper.toRecord(l))); }
+    @Override
+    public ProductionLine update(ProductionLine l) { return mapper.toDomain(update(mapper.toRecord(l))); }
+    @Override
+    public void deleteById(UUID id) {}
+
+    @Override
+    public PaginationResult<ProductionLine> findAll(int page, int size) {
+        var records = ctx.selectFrom(PRODUCTION_LINES).orderBy(PRODUCTION_LINES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(PRODUCTION_LINES));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public PaginationResult<ProductionLine> findAllByStatus(int page, int size, UUID statusId) {
+        var records = ctx.selectFrom(PRODUCTION_LINES)
+                .where(PRODUCTION_LINES.LINE_STATUS_ID.eq(statusId))
+                .orderBy(PRODUCTION_LINES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(PRODUCTION_LINES)
+                .where(PRODUCTION_LINES.LINE_STATUS_ID.eq(statusId)));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public boolean existsByCode(String code) {
+        return ctx.fetchExists(ctx.selectFrom(PRODUCTION_LINES).where(PRODUCTION_LINES.CODE.eq(code)));
+    }
 }

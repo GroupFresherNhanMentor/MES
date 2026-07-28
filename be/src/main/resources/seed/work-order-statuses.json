@@ -1,8 +1,10 @@
 [
-  { "name": "DRAFT",       "description": "Work order is being planned",                   "isInitial": true,  "isFinal": false },
-  { "name": "PLANNED",     "description": "Work order is planned and materials calculated", "isInitial": false, "isFinal": false },
-  { "name": "RELEASED",    "description": "Work order is released for production",          "isInitial": false, "isFinal": false },
-  { "name": "IN_PROGRESS", "description": "Production is currently running",                "isInitial": false, "isFinal": false },
-  { "name": "COMPLETED",   "description": "Production is finished successfully",            "isInitial": false, "isFinal": true  },
-  { "name": "CANCELLED",   "description": "Work order has been cancelled",                  "isInitial": false, "isFinal": true  }
+  { "name": "DRAFT",              "description": "Work order is being drafted and not yet submitted",             "isInitial": true,  "isFinal": false },
+  { "name": "PLANNED",            "description": "Work order is submitted and BOM materials have been computed",  "isInitial": true,  "isFinal": false },
+  { "name": "MATERIAL_SHORTAGE",  "description": "Insufficient stock to cover required BOM materials",           "isInitial": false, "isFinal": false },
+  { "name": "READY_TO_PRODUCE",   "description": "All materials reserved and work order is ready for execution", "isInitial": false, "isFinal": false },
+  { "name": "IN_PROGRESS",        "description": "Production is currently running on the factory floor",         "isInitial": false, "isFinal": false },
+  { "name": "PAUSED",             "description": "Production is temporarily suspended",                          "isInitial": false, "isFinal": false },
+  { "name": "COMPLETED",          "description": "Production is finished and output quantities are recorded",    "isInitial": false, "isFinal": true  },
+  { "name": "CANCELLED",          "description": "Work order has been cancelled and reservations released",      "isInitial": false, "isFinal": true  }
 ]

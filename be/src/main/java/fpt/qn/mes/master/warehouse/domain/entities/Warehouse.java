@@ -12,6 +12,15 @@ public class Warehouse {
     UUID warehouseStatusId; Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
 
     public static Warehouse create(String code, String name, String address, UUID warehouseStatusId, UUID createdBy) {
-        throw new UnsupportedOperationException("Not implemented");
+        return Warehouse.builder()
+                .id(UUID.randomUUID())
+                .code(code)
+                .name(name)
+                .address(address)
+                .warehouseStatusId(warehouseStatusId)
+                .createdBy(createdBy)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
     }
 }

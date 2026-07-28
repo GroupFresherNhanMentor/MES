@@ -12,5 +12,6 @@ public interface ProductionLineRepository {
     ProductionLine update(ProductionLine line);
     void deleteById(UUID id);
     PaginationResult<ProductionLine> findAll(int page, int size);
+    PaginationResult<ProductionLine> findAllByStatus(int page, int size, UUID statusId);
     boolean existsByCode(String code);
 }

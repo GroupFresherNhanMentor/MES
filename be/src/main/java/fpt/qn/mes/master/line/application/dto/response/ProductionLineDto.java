@@ -8,6 +8,6 @@ import lombok.experimental.FieldDefaults;
 
 @Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductionLineDto {
-    UUID id; String code; String name; UUID lineStatusId;
+    UUID id; String code; String name; UUID lineStatusId; String lineStatusName;
     Instant createdAt; UUID createdBy; Instant updatedAt; UUID updatedBy;
 }

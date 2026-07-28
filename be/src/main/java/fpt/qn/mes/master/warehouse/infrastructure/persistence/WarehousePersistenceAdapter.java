@@ -26,10 +26,45 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
         super(ctx, WAREHOUSES); this.mapper = mapper;
     }
 
-    @Override public Optional<Warehouse> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public Warehouse save(Warehouse w) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public Warehouse update(Warehouse w) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public void deleteById(UUID id) {}
-    @Override public PaginationResult<Warehouse> findAll(int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public boolean existsByCode(String code) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public Optional<Warehouse> findById(UUID id) {
+        return fetchById(id).map(mapper::toDomain);
+    }
+
+    @Override
+    public Warehouse save(Warehouse w) {
+        return mapper.toDomain(create(mapper.toRecord(w)));
+    }
+
+    @Override
+    public Warehouse update(Warehouse w) {
+        return mapper.toDomain(update(mapper.toRecord(w)));
+    }
+
+    @Override
+    public void deleteById(UUID id) {}
+
+    @Override
+    public PaginationResult<Warehouse> findAll(int page, int size) {
+        var records = ctx.selectFrom(WAREHOUSES).orderBy(WAREHOUSES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(WAREHOUSES));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public PaginationResult<Warehouse> findAllByStatus(int page, int size, UUID statusId) {
+        var records = ctx.selectFrom(WAREHOUSES)
+                .where(WAREHOUSES.WAREHOUSE_STATUS_ID.eq(statusId))
+                .orderBy(WAREHOUSES.CREATED_AT.desc())
+                .limit(size).offset((long) page * size).fetch();
+        int total = ctx.fetchCount(ctx.selectFrom(WAREHOUSES)
+                .where(WAREHOUSES.WAREHOUSE_STATUS_ID.eq(statusId)));
+        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+    }
+
+    @Override
+    public boolean existsByCode(String code) {
+        return ctx.fetchExists(ctx.selectFrom(WAREHOUSES).where(WAREHOUSES.CODE.eq(code)));
+    }
 }
