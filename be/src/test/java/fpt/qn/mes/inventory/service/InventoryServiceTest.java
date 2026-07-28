@@ -35,9 +35,9 @@ import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
-import fpt.qn.mes.inventory.domain.repository.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
-import fpt.qn.mes.inventory.domain.repository.StockMovementSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {

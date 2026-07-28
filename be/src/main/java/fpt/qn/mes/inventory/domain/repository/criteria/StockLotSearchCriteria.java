@@ -1,4 +1,4 @@
-package fpt.qn.mes.inventory.domain.repository;
+package fpt.qn.mes.inventory.domain.repository.criteria;
 
 import java.time.LocalDate;
 import java.util.UUID;

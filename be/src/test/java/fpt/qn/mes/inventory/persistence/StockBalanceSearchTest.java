@@ -20,7 +20,7 @@ import org.mockito.Answers;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
-import fpt.qn.mes.inventory.domain.repository.StockBalanceSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.infrastructure.persistence.InventoryRecordMapper;
 import fpt.qn.mes.inventory.infrastructure.persistence.StockBalancePersistenceAdapter;
 

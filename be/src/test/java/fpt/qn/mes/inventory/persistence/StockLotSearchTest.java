@@ -19,7 +19,7 @@ import org.mockito.Answers;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
-import fpt.qn.mes.inventory.domain.repository.StockLotSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.infrastructure.persistence.InventoryRecordMapper;
 import fpt.qn.mes.inventory.infrastructure.persistence.StockLotPersistenceAdapter;
 

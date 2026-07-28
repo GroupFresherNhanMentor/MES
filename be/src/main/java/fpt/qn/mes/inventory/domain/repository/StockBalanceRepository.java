@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 
 public interface StockBalanceRepository {
     Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,

@@ -14,7 +14,7 @@ import org.springframework.stereotype.Repository;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
-import fpt.qn.mes.inventory.domain.repository.StockBalanceSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.jooq.tables.records.StockBalancesRecord;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

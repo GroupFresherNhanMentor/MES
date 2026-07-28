@@ -14,7 +14,7 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
-import fpt.qn.mes.inventory.domain.repository.StockMovementSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 import fpt.qn.mes.jooq.tables.records.StockMovementsRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
