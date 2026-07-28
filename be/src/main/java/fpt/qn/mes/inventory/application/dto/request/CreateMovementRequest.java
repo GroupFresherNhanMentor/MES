@@ -18,7 +18,6 @@ public class CreateMovementRequest {
     @NotNull @Positive BigDecimal quantity;
     UUID fromStatusId;
     UUID toStatusId;
-    String referenceType;
-    UUID referenceId;
+    String referenceNo;
     String reason;
 }
