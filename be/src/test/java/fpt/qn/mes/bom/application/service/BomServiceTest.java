@@ -386,6 +386,68 @@ class BomServiceTest {
     }
 
     @Test
+    void addBomItem_HappyPath_Success() {
+        UUID bomId = UUID.randomUUID();
+        UUID materialProductId = UUID.randomUUID();
+
+        Bom draftBom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(draftStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(Collections.emptyList())
+                .build();
+
+        CreateBomItemRequest request = new CreateBomItemRequest();
+        request.setMaterialProductId(materialProductId);
+        request.setQuantityPerUnit(new BigDecimal("2.50"));
+        request.setUnit("PCS");
+        request.setScrapRate(new BigDecimal("0.01"));
+
+        BomItem savedItem = BomItem.builder()
+                .id(UUID.randomUUID())
+                .bomId(bomId)
+                .materialProductId(materialProductId)
+                .quantityPerUnit(new BigDecimal("2.50"))
+                .unit("PCS")
+                .scrapRate(new BigDecimal("0.01"))
+                .build();
+
+        fpt.qn.mes.bom.application.dto.response.BomItemDto itemDto = fpt.qn.mes.bom.application.dto.response.BomItemDto.builder()
+                .id(savedItem.getId())
+                .bomId(bomId)
+                .materialProductId(materialProductId)
+                .quantityPerUnit(new BigDecimal("2.50"))
+                .unit("PCS")
+                .scrapRate(new BigDecimal("0.01"))
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(draftBom));
+        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
+        when(bomRepository.saveItem(any(BomItem.class))).thenReturn(savedItem);
+        when(mapper.toDto(savedItem)).thenReturn(itemDto);
+
+        fpt.qn.mes.bom.application.dto.response.BomItemDto result = bomService.addBomItem(bomId, request);
+
+        assertNotNull(result);
+        assertEquals(materialProductId, result.getMaterialProductId());
+        assertEquals(new BigDecimal("2.50"), result.getQuantityPerUnit());
+        verify(bomRepository).saveItem(any(BomItem.class));
+    }
+
+    @Test
+    void addBomItem_BomNotFound_ThrowsBomNotFoundException() {
+        UUID randomId = UUID.randomUUID();
+        CreateBomItemRequest request = new CreateBomItemRequest();
+        when(bomRepository.findById(randomId)).thenReturn(Optional.empty());
+
+        assertThrows(BomNotFoundException.class, () -> bomService.addBomItem(randomId, request));
+        verify(bomRepository, never()).saveItem(any(BomItem.class));
+    }
+
+    @Test
     void addBomItem_NonDraftBom_ThrowsInvalidBomStatusException() {
         UUID bomId = UUID.randomUUID();
         Bom activeBom = Bom.builder()
@@ -404,6 +466,38 @@ class BomServiceTest {
         CreateBomItemRequest request = new CreateBomItemRequest();
         assertThrows(InvalidBomStatusException.class, () -> bomService.addBomItem(bomId, request));
         verify(bomRepository, never()).saveItem(any(BomItem.class));
+    }
+
+    @Test
+    void deleteBomItem_HappyPath_Success() {
+        UUID bomId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        Bom draftBom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(draftStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(Collections.emptyList())
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(draftBom));
+        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
+
+        bomService.deleteBomItem(bomId, itemId);
+
+        verify(bomRepository).deleteItemById(itemId);
+    }
+
+    @Test
+    void deleteBomItem_BomNotFound_ThrowsBomNotFoundException() {
+        UUID randomId = UUID.randomUUID();
+        UUID itemId = UUID.randomUUID();
+        when(bomRepository.findById(randomId)).thenReturn(Optional.empty());
+
+        assertThrows(BomNotFoundException.class, () -> bomService.deleteBomItem(randomId, itemId));
+        verify(bomRepository, never()).deleteItemById(itemId);
     }
 
     @Test
