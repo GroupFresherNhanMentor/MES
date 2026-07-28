@@ -42,7 +42,7 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
     }
 
     @Override
-    public PageResponse<StockMovement> search(StockMovementSearchCriteria criteria) {
+    public List<StockMovement> search(StockMovementSearchCriteria criteria) {
         List<Condition> conditions = new ArrayList<>();
         if (criteria.getMovementTypeId() != null) {
             conditions.add(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(criteria.getMovementTypeId()));
@@ -65,26 +65,15 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
             conditions.add(STOCK_MOVEMENTS.REFERENCE_NO.containsIgnoreCase(criteria.getReferenceNo()));
         }
 
-        long totalElements = ctx.fetchCount(STOCK_MOVEMENTS, conditions);
-
         int page = criteria.getPage();
         int size = criteria.getSize();
-        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
 
-        List<StockMovement> items = ctx.selectFrom(STOCK_MOVEMENTS)
+        return ctx.selectFrom(STOCK_MOVEMENTS)
                 .where(conditions)
                 .orderBy(STOCK_MOVEMENTS.CREATED_AT.desc())
                 .limit(size)
                 .offset(page * size)
                 .fetch()
                 .map(mapper::toDomain);
-
-        return PageResponse.<StockMovement>builder()
-                .items(items)
-                .totalElements(totalElements)
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
     }
 }

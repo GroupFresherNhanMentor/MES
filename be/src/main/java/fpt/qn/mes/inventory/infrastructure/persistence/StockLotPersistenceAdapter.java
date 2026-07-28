@@ -51,7 +51,7 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
     }
 
     @Override
-    public PageResponse<StockLot> search(StockLotSearchCriteria criteria) {
+    public List<StockLot> search(StockLotSearchCriteria criteria) {
         List<Condition> conditions = new ArrayList<>();
         if (criteria.getProductId() != null) {
             conditions.add(STOCK_LOTS.PRODUCT_ID.eq(criteria.getProductId()));
@@ -66,26 +66,15 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
             conditions.add(STOCK_LOTS.EXPIRY_DATE.lessOrEqual(criteria.getExpiryBefore()));
         }
 
-        long totalElements = ctx.fetchCount(STOCK_LOTS, conditions);
-
         int page = criteria.getPage();
         int size = criteria.getSize();
-        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
 
-        List<StockLot> items = ctx.selectFrom(STOCK_LOTS)
+        return ctx.selectFrom(STOCK_LOTS)
                 .where(conditions)
                 .orderBy(STOCK_LOTS.CREATED_AT.desc())
                 .limit(size)
                 .offset(page * size)
                 .fetch()
                 .map(mapper::toDomain);
-
-        return PageResponse.<StockLot>builder()
-                .items(items)
-                .totalElements(totalElements)
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
     }
 }

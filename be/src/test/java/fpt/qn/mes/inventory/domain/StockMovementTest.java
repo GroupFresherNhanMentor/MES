@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import fpt.qn.mes.common.exception.DomainException;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 
 class StockMovementTest {
@@ -32,7 +33,7 @@ class StockMovementTest {
     }
 
     @Test
-    @DisplayName("create with zero or negative quantity throws IllegalArgumentException")
+    @DisplayName("create with zero or negative quantity throws DomainException")
     void create_ZeroQuantity_ThrowsException() {
         UUID productId = UUID.randomUUID();
         UUID warehouseId = UUID.randomUUID();
@@ -42,12 +43,12 @@ class StockMovementTest {
                 null, productId, null, warehouseId, null,
                 BigDecimal.ZERO, null, null, null, null, createdBy
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Movement quantity must be strictly positive");
     }
 
     @Test
-    @DisplayName("create with null required metadata throws IllegalArgumentException")
+    @DisplayName("create with null required metadata throws DomainException")
     void create_NullMetadata_ThrowsException() {
         UUID productId = UUID.randomUUID();
         UUID warehouseId = UUID.randomUUID();
@@ -56,7 +57,7 @@ class StockMovementTest {
                 null, productId, null, warehouseId, null,
                 new BigDecimal("10.00"), null, null, null, null, null
         ))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Created-by user ID cannot be null");
     }
 }

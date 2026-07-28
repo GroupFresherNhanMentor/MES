@@ -9,6 +9,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import fpt.qn.mes.common.exception.DomainException;
+import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockStatus;
 
@@ -30,7 +32,7 @@ class StockBalanceTest {
     }
 
     @Test
-    @DisplayName("deductQuantity exceeding on-hand balance throws IllegalArgumentException")
+    @DisplayName("deductQuantity exceeding on-hand balance throws InsufficientStockException")
     void deductQuantity_ExceedingOnHand_ThrowsException() {
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
@@ -38,12 +40,12 @@ class StockBalanceTest {
                 .build();
 
         assertThatThrownBy(() -> balance.deductQuantity(new BigDecimal("50.00")))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock balance");
     }
 
     @Test
-    @DisplayName("deductQuantity with zero or negative amount throws IllegalArgumentException")
+    @DisplayName("deductQuantity with zero or negative amount throws DomainException")
     void deductQuantity_InvalidAmount_ThrowsException() {
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
@@ -51,7 +53,7 @@ class StockBalanceTest {
                 .build();
 
         assertThatThrownBy(() -> balance.deductQuantity(BigDecimal.ZERO))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Deduction quantity must be positive");
     }
 

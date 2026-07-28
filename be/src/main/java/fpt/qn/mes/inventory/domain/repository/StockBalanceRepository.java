@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 
@@ -16,5 +16,5 @@ public interface StockBalanceRepository {
 
     List<StockBalance> findByWarehouseAndProduct(UUID warehouseId, UUID productId);
 
-    PageResponse<StockBalance> search(StockBalanceSearchCriteria criteria);
+    List<StockBalance> search(StockBalanceSearchCriteria criteria);
 }

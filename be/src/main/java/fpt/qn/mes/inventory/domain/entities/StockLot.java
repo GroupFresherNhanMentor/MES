@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import fpt.qn.mes.common.exception.DomainException;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -29,10 +31,10 @@ public class StockLot {
 
     public static StockLot create(String lotNumber, UUID productId, UUID lotTypeId, LocalDate expiryDate) {
         if (lotNumber == null || lotNumber.trim().isEmpty()) {
-            throw new IllegalArgumentException("Lot number cannot be empty or null");
+            throw new DomainException("Lot number cannot be empty or null");
         }
         if (productId == null) {
-            throw new IllegalArgumentException("Product ID cannot be null");
+            throw new DomainException("Product ID cannot be null");
         }
         return StockLot.builder()
                 .id(UUID.randomUUID())

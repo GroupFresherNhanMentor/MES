@@ -53,12 +53,9 @@ class StockMovementSearchTest {
                 .offset(anyInt())
                 .fetch()).thenReturn(mock(Result.class));
 
-        PageResponse<StockMovement> response = adapter.search(criteria);
+        List<StockMovement> response = adapter.search(criteria);
 
         assertThat(response).isNotNull();
-        assertThat(response.getPageNumber()).isEqualTo(0);
-        assertThat(response.getPageSize()).isEqualTo(10);
-        assertThat(response.getTotalElements()).isEqualTo(0L);
-        assertThat(response.getItems()).isEmpty();
+        assertThat(response).isEmpty();
     }
 }

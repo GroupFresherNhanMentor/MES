@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.exception.DomainException;
+import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,17 +36,17 @@ public class StockBalance {
 
     public void deductQuantity(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Deduction quantity must be positive");
+            throw new DomainException("Deduction quantity must be positive");
         }
         if (this.quantity == null || this.quantity.compareTo(amount) < 0) {
-            throw new IllegalArgumentException("Insufficient stock balance for deduction");
+            throw new InsufficientStockException("Insufficient stock balance for deduction");
         }
         this.quantity = this.quantity.subtract(amount);
     }
 
     public void addQuantity(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Addition quantity must be positive");
+            throw new DomainException("Addition quantity must be positive");
         }
         if (this.quantity == null) {
             this.quantity = amount;

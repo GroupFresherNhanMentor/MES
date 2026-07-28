@@ -54,8 +54,15 @@ public class InventoryService implements InventoryUseCase {
                 .page(page)
                 .size(size)
                 .build();
-        PageResponse<StockLot> result = lotRepository.search(criteria);
-        return result.map(mapper::toDto);
+        List<StockLot> items = lotRepository.search(criteria);
+        List<StockLotDto> dtos = items.stream().map(mapper::toDto).toList();
+        return PageResponse.<StockLotDto>builder()
+                .items(dtos)
+                .totalElements(dtos.size())
+                .totalPages(dtos.isEmpty() ? 0 : 1)
+                .pageNumber(page)
+                .pageSize(size)
+                .build();
     }
 
     @Override
@@ -86,8 +93,15 @@ public class InventoryService implements InventoryUseCase {
                 .page(page)
                 .size(size)
                 .build();
-        PageResponse<StockMovement> result = movementRepository.search(criteria);
-        return result.map(mapper::toDto);
+        List<StockMovement> items = movementRepository.search(criteria);
+        List<StockMovementDto> dtos = items.stream().map(mapper::toDto).toList();
+        return PageResponse.<StockMovementDto>builder()
+                .items(dtos)
+                .totalElements(dtos.size())
+                .totalPages(dtos.isEmpty() ? 0 : 1)
+                .pageNumber(page)
+                .pageSize(size)
+                .build();
     }
 
     @Override

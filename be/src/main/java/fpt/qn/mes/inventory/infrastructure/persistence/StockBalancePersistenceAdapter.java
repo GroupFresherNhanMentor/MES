@@ -74,7 +74,7 @@ public class StockBalancePersistenceAdapter implements StockBalanceRepository {
     }
 
     @Override
-    public PageResponse<StockBalance> search(StockBalanceSearchCriteria criteria) {
+    public List<StockBalance> search(StockBalanceSearchCriteria criteria) {
         List<Condition> conditions = new ArrayList<>();
         if (criteria.getWarehouseId() != null) {
             conditions.add(STOCK_BALANCES.WAREHOUSE_ID.eq(criteria.getWarehouseId()));
@@ -92,26 +92,15 @@ public class StockBalancePersistenceAdapter implements StockBalanceRepository {
             conditions.add(STOCK_BALANCES.STOCK_STATUS_ID.eq(criteria.getStockStatusId()));
         }
 
-        long totalElements = ctx.fetchCount(STOCK_BALANCES, conditions);
-
         int page = criteria.getPage();
         int size = criteria.getSize();
-        int totalPages = size > 0 ? (int) Math.ceil((double) totalElements / size) : 0;
 
-        List<StockBalance> items = ctx.selectFrom(STOCK_BALANCES)
+        return ctx.selectFrom(STOCK_BALANCES)
                 .where(conditions)
                 .orderBy(STOCK_BALANCES.UPDATED_AT.desc())
                 .limit(size)
                 .offset(page * size)
                 .fetch()
                 .map(mapper::toDomain);
-
-        return PageResponse.<StockBalance>builder()
-                .items(items)
-                .totalElements(totalElements)
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
     }
 }

@@ -247,15 +247,7 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
-        PageResponse<StockMovement> pageResponse = PageResponse.<StockMovement>builder()
-                .items(List.of(movement))
-                .totalElements(1L)
-                .totalPages(1)
-                .pageNumber(0)
-                .pageSize(10)
-                .build();
-
-        when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(pageResponse);
+        when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(List.of(movement));
         when(mapper.toDto(movement)).thenReturn(dto);
 
         PageResponse<StockMovementDto> response = inventoryService.getMovements(0, 10);

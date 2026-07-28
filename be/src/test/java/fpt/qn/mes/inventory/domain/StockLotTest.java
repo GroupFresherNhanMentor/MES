@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import fpt.qn.mes.common.exception.DomainException;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 
 class StockLotTest {
@@ -29,20 +30,20 @@ class StockLotTest {
     }
 
     @Test
-    @DisplayName("create with blank lot number throws IllegalArgumentException")
+    @DisplayName("create with blank lot number throws DomainException")
     void create_BlankLotNumber_ThrowsException() {
         UUID productId = UUID.randomUUID();
 
         assertThatThrownBy(() -> StockLot.create("   ", productId, null, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Lot number cannot be empty");
     }
 
     @Test
-    @DisplayName("create with null productId throws IllegalArgumentException")
+    @DisplayName("create with null productId throws DomainException")
     void create_NullProductId_ThrowsException() {
         assertThatThrownBy(() -> StockLot.create("LOT-001", null, null, null))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Product ID cannot be null");
     }
 }
