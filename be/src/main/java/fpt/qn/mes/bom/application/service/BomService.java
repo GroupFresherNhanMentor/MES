@@ -21,7 +21,6 @@ import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.dto.response.PaginationResult;
-import fpt.qn.mes.master.product.application.dto.response.ProductDto;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -39,8 +38,8 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<BomDto> getBoms(int page, int size) {
-        PaginationResult<Bom> result = bomRepository.findAll(page, size);
+    public PageResponse<BomDto> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId) {
+        PaginationResult<Bom> result = bomRepository.findAll(page, size, finishedProductId, bomStatusId);
         int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
         return PageResponse.<BomDto>builder()
                 .items(result.getItems().stream().map(mapper::toDto).toList())
@@ -65,7 +64,7 @@ public class BomService implements BomUseCase {
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
         // 1. Verify product exists
-        ProductDto product = productUseCase.getProductById(request.getFinishedProductId());
+        productUseCase.getProductById(request.getFinishedProductId());
 
         // 2. Verify version does not already exist
         if (bomRepository.existsByFinishedProductIdAndVersion(request.getFinishedProductId(), request.getVersion())) {

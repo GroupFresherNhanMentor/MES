@@ -35,6 +35,8 @@ import fpt.qn.mes.bom.application.mapper.BomDtoMapper;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
+import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.master.product.application.dto.response.ProductDto;
 import fpt.qn.mes.master.product.application.exception.ProductNotFoundException;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
@@ -70,6 +72,40 @@ class BomServiceTest {
         draftStatusId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         activeStatusId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         inactiveStatusId = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    }
+
+    @Test
+    void getBoms_WithFilters_ReturnsFilteredPageResponse() {
+        Bom bom = Bom.builder()
+                .id(UUID.randomUUID())
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(activeStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(Collections.emptyList())
+                .build();
+
+        BomDto bomDto = BomDto.builder()
+                .id(bom.getId())
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(activeStatusId)
+                .createdBy(userId)
+                .createdAt(bom.getCreatedAt())
+                .items(Collections.emptyList())
+                .build();
+
+        PaginationResult<Bom> paginationResult = new PaginationResult<>(1, List.of(bom));
+        when(bomRepository.findAll(0, 10, finishedProductId, activeStatusId)).thenReturn(paginationResult);
+        when(mapper.toDto(bom)).thenReturn(bomDto);
+
+        PageResponse<BomDto> response = bomService.getBoms(0, 10, finishedProductId, activeStatusId);
+
+        assertNotNull(response);
+        assertEquals(1, response.getTotalElements());
+        assertEquals(1, response.getItems().size());
+        assertEquals(bom.getId(), response.getItems().get(0).getId());
     }
 
     @Test
@@ -142,6 +178,38 @@ class BomServiceTest {
 
         assertThrows(ProductNotFoundException.class, () -> bomService.createBom(request));
         verify(bomRepository, never()).save(any(Bom.class));
+    }
+
+    @Test
+    void getBomById_HappyPath_ReturnsBomWithItems() {
+        UUID bomId = UUID.randomUUID();
+        Bom bom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(activeStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(Collections.emptyList())
+                .build();
+
+        BomDto bomDto = BomDto.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(activeStatusId)
+                .createdBy(userId)
+                .createdAt(bom.getCreatedAt())
+                .items(Collections.emptyList())
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(bom));
+        when(mapper.toDto(bom)).thenReturn(bomDto);
+
+        BomDto result = bomService.getBomById(bomId);
+
+        assertNotNull(result);
+        assertEquals(bomId, result.getId());
     }
 
     @Test

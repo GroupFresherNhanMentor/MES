@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.Condition;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.bom.domain.entities.Bom;
@@ -70,15 +72,24 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         return findById(bom.getId()).orElse(bom);
     }
 
-
     @Override
-    public PaginationResult<Bom> findAll(int page, int size) {
+    public PaginationResult<Bom> findAll(int page, int size, UUID finishedProductId, UUID bomStatusId) {
+        Condition condition = DSL.trueCondition();
+        if (finishedProductId != null) {
+            condition = condition.and(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId));
+        }
+        if (bomStatusId != null) {
+            condition = condition.and(BOMS.BOM_STATUS_ID.eq(bomStatusId));
+        }
+
         int offset = page * size;
         List<Bom> items = dslCtx.selectFrom(BOMS)
+                .where(condition)
+                .orderBy(BOMS.CREATED_AT.desc())
                 .limit(size)
                 .offset(offset)
                 .fetch(r -> mapper.toDomain(r));
-        long total = dslCtx.fetchCount(BOMS);
+        long total = dslCtx.fetchCount(BOMS, condition);
         return new PaginationResult<>(total, items);
     }
 
@@ -87,8 +98,7 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         return dslCtx.fetchExists(
                 dslCtx.selectFrom(BOMS)
                         .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
-                        .and(BOMS.VERSION.eq(version))
-        );
+                        .and(BOMS.VERSION.eq(version)));
     }
 
     @Override
@@ -112,8 +122,7 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
     public int countItemsByBomId(UUID bomId) {
         return dslCtx.fetchCount(
                 dslCtx.selectFrom(BOM_ITEMS)
-                        .where(BOM_ITEMS.BOM_ID.eq(bomId))
-        );
+                        .where(BOM_ITEMS.BOM_ID.eq(bomId)));
     }
 
     @Override
