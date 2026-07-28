@@ -1,21 +1,20 @@
-package fpt.qn.mes.quality.application.dto.response;
+package fpt.qn.mes.quality.domain.repository.criteria;
 
-import java.util.UUID;
-
+import fpt.qn.mes.common.domainQuery.BaseSearchCriteria;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.SuperBuilder;
 
 @Getter
-@Builder
+@Setter
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class QcActionDto {
-    UUID id;
+public class QcActionSearchCriteria extends BaseSearchCriteria {
     String name;
-    String description;
 }

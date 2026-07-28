@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.MachinesRecord;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
@@ -40,7 +40,7 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
         var records = ctx.selectFrom(MACHINES).orderBy(MACHINES.CREATED_AT.desc())
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(MACHINES));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<Machine>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override
@@ -51,7 +51,7 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(MACHINES)
                 .where(MACHINES.MACHINE_STATUS_ID.eq(statusId)));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<Machine>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override

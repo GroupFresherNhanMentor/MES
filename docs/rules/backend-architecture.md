@@ -15,14 +15,52 @@ Every domain module follows this exact 4-layer structure. No exceptions.
 │   │   └── out/            # External dependency interfaces (output ports)
 │   ├── service/            # Implements use case interfaces
 │   ├── dto/
-│   │   ├── request/        # Inbound DTOs — validated request bodies
-│   │   └── response/       # Outbound DTOs — API response payloads
+│   │   └── {feature}/      # One sub-package per feature/entity (e.g. inspection, qcstatus)
+│   │       ├── {operation}/ # One sub-package per operation (create, search, pass, fail, …)
+│   │       │   ├── {Feature}{Operation}Request.java
+│   │       │   └── {Feature}{Operation}Response.java  # if operation-specific response needed
+│   │       └── {Feature}Response.java  # shared response DTO reused across operations
 │   ├── mapper/             # MapStruct domain ↔ DTO mappers
 │   └── exception/          # Module-scoped exceptions (extend AppException)
 ├── infrastructure/
 │   ├── persistence/        # jOOQ adapters + record mappers
 │   └── {concern}/          # Other adapters (security, messaging, etc.)
 └── presentation/           # Spring MVC REST controllers
+```
+
+### DTO sub-package rules
+
+- **One sub-package per feature** inside `dto/` — never a flat `request/` or `response/` folder
+- **One sub-package per operation** inside the feature package (`create/`, `search/`, `pass/`, `fail/`, …)
+- **Request DTOs** live inside the operation sub-package: `dto/{feature}/{operation}/{Feature}{Operation}Request.java`
+- **Response DTOs** that are operation-specific live alongside the request: `dto/{feature}/{operation}/{Feature}{Operation}Response.java`
+- **Shared response DTOs** (returned by multiple operations or by GET endpoints) live directly in the feature package: `dto/{feature}/{Feature}Response.java`
+- Never share a request DTO across features (e.g. no `CreateLookupRequest` used by both QcStatus and QcAction) — each feature owns its own request class
+
+Example (quality module):
+```
+dto/
+├── inspection/
+│   ├── QualityInspectionResponse.java       # shared — used by GET list, GET by id, POST
+│   ├── QualityInspectionResultResponse.java # shared nested DTO
+│   ├── create/
+│   │   └── CreateQualityInspectionRequest.java
+│   ├── pass/
+│   │   ├── PassQcRequest.java
+│   │   └── PassQcResponse.java
+│   └── fail/
+│       ├── FailQcRequest.java
+│       └── FailQcResponse.java
+├── qcstatus/
+│   ├── QcStatusResponse.java
+│   ├── create/
+│   │   └── CreateQcStatusRequest.java
+│   └── search/
+│       └── QcStatusSearchRequest.java
+├── qcaction/
+│   └── …
+└── defecttype/
+    └── …
 ```
 
 ## Dependency Flow

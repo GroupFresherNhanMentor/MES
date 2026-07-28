@@ -1,30 +1,23 @@
-package fpt.qn.mes.quality.application.dto.response;
+package fpt.qn.mes.quality.application.dto.inspection.result.search;
 
-import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.dto.request.BaseSearchRequest;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
-@Builder
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class QualityInspectionResultDto {
-    UUID id;
-    UUID inspectionId;
+public class QualityInspectionResultSearchRequest extends BaseSearchRequest {
     Boolean isPass;
-    BigDecimal quantity;
     UUID defectTypeId;
-    String reason;
-    UUID actionId;
     UUID inspectorId;
-    Instant inspectedAt;
-    String note;
+    UUID actionId;
 }

@@ -1,5 +1,6 @@
 package fpt.qn.mes.quality.domain.entities;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import lombok.AccessLevel;
@@ -14,4 +15,8 @@ public class QcStatus {
     UUID id;
     String name;
     String description;
+    UUID createdBy;
+    UUID updatedBy;
+    Instant createdAt;
+    Instant updatedAt;
 }

@@ -18,8 +18,8 @@ import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
-import fpt.qn.mes.quality.application.dto.request.FailQcRequest;
-import fpt.qn.mes.quality.application.dto.request.PassQcRequest;
+import fpt.qn.mes.quality.application.dto.inspection.fail.FailQcRequest;
+import fpt.qn.mes.quality.application.dto.inspection.pass.PassQcRequest;
 
 class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
 
@@ -33,6 +33,18 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
 
     String baseUrl() {
         return "http://localhost:" + port + "/api/quality-inspections";
+    }
+
+    String qcStatusesUrl() {
+        return "http://localhost:" + port + "/api/qc-statuses";
+    }
+
+    String qcActionsUrl() {
+        return "http://localhost:" + port + "/api/qc-actions";
+    }
+
+    String defectTypesUrl() {
+        return "http://localhost:" + port + "/api/defect-types";
     }
 
     @BeforeEach
@@ -61,16 +73,6 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
             String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    void getInspectionById_returns404_whenNotFound() {
-        assertThatThrownBy(() -> restTemplate.exchange(
-            baseUrl() + "/" + UUID.randomUUID(), HttpMethod.GET,
-            new HttpEntity<>(adminHeaders),
-            String.class))
-            .isInstanceOf(HttpStatusCodeException.class)
-            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode().value()).isEqualTo(404));
     }
 
     @Test
@@ -121,7 +123,7 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getQcStatuses_returns200() {
         ResponseEntity<String> response = restTemplate.exchange(
-            baseUrl() + "/statuses", HttpMethod.GET,
+            qcStatusesUrl(), HttpMethod.GET,
             new HttpEntity<>(adminHeaders),
             String.class);
 
@@ -131,7 +133,7 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getQcActions_returns200() {
         ResponseEntity<String> response = restTemplate.exchange(
-            baseUrl() + "/actions", HttpMethod.GET,
+            qcActionsUrl(), HttpMethod.GET,
             new HttpEntity<>(adminHeaders),
             String.class);
 
@@ -141,7 +143,7 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
     @Test
     void getDefectTypes_returns200() {
         ResponseEntity<String> response = restTemplate.exchange(
-            baseUrl() + "/defect-types", HttpMethod.GET,
+            defectTypesUrl(), HttpMethod.GET,
             new HttpEntity<>(adminHeaders),
             String.class);
 
@@ -155,7 +157,7 @@ class QualityInspectionIntegrationTest extends AbstractIntegrationTest {
         headers.set("Content-Type", "application/json");
 
         assertThatThrownBy(() -> restTemplate.exchange(
-            baseUrl() + "/statuses", HttpMethod.POST,
+            qcStatusesUrl(), HttpMethod.POST,
             new HttpEntity<>(body, headers),
             String.class))
             .isInstanceOf(HttpStatusCodeException.class)

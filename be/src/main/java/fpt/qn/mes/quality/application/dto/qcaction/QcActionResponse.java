@@ -1,4 +1,4 @@
-package fpt.qn.mes.quality.application.dto.response;
+package fpt.qn.mes.quality.application.dto.qcaction;
 
 import java.util.UUID;
 
@@ -14,9 +14,8 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FailQcResponse {
-    UUID resultId;
-    String qcStatusName;
-    UUID stockMovementId;
-    String message;
+public class QcActionResponse {
+    UUID id;
+    String name;
+    String description;
 }

@@ -1,4 +1,4 @@
-package fpt.qn.mes.quality.application.dto.response;
+package fpt.qn.mes.quality.application.dto.qcstatus;
 
 import java.util.UUID;
 
@@ -14,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class DefectTypeDto {
+public class QcStatusResponse {
     UUID id;
     String name;
     String description;
