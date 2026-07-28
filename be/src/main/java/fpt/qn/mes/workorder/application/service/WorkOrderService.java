@@ -28,9 +28,27 @@ public class WorkOrderService implements WorkOrderUseCase {
     WorkOrderRepository repository;
     WorkOrderDtoMapper mapper;
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<WorkOrderDto> getWorkOrders(int page, int size) {
-        throw new UnsupportedOperationException("Not implemented");
+        return getWorkOrders(page, size, null, null, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<WorkOrderDto> getWorkOrders(int page, int size, UUID finishedProductId, UUID statusId, String code) {
+        var result = repository.findAll(page, size, finishedProductId, statusId, code);
+        var dtos = result.getItems().stream()
+                .map(w -> mapper.toDto(w))
+                .toList();
+        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
+        return PageResponse.<WorkOrderDto>builder()
+                .items(dtos)
+                .totalElements(result.getTotal())
+                .totalPages(totalPages)
+                .pageNumber(page)
+                .pageSize(size)
+                .build();
     }
 
     @Override @Transactional(readOnly = true)

@@ -13,7 +13,20 @@ import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 public class WorkOrderRecordMapper {
 
     public WorkOrder toDomain(WorkOrdersRecord r) {
-        return null;
+        if (r == null) return null;
+        return WorkOrder.builder()
+                .id(r.getId())
+                .code(r.getCode())
+                .finishedProductId(r.getFinishedProductId())
+                .bomId(r.getBomId())
+                .plannedQuantity(r.getPlannedQuantity())
+                .plannedStartDate(r.getPlannedStartDate() != null ? r.getPlannedStartDate().toInstant() : null)
+                .plannedEndDate(r.getPlannedEndDate() != null ? r.getPlannedEndDate().toInstant() : null)
+                .priorityId(r.getPriorityId())
+                .workOrderStatusId(r.getWorkOrderStatusId())
+                .createdBy(r.getCreatedBy())
+                .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().toInstant() : null)
+                .build();
     }
 
     public WorkOrdersRecord toRecord(WorkOrder w) {

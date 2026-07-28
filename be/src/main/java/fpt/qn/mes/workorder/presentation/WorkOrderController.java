@@ -32,6 +32,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/work-orders")
 @RequiredArgsConstructor
@@ -40,10 +42,16 @@ public class WorkOrderController {
 
     WorkOrderUseCase workOrderUseCase;
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID finishedProductId,
+            @RequestParam(required = false) UUID statusId,
+            @RequestParam(required = false) String code) {
+        var response = workOrderUseCase.getWorkOrders(page, size, finishedProductId, statusId, code);
+        return ResponseEntity.ok(ApiResponse.success(response, "OK"));
     }
 
     @GetMapping("/{id}")
