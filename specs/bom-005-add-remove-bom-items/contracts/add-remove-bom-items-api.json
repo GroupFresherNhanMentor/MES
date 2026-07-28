@@ -1,0 +1,95 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Add and Remove BOM Items API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/boms/{bomId}/items": {
+      "post": {
+        "summary": "Add component item to DRAFT BOM",
+        "parameters": [
+          {
+            "name": "bomId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["materialProductId", "quantityPerUnit", "unit"],
+                "properties": {
+                  "materialProductId": { "type": "string", "format": "uuid" },
+                  "quantityPerUnit": { "type": "number", "minimum": 0.0001 },
+                  "unit": { "type": "string", "example": "PCS" },
+                  "scrapRate": { "type": "number", "default": 0.00 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item successfully added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 201 },
+                    "message": { "type": "string", "example": "OK" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "bomId": { "type": "string", "format": "uuid" },
+                        "materialProductId": { "type": "string", "format": "uuid" },
+                        "quantityPerUnit": { "type": "number" },
+                        "unit": { "type": "string" },
+                        "scrapRate": { "type": "number" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid input or BOM is not in DRAFT status" },
+          "404": { "description": "BOM not found" }
+        }
+      }
+    },
+    "/api/boms/{bomId}/items/{itemId}": {
+      "delete": {
+        "summary": "Remove component item from DRAFT BOM",
+        "parameters": [
+          {
+            "name": "bomId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Item successfully removed" },
+          "400": { "description": "BOM is not in DRAFT status" },
+          "404": { "description": "BOM or Item not found" }
+        }
+      }
+    }
+  }
+}
