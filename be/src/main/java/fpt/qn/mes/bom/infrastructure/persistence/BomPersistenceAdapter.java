@@ -117,6 +117,15 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
     }
 
     @Override
+    public int findMaxVersionByFinishedProductId(UUID finishedProductId) {
+        Integer maxVersion = dslCtx.select(org.jooq.impl.DSL.max(BOMS.VERSION))
+                .from(BOMS)
+                .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
+                .fetchOneInto(Integer.class);
+        return maxVersion != null ? maxVersion : 0;
+    }
+
+    @Override
     public BomItem saveItem(BomItem item) {
         BomItemsRecord record = mapper.toRecord(item);
         dslCtx.insertInto(BOM_ITEMS)

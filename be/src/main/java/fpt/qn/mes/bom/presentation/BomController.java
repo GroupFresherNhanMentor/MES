@@ -63,6 +63,13 @@ public class BomController {
         return ResponseEntity.ok(ApiResponse.success(bomUseCase.activateBom(id), "OK"));
     }
 
+    @PostMapping("/{id}/new-version")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    public ResponseEntity<ApiResponse<BomDto>> createNewVersion(@PathVariable UUID id) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(bomUseCase.createNewVersion(id), "Created"));
+    }
+
     @PostMapping("/{bomId}/items")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     public ResponseEntity<ApiResponse<BomItemDto>> addBomItem(

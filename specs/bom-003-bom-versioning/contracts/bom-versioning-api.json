@@ -1,0 +1,72 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "BOM Versioning API",
+    "version": "1.0.0",
+    "description": "API contract for creating a new BOM version cloned from an existing BOM."
+  },
+  "paths": {
+    "/api/boms/{id}/new-version": {
+      "post": {
+        "summary": "Create a new BOM version cloned from an existing BOM",
+        "operationId": "createNewVersion",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Source BOM unique identifier"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "New BOM version created successfully in DRAFT status with cloned items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "finishedProductId": { "type": "string", "format": "uuid" },
+                        "version": { "type": "integer", "example": 2 },
+                        "bomStatusId": { "type": "string", "format": "uuid" },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": { "type": "string", "format": "date-time" }
+                      }
+                    },
+                    "message": { "type": "string", "example": "Created" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source BOM not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": false },
+                    "errorCode": { "type": "string", "example": "NOT_FOUND" },
+                    "message": { "type": "string", "example": "Source BOM not found: 123e4567-e89b-12d3-a456-426614174000" },
+                    "timestamp": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
