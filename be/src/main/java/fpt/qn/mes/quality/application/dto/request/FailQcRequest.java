@@ -13,10 +13,19 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CreateQualityInspectionRequest {
-    @NotNull UUID workOrderId;
-    @NotNull UUID productId;
-    @NotNull UUID lotId;
-    @NotNull @DecimalMin("0.0001") BigDecimal quantity;
-    @NotNull UUID qcStatusId;
+public class FailQcRequest {
+    @NotNull
+    @DecimalMin(value = "0.0001", message = "failedQuantity must be > 0")
+    BigDecimal failedQuantity;
+
+    @NotNull
+    UUID actionId;
+
+    @NotNull
+    UUID defectTypeId;
+
+    @NotNull
+    String reason;
+
+    String note;
 }

@@ -1,8 +1,5 @@
 package fpt.qn.mes.quality.application.dto.response;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 import lombok.AccessLevel;
@@ -17,17 +14,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class QualityInspectionDto {
-    UUID id;
-    UUID workOrderId;
-    UUID productId;
-    String productCode;
-    UUID lotId;
-    String lotNumber;
-    BigDecimal quantity;
-    BigDecimal remainingQuantity;
-    UUID qcStatusId;
+public class FailQcResponse {
+    UUID resultId;
     String qcStatusName;
-    Instant createdAt;
-    List<QualityInspectionResultDto> results;
+    UUID stockMovementId;
+    String message;
 }
