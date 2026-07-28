@@ -140,10 +140,10 @@ public class MachineService implements MachineUseCase {
         var newName = ctx.select(MACHINE_STATUSES.NAME).from(MACHINE_STATUSES)
                 .where(MACHINE_STATUSES.ID.eq(newStatusId))
                 .fetchOptionalInto(String.class)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid status ID: " + newStatusId));
+                .orElseThrow(() -> new fpt.qn.mes.common.exception.DomainException("Invalid status ID: " + newStatusId));
 
         if (!isValidTransition(currentName, newName)) {
-            throw new IllegalArgumentException(
+            throw new fpt.qn.mes.common.exception.DomainException(
                     "Invalid machine status transition: " + currentName + " → " + newName);
         }
 
