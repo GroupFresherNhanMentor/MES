@@ -17,6 +17,7 @@ import fpt.qn.mes.bom.application.exception.InvalidBomStatusException;
 import fpt.qn.mes.bom.application.mapper.BomDtoMapper;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
 import fpt.qn.mes.bom.domain.entities.Bom;
+import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.dto.response.PaginationResult;
@@ -134,13 +135,87 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional
+    public BomDto createNewVersion(UUID id) {
+        // 1. Fetch source BOM
+        Bom sourceBom = bomRepository.findById(id)
+                .orElseThrow(() -> new BomNotFoundException("Source BOM not found: " + id));
+
+        // 2. Resolve DRAFT status ID
+        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+
+        // 3. Find max version and calculate next version
+        int maxVersion = bomRepository.findMaxVersionByFinishedProductId(sourceBom.getFinishedProductId());
+        int newVersion = maxVersion + 1;
+
+        // 4. Get current user ID
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+
+        // 5. Create new draft BOM entity
+        Bom newBom = Bom.create(
+                sourceBom.getFinishedProductId(),
+                newVersion,
+                draftStatusId,
+                currentUserId
+        );
+
+        // 6. Deep copy component items if present
+        if (sourceBom.getItems() != null && !sourceBom.getItems().isEmpty()) {
+            for (BomItem sourceItem : sourceBom.getItems()) {
+                BomItem clonedItem = BomItem.create(
+                        newBom.getId(),
+                        sourceItem.getMaterialProductId(),
+                        sourceItem.getQuantityPerUnit(),
+                        sourceItem.getUnit(),
+                        sourceItem.getScrapRate()
+                );
+                newBom.getItems().add(clonedItem);
+            }
+        }
+
+        // 7. Save and return DTO
+        Bom savedBom = bomRepository.save(newBom);
+        return mapper.toDto(savedBom);
+    }
+
+    @Override
+    @Transactional
     public BomItemDto addBomItem(UUID bomId, CreateBomItemRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+        Bom bom = bomRepository.findById(bomId)
+                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
+
+        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+
+        if (!draftStatusId.equals(bom.getBomStatusId())) {
+            throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
+        }
+
+        BomItem item = BomItem.create(
+                bomId,
+                request.getMaterialProductId(),
+                request.getQuantityPerUnit(),
+                request.getUnit(),
+                request.getScrapRate()
+        );
+
+        BomItem savedItem = bomRepository.saveItem(item);
+        return mapper.toDto(savedItem);
     }
 
     @Override
     @Transactional
     public void deleteBomItem(UUID bomId, UUID itemId) {
-        throw new UnsupportedOperationException("Not implemented");
+        Bom bom = bomRepository.findById(bomId)
+                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
+
+        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+
+        if (!draftStatusId.equals(bom.getBomStatusId())) {
+            throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
+        }
+
+        bomRepository.deleteItemById(itemId);
     }
 }

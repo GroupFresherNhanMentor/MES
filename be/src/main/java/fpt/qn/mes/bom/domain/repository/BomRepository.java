@@ -15,6 +15,7 @@ public interface BomRepository {
     Optional<UUID> findStatusIdByName(String name);
     void deactivateActiveBomsForProduct(UUID finishedProductId, UUID activeStatusId, UUID inactiveStatusId);
     int countItemsByBomId(UUID bomId);
+    int findMaxVersionByFinishedProductId(UUID finishedProductId);
     BomItem saveItem(BomItem item);
     Optional<BomItem> findItemById(UUID itemId);
     void deleteItemById(UUID itemId);

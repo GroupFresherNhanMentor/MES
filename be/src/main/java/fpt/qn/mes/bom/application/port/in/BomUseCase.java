@@ -13,6 +13,7 @@ public interface BomUseCase {
     BomDto getBomById(UUID id);
     BomDto createBom(CreateBomRequest request);
     BomDto activateBom(UUID id);
+    BomDto createNewVersion(UUID id);
     BomItemDto addBomItem(UUID bomId, CreateBomItemRequest request);
     void deleteBomItem(UUID bomId, UUID itemId);
 }
