@@ -26,6 +26,10 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import fpt.qn.mes.common.service.LookupEntry;
+import fpt.qn.mes.common.service.LookupRepository;
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -35,6 +39,13 @@ public class BomService implements BomUseCase {
     BomDtoMapper mapper;
     ProductUseCase productUseCase;
     CurrentUserPort currentUserPort;
+    LookupRepository lookupRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LookupEntry> getBomStatuses() {
+        return lookupRepository.findAll("bom_statuses");
+    }
 
     @Override
     @Transactional(readOnly = true)

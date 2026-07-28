@@ -1,0 +1,42 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Get BOM Statuses API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/boms/statuses": {
+      "get": {
+        "summary": "Retrieve BOM status lookup entries",
+        "responses": {
+          "200": {
+            "description": "List of status lookup entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "OK" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "name": { "type": "string", "example": "DRAFT" },
+                          "description": { "type": "string", "example": "Draft BOM version" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized - Missing or invalid JWT token" }
+        }
+      }
+    }
+  }
+}
