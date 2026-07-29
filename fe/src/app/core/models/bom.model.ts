@@ -1,62 +1,43 @@
-import type { BomStatus } from '../../configs/constants';
-
 export interface BomDto {
   id: string;
-  bomCode: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
+  finishedProductId: string;
+  finishedProductName?: string;
+  finishedProductCode?: string;
   version: number;
-  description?: string;
-  status: BomStatus;
-  quantity: number;
-  unitOfMeasure?: string;
-  totalCost?: number;
-  items?: BomItemDto[];
+  bomStatusId: string;
+  bomStatusName?: string;
+  createdBy?: string;
   createdAt: string;
-  updatedAt: string;
+  items?: BomItemDto[];
 }
 
 export interface BomItemDto {
   id: string;
   bomId: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
-  quantity: number;
-  unitOfMeasure?: string;
+  materialProductId: string;
+  materialProductName?: string;
+  materialProductCode?: string;
+  quantityPerUnit: number;
+  unit?: string;
   scrapRate?: number;
-  cost?: number;
-  sequence?: number;
-  notes?: string;
 }
 
 export interface CreateBomRequest {
-  productId: string;
-  description?: string;
-  quantity: number;
-  items: CreateBomItemRequest[];
+  finishedProductId: string;
+  version?: number;
+  bomStatusId?: string;
 }
 
 export interface CreateBomItemRequest {
-  productId: string;
-  quantity: number;
-  unitOfMeasure?: string;
+  materialProductId: string;
+  quantityPerUnit: number;
+  unit?: string;
   scrapRate?: number;
-  sequence?: number;
-  notes?: string;
-}
-
-export interface UpdateBomRequest {
-  description?: string;
-  quantity?: number;
-  items?: CreateBomItemRequest[];
 }
 
 export interface BomListParams {
-  keyword?: string;
-  productId?: string;
-  status?: BomStatus;
   page?: number;
   size?: number;
+  finishedProductId?: string;
+  bomStatusId?: string;
 }

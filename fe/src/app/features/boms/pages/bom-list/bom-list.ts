@@ -1,70 +1,146 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
+import { API } from '../../../../configs/api-endpoints';
 import type { BomDto } from '../../../../core/models/bom.model';
+import type { ProductDto } from '../../../../core/models/product.model';
+
+interface BomStatusOption {
+  id: string;
+  name: string;
+  description?: string;
+}
 
 @Component({
   selector: 'app-bom-list',
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatPaginatorModule],
-  template: `
-    <div class="page-header">
-      <h1 class="page-heading">Bill of Materials</h1>
-      <p class="page-subtitle">Manage BOMs, versions, and component structures</p>
-    </div>
-    <mat-card class="ff-card">
-      <mat-card-content>
-        <table mat-table [dataSource]="items()" class="full-width">
-          <ng-container matColumnDef="code">
-            <th mat-header-cell *matHeaderCellDef>BOM Code</th>
-            <td mat-cell *matCellDef="let b">{{ b.bomCode }}</td>
-          </ng-container>
-          <ng-container matColumnDef="product">
-            <th mat-header-cell *matHeaderCellDef>Product</th>
-            <td mat-cell *matCellDef="let b">{{ b.productName }}</td>
-          </ng-container>
-          <ng-container matColumnDef="version">
-            <th mat-header-cell *matHeaderCellDef>Version</th>
-            <td mat-cell *matCellDef="let b">{{ b.version }}</td>
-          </ng-container>
-          <ng-container matColumnDef="items">
-            <th mat-header-cell *matHeaderCellDef>Items</th>
-            <td mat-cell *matCellDef="let b">{{ b.items?.length ?? 0 }}</td>
-          </ng-container>
-          <ng-container matColumnDef="cost">
-            <th mat-header-cell *matHeaderCellDef>Total Cost</th>
-            <td mat-cell *matCellDef="let b">{{ b.totalCost != null ? '$' + b.totalCost.toFixed(2) : '-' }}</td>
-          </ng-container>
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let b">
-              <span class="ff-badge" [class.ff-badge--active]="b.status === 'ACTIVE'" [class.ff-badge--pending]="b.status === 'DRAFT'" [class.ff-badge--completed]="b.status === 'ARCHIVED'">{{ b.status }}</span>
-            </td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-        <mat-paginator [length]="total()" [pageSize]="size()" [pageIndex]="page()" (page)="onPage($event)" [pageSizeOptions]="[10,20,50]"></mat-paginator>
-      </mat-card-content>
-    </mat-card>
-  `,
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatCardModule,
+    MatPaginatorModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    MatProgressBarModule,
+    MatTooltipModule,
+  ],
+  templateUrl: './bom-list.html',
 })
-export class BomList {
+export class BomList implements OnInit {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
+  protected router = inject(Router);
+
+  // State Signals
   items = signal<BomDto[]>([]);
   total = signal(0);
   page = signal(0);
   size = signal(20);
-  displayedColumns = ['code', 'product', 'version', 'items', 'cost', 'status'];
-  constructor() { this.load(); }
-  load() {
-    this.api.get<{ items: BomDto[]; totalElements: number }>(`/api/boms?page=${this.page()}&size=${this.size()}`).subscribe(r => {
-      if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
+  loading = signal(false);
+
+  selectedProductId = signal<string | null>(null);
+  selectedStatusId = signal<string | null>(null);
+
+  productsList = signal<ProductDto[]>([]);
+  statusesList = signal<BomStatusOption[]>([]);
+
+  // Computed signals
+  currentUser = this.auth.getCurrentUser();
+  canCreate = computed(() => {
+    const role = this.currentUser?.role;
+    return role === 'ADMIN' || role === 'PLANNER';
+  });
+
+  displayedColumns = ['code', 'product', 'version', 'items', 'status', 'createdBy', 'createdAt', 'actions'];
+
+  ngOnInit(): void {
+    this.loadDropdowns();
+    this.load();
+  }
+
+  loadDropdowns(): void {
+    const productTypeIds = ['PT-FIN', 'PT-SUB'];
+    this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${productTypeIds.join(',')}`).subscribe((r) => {
+      if (r.success && r.data?.items) {
+        this.productsList.set(r.data.items);
+      }
+    });
+
+    this.api.get<BomStatusOption[]>(API.boms.statuses).subscribe((r) => {
+      if (r.success && r.data) {
+        this.statusesList.set(r.data);
+      }
     });
   }
-  onPage(e: PageEvent) { this.page.set(e.pageIndex); this.size.set(e.pageSize); this.load(); }
+
+  load(): void {
+    this.loading.set(true);
+    let url = `${API.boms.base}?page=${this.page()}&size=${this.size()}`;
+    if (this.selectedProductId()) {
+      url += `&finishedProductId=${encodeURIComponent(this.selectedProductId()!)}`;
+    }
+    if (this.selectedStatusId()) {
+      url += `&bomStatusId=${encodeURIComponent(this.selectedStatusId()!)}`;
+    }
+
+    this.api.get<{ items: BomDto[]; totalElements: number }>(url).subscribe({
+      next: (r) => {
+        if (r.success && r.data) {
+          this.items.set(r.data.items || []);
+          this.total.set(r.data.totalElements || 0);
+        }
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  onProductFilterChange(val: string | null): void {
+    this.selectedProductId.set(val);
+    this.page.set(0);
+    this.load();
+  }
+
+  onStatusFilterChange(val: string | null): void {
+    this.selectedStatusId.set(val);
+    this.page.set(0);
+    this.load();
+  }
+
+  resetFilters(): void {
+    this.selectedProductId.set(null);
+    this.selectedStatusId.set(null);
+    this.page.set(0);
+    this.load();
+  }
+
+  onPage(e: PageEvent): void {
+    this.page.set(e.pageIndex);
+    this.size.set(e.pageSize);
+    this.load();
+  }
+
+  onRowClick(row: BomDto): void {
+    void this.router.navigate(['/boms', row.id]);
+  }
+
+  onCreateBom(): void {
+    console.log('Create BOM clicked');
+  }
 }

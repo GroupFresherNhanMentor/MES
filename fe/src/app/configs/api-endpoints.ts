@@ -41,6 +41,10 @@ export const API = {
     byId: (id: string | number) => `${BASE}/boms/${id}`,
     activate: (id: string | number) => `${BASE}/boms/${id}/activate`,
     newVersion: (id: string | number) => `${BASE}/boms/${id}/new-version`,
+    items: (bomId: string | number) => `${BASE}/boms/${bomId}/items`,
+    deleteItem: (bomId: string | number, itemId: string | number) =>
+      `${BASE}/boms/${bomId}/items/${itemId}`,
+    statuses: `${BASE}/boms/statuses`,
   },
   workOrders: {
     base: `${BASE}/work-orders`,

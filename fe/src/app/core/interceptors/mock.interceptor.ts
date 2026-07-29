@@ -96,17 +96,45 @@ const MOCK_MACHINES = [
   { id: 'M-005', machineCode: 'PKG-001', machineName: 'Packaging Machine', model: 'Bosch P-500', serialNumber: 'BS-2025-001', productionLineId: 'L-PKG', productionLineName: 'Packaging Line', status: 'RUNNING', location: 'Building B', installationDate: '2025-02-15', lastMaintenanceDate: '2025-05-25', nextMaintenanceDate: '2025-08-25', createdAt: '2025-02-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
-// ── Mock BOMs ──
-const MOCK_BOMS = [
-  { id: 'BOM-001', bomCode: 'BOM-WA-001', productId: 'P006', productName: 'Finished Widget A', productCode: 'WIDGET-A', version: 1, description: 'Standard BOM for Widget A', status: 'ACTIVE', quantity: 1, unitOfMeasure: 'PCS', totalCost: 25.50, items: [
-    { id: 'BMI-001', bomId: 'BOM-001', productId: 'P001', productName: 'Steel Plate', productCode: 'STEEL-PLATE', quantity: 2, unitOfMeasure: 'KG', scrapRate: 5, cost: 8.00, sequence: 1, notes: null },
-    { id: 'BMI-002', bomId: 'BOM-001', productId: 'P003', productName: 'Copper Wire', productCode: 'COPPER-WIRE', quantity: 5, unitOfMeasure: 'M', scrapRate: 3, cost: 5.50, sequence: 2, notes: null },
-    { id: 'BMI-003', bomId: 'BOM-001', productId: 'P004', productName: 'Circuit Board', productCode: 'CIRCUIT-BOARD', quantity: 1, unitOfMeasure: 'PCS', scrapRate: 2, cost: 12.00, sequence: 3, notes: null },
-  ], createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'BOM-002', bomCode: 'BOM-WB-001', productId: 'P007', productName: 'Finished Widget B', productCode: 'WIDGET-B', version: 1, description: 'Standard BOM for Widget B', status: 'DRAFT', quantity: 1, unitOfMeasure: 'PCS', totalCost: 35.00, items: [
-    { id: 'BMI-004', bomId: 'BOM-002', productId: 'P002', productName: 'Aluminum Sheet', productCode: 'ALUM-SHEET', quantity: 3, unitOfMeasure: 'KG', scrapRate: 5, cost: 15.00, sequence: 1, notes: null },
-    { id: 'BMI-005', bomId: 'BOM-002', productId: 'P005', productName: 'Engine Block', productCode: 'ENGINE-BLOCK', quantity: 1, unitOfMeasure: 'PCS', scrapRate: 0, cost: 20.00, sequence: 2, notes: null },
-  ], createdAt: '2025-03-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+// ── Mock BOM Statuses & BOMs ──
+const MOCK_BOM_STATUSES = [
+  { id: 'BS-DRAFT', name: 'DRAFT', description: 'Draft version' },
+  { id: 'BS-ACTIVE', name: 'ACTIVE', description: 'Active version' },
+  { id: 'BS-INACTIVE', name: 'INACTIVE', description: 'Inactive version' },
+];
+
+const MOCK_BOMS: any[] = [
+  {
+    id: 'BOM-001',
+    finishedProductId: 'P006',
+    finishedProductName: 'Finished Widget A',
+    finishedProductCode: 'WIDGET-A',
+    version: 1,
+    bomStatusId: 'BS-ACTIVE',
+    bomStatusName: 'ACTIVE',
+    createdBy: 'admin',
+    createdAt: '2025-03-01T00:00:00Z',
+    items: [
+      { id: 'BMI-001', bomId: 'BOM-001', materialProductId: 'P001', materialProductName: 'Steel Plate', materialProductCode: 'STEEL-PLATE', quantityPerUnit: 2, unit: 'KG', scrapRate: 0.05 },
+      { id: 'BMI-002', bomId: 'BOM-001', materialProductId: 'P003', materialProductName: 'Copper Wire', materialProductCode: 'COPPER-WIRE', quantityPerUnit: 5, unit: 'M', scrapRate: 0.03 },
+      { id: 'BMI-003', bomId: 'BOM-001', materialProductId: 'P004', materialProductName: 'Circuit Board', materialProductCode: 'CIRCUIT-BOARD', quantityPerUnit: 1, unit: 'PCS', scrapRate: 0.02 },
+    ]
+  },
+  {
+    id: 'BOM-002',
+    finishedProductId: 'P007',
+    finishedProductName: 'Finished Widget B',
+    finishedProductCode: 'WIDGET-B',
+    version: 1,
+    bomStatusId: 'BS-DRAFT',
+    bomStatusName: 'DRAFT',
+    createdBy: 'admin',
+    createdAt: '2025-03-15T00:00:00Z',
+    items: [
+      { id: 'BMI-004', bomId: 'BOM-002', materialProductId: 'P002', materialProductName: 'Aluminum Sheet', materialProductCode: 'ALUM-SHEET', quantityPerUnit: 3, unit: 'KG', scrapRate: 0.05 },
+      { id: 'BMI-005', bomId: 'BOM-002', materialProductId: 'P005', materialProductName: 'Engine Block', materialProductCode: 'ENGINE-BLOCK', quantityPerUnit: 1, unit: 'PCS', scrapRate: 0 },
+    ]
+  },
 ];
 
 // ── Mock Work Orders ──
@@ -193,8 +221,13 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
     const page = parseInt(params.get('page') ?? '0');
     const size = parseInt(params.get('size') ?? '20');
     const statusId = params.get('statusId');
+    const productTypeId = params.get('productTypeId');
     let filtered = [...MOCK_PRODUCTS];
     if (statusId) filtered = filtered.filter(p => p.productStatusId === statusId);
+    if (productTypeId) {
+      const typeIds = productTypeId.split(',');
+      filtered = filtered.filter(p => typeIds.includes(p.productTypeId));
+    }
     const paged = filtered.slice(page * size, (page + 1) * size);
     return respond(okPage(paged, filtered.length));
   }
@@ -280,21 +313,113 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // ── BOMs ──
+  if (url === `${base}/boms/statuses` && method === 'GET') {
+    return respond(ok(MOCK_BOM_STATUSES));
+  }
   if (url === `${base}/boms` && method === 'POST') {
     const body = req.body as any;
-    const newBom = { id: `BOM-${String(Date.now())}`, bomCode: `BOM-${String(Date.now())}`, ...body, version: 1, status: 'DRAFT', items: body.items || [], createdAt: ts(), updatedAt: ts() };
+    const prod = MOCK_PRODUCTS.find(p => p.id === body.finishedProductId);
+    const newBom = {
+      id: `BOM-${String(Date.now())}`,
+      finishedProductId: body.finishedProductId,
+      finishedProductName: prod?.name ?? 'Product',
+      finishedProductCode: prod?.code ?? 'PROD',
+      version: body.version ?? 1,
+      bomStatusId: body.bomStatusId ?? 'BS-DRAFT',
+      bomStatusName: 'DRAFT',
+      createdBy: 'admin',
+      createdAt: ts(),
+      items: [],
+    };
     MOCK_BOMS.push(newBom);
     return respond(ok(newBom));
   }
-  if (matchUrl(url, `${base}/boms/:id/activate`) && method === 'PUT') {
-    return respond(ok({ activated: true }));
+  if (matchUrl(url, `${base}/boms/:id/activate`) && method === 'POST') {
+    const id = extractParam(url, `${base}/boms/:id/activate`);
+    const target = MOCK_BOMS.find(b => b.id === id);
+    if (target) {
+      MOCK_BOMS.filter(b => b.finishedProductId === target.finishedProductId).forEach(b => {
+        b.bomStatusId = 'BS-INACTIVE';
+        b.bomStatusName = 'INACTIVE';
+      });
+      target.bomStatusId = 'BS-ACTIVE';
+      target.bomStatusName = 'ACTIVE';
+    }
+    return respond(ok(target || { activated: true }));
+  }
+  if (matchUrl(url, `${base}/boms/:id/new-version`) && method === 'POST') {
+    const id = extractParam(url, `${base}/boms/:id/new-version`);
+    const source = MOCK_BOMS.find(b => b.id === id);
+    if (source) {
+      const maxVer = Math.max(...MOCK_BOMS.filter(b => b.finishedProductId === source.finishedProductId).map(b => b.version), 0);
+      const newVersionBom = {
+        ...source,
+        id: `BOM-${String(Date.now())}`,
+        version: maxVer + 1,
+        bomStatusId: 'BS-DRAFT',
+        bomStatusName: 'DRAFT',
+        createdAt: ts(),
+        items: source.items ? source.items.map((it: any) => ({ ...it, id: `BMI-${String(Math.random())}` })) : [],
+      };
+      MOCK_BOMS.push(newVersionBom);
+      return respond(ok(newVersionBom));
+    }
+    return respond(ok(null));
+  }
+  if (matchUrl(url, `${base}/boms/:bomId/items`) && method === 'POST') {
+    const bomId = extractParam(url, `${base}/boms/:bomId/items`);
+    const body = req.body as any;
+    const bom = MOCK_BOMS.find(b => b.id === bomId);
+    const prod = MOCK_PRODUCTS.find(p => p.id === body.materialProductId);
+    const newItem = {
+      id: `BMI-${String(Date.now())}`,
+      bomId,
+      materialProductId: body.materialProductId,
+      materialProductName: prod?.name ?? 'Material',
+      materialProductCode: prod?.code ?? 'MAT',
+      quantityPerUnit: body.quantityPerUnit,
+      unit: body.unit ?? prod?.unitName ?? 'PCS',
+      scrapRate: body.scrapRate ?? 0,
+    };
+    if (bom) {
+      if (!bom.items) bom.items = [];
+      bom.items.push(newItem);
+    }
+    return respond(ok(newItem));
+  }
+  if (url.match(new RegExp(`^${base}/boms/([^/]+)/items/([^/]+)$`)) && method === 'DELETE') {
+    const m = url.match(new RegExp(`^${base}/boms/([^/]+)/items/([^/]+)$`));
+    if (m) {
+      const bomId = m[1];
+      const itemId = m[2];
+      const bom = MOCK_BOMS.find(b => b.id === bomId);
+      if (bom && bom.items) {
+        bom.items = bom.items.filter((it: any) => it.id !== itemId);
+      }
+    }
+    return respond(ok({ deleted: true }));
   }
   if (matchUrl(url, `${base}/boms/:id`) && method === 'GET') {
     const id = extractParam(url, `${base}/boms/:id`);
     return respond(ok(MOCK_BOMS.find(b => b.id === id) || null));
   }
   if (url.startsWith(`${base}/boms`) && method === 'GET') {
-    return respond(okPage(MOCK_BOMS));
+    const rawUrl = req.urlWithParams || url;
+    let filtered = [...MOCK_BOMS];
+
+    const matchFinished = rawUrl.match(/[?&]finishedProductId=([^&]+)/);
+    if (matchFinished) {
+      const pid = decodeURIComponent(matchFinished[1]);
+      filtered = filtered.filter(b => b.finishedProductId === pid);
+    }
+
+    const matchStatus = rawUrl.match(/[?&]bomStatusId=([^&]+)/);
+    if (matchStatus) {
+      const sid = decodeURIComponent(matchStatus[1]);
+      filtered = filtered.filter(b => b.bomStatusId === sid || b.bomStatusName === sid);
+    }
+
+    return respond(okPage(filtered));
   }
 
   // ── Work Orders ──

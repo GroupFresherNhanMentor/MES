@@ -51,7 +51,18 @@ export type TicketStatus = (typeof TICKET_STATUSES)[number];
 export const TICKET_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
 
-export const SYSTEM_ROLES = ['ADMIN', 'OPERATOR', 'SUPERVISOR', 'QUALITY', 'MAINTENANCE'] as const;
+export const SYSTEM_ROLES = [
+  'ADMIN',
+  'PLANNER',
+  'FACTORY_MANAGER',
+  'OPERATOR',
+  'SUPERVISOR',
+  'QUALITY',
+  'QC_INSPECTOR',
+  'MAINTENANCE',
+  'WAREHOUSE_MANAGER',
+  'AUDITOR',
+] as const;
 export type SystemRole = (typeof SYSTEM_ROLES)[number];
 
 export const USER_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
