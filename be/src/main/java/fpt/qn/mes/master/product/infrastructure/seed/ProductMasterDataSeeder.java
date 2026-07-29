@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -44,7 +45,7 @@ public class ProductMasterDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(PRODUCT_TYPES, PRODUCT_TYPES.ID, PRODUCT_TYPES.NAME, PRODUCT_TYPES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded product_types");
@@ -56,7 +57,7 @@ public class ProductMasterDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(PRODUCT_STATUSES, PRODUCT_STATUSES.ID, PRODUCT_STATUSES.NAME, PRODUCT_STATUSES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded product_statuses");
@@ -68,7 +69,7 @@ public class ProductMasterDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(UNITS_OF_MEASURE, UNITS_OF_MEASURE.ID, UNITS_OF_MEASURE.NAME, UNITS_OF_MEASURE.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded units_of_measure");

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -38,7 +39,7 @@ public class RoleDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(ROLES, ROLES.ID, ROLES.NAME, ROLES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded roles");

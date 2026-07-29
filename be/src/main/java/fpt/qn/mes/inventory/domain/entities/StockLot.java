@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import fpt.qn.mes.common.exception.DomainException;
+import fpt.qn.mes.common.util.UuidV7;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -37,7 +38,7 @@ public class StockLot {
             throw new DomainException("Product ID cannot be null");
         }
         return StockLot.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .lotNumber(lotNumber.trim())
                 .productId(productId)
                 .lotTypeId(lotTypeId)

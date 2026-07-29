@@ -3,6 +3,7 @@ package fpt.qn.mes.master.location.domain.entities;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -13,7 +14,7 @@ public class WarehouseLocation {
 
     public static WarehouseLocation create(UUID warehouseId, String code, String name, UUID locationStatusId, UUID createdBy) {
         return WarehouseLocation.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .warehouseId(warehouseId)
                 .code(code)
                 .name(name)
