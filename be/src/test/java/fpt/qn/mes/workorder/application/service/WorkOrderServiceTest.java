@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
@@ -169,5 +170,41 @@ class WorkOrderServiceTest {
                 fpt.qn.mes.workorder.application.exception.BomNotActiveException.class,
                 () -> service.createWorkOrder(req, userId)
         );
+    }
+
+    @Test
+    @DisplayName("getWorkOrderById with existing ID should return WorkOrderDto with materials and events")
+    void getWorkOrderById_existingId_shouldReturnDto() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        when(repository.findById(id)).thenReturn(java.util.Optional.of(sampleEntity));
+        when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
+        when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+
+        // Act
+        WorkOrderDto result = service.getWorkOrderById(id);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("WO-2026-0001", result.getCode());
+        verify(repository).findById(id);
+        verify(repository).findMaterialsByWorkOrderId(id);
+        verify(repository).findEventsByWorkOrderId(id);
+    }
+
+    @Test
+    @DisplayName("getWorkOrderById with non-existent ID should throw WorkOrderNotFoundException")
+    void getWorkOrderById_nonExistentId_shouldThrowException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(repository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                WorkOrderNotFoundException.class,
+                () -> service.getWorkOrderById(nonExistentId)
+        );
+        verify(repository).findById(nonExistentId);
     }
 }

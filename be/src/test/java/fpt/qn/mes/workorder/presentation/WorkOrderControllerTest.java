@@ -116,4 +116,24 @@ class WorkOrderControllerTest {
 
         verify(workOrderUseCase).createWorkOrder(req, userId);
     }
+
+    @Test
+    @DisplayName("getById should return 200 OK with WorkOrderDto details")
+    void getById_shouldReturn200WithApiResponse() {
+        // Arrange
+        UUID id = sampleDto.getId();
+        when(workOrderUseCase.getWorkOrderById(id)).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.getById(id);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("WO-2026-0001", response.getBody().getData().getCode());
+
+        verify(workOrderUseCase).getWorkOrderById(id);
+    }
 }

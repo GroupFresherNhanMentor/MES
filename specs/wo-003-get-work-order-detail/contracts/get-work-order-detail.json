@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GetWorkOrderDetailResponse",
+  "type": "object",
+  "properties": {
+    "success": {
+      "type": "boolean",
+      "enum": [true]
+    },
+    "message": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "code": { "type": "string" },
+        "finishedProductId": { "type": "string", "format": "uuid" },
+        "bomId": { "type": "string", "format": "uuid" },
+        "plannedQuantity": { "type": "number" },
+        "plannedStartDate": { "type": "string", "format": "date-time" },
+        "plannedEndDate": { "type": "string", "format": "date-time" },
+        "priorityId": { "type": "string", "format": "uuid" },
+        "workOrderStatusId": { "type": "string", "format": "uuid" },
+        "createdBy": { "type": "string", "format": "uuid" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "workOrderId": { "type": "string", "format": "uuid" },
+              "materialProductId": { "type": "string", "format": "uuid" },
+              "requiredQuantity": { "type": "number" },
+              "reservedQuantity": { "type": "number" },
+              "consumedQuantity": { "type": "number" }
+            },
+            "required": ["id", "workOrderId", "materialProductId", "requiredQuantity", "reservedQuantity", "consumedQuantity"]
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "workOrderId": { "type": "string", "format": "uuid" },
+              "eventTypeId": { "type": "string", "format": "uuid" },
+              "operatorId": { "type": "string", "format": "uuid" },
+              "eventTimestamp": { "type": "string", "format": "date-time" }
+            },
+            "required": ["id", "workOrderId", "eventTypeId", "eventTimestamp"]
+          }
+        }
+      },
+      "required": ["id", "code", "finishedProductId", "plannedQuantity", "materials", "events"]
+    }
+  },
+  "required": ["success", "data"]
+}

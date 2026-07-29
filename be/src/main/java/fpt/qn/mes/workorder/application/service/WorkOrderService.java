@@ -25,6 +25,7 @@ import java.time.Instant;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
+import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 
@@ -60,9 +61,37 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .build();
     }
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public WorkOrderDto getWorkOrderById(UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        var workOrder = repository.findById(id)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + id));
+
+        var materials = repository.findMaterialsByWorkOrderId(id).stream()
+                .map(m -> mapper.toDto(m))
+                .toList();
+
+        var events = repository.findEventsByWorkOrderId(id).stream()
+                .map(e -> mapper.toDto(e))
+                .toList();
+
+        WorkOrderDto baseDto = mapper.toDto(workOrder);
+
+        return WorkOrderDto.builder()
+                .id(baseDto.getId())
+                .code(baseDto.getCode())
+                .finishedProductId(baseDto.getFinishedProductId())
+                .bomId(baseDto.getBomId())
+                .plannedQuantity(baseDto.getPlannedQuantity())
+                .plannedStartDate(baseDto.getPlannedStartDate())
+                .plannedEndDate(baseDto.getPlannedEndDate())
+                .priorityId(baseDto.getPriorityId())
+                .workOrderStatusId(baseDto.getWorkOrderStatusId())
+                .createdBy(baseDto.getCreatedBy())
+                .createdAt(baseDto.getCreatedAt())
+                .materials(materials)
+                .events(events)
+                .build();
     }
 
     @Override

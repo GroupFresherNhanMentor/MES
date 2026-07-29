@@ -71,7 +71,15 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrderEvent toDomain(WorkOrderEventsRecord r) {
-        return null;
+        if (r == null) return null;
+        return WorkOrderEvent.builder()
+                .id(r.getId())
+                .workOrderId(r.getWorkOrderId())
+                .eventTypeId(r.getEventTypeId())
+                .operatorId(r.getOperatorId())
+                .eventTimestamp(r.getEventTimestamp() != null ? r.getEventTimestamp().toInstant() : null)
+                .note(r.getNote())
+                .build();
     }
 
     public WorkOrderEventsRecord toRecord(WorkOrderEvent e) {
