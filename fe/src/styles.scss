@@ -182,3 +182,11 @@ mat-card, .mat-mdc-card {
 .page-container { padding: 24px; max-width: 1440px; margin: 0 auto; }
 .toolbar { display: flex; gap: 12px; align-items: center; }
 .toolbar mat-form-field { width: 200px; }
+
+/* ── Sidebar active link ── */
+.router-active { background:rgba(234,88,12,0.15) !important; color:#fafaf9 !important; }
+
+/* ── Menu dropdown ── */
+.mat-mdc-menu-panel { background:#1c1917 !important; border:1px solid #44403c; }
+.mat-mdc-menu-item { color:#fafaf9 !important; }
+.mat-mdc-menu-item:hover { background:#292524 !important; }
