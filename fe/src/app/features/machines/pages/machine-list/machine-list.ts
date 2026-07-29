@@ -1,66 +1,83 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { MatMenuModule } from '@angular/material/menu';
+import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
 import type { MachineDto } from '../../../../core/models/machine.model';
+import { MACHINE_STATUSES } from '../../../../configs/constants';
 
 @Component({
   selector: 'app-machine-list',
-  imports: [MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatPaginatorModule],
-  template: `
-    <div class="page-header">
-      <h1 class="page-heading">Machines</h1>
-      <p class="page-subtitle">Manage machine registry and operational status</p>
-    </div>
-    <mat-card class="ff-card">
-      <mat-card-content>
-        <table mat-table [dataSource]="items()" class="full-width">
-          <ng-container matColumnDef="code">
-            <th mat-header-cell *matHeaderCellDef>Code</th>
-            <td mat-cell *matCellDef="let m">{{ m.machineCode }}</td>
-          </ng-container>
-          <ng-container matColumnDef="name">
-            <th mat-header-cell *matHeaderCellDef>Name</th>
-            <td mat-cell *matCellDef="let m">{{ m.machineName }}</td>
-          </ng-container>
-          <ng-container matColumnDef="model">
-            <th mat-header-cell *matHeaderCellDef>Model</th>
-            <td mat-cell *matCellDef="let m">{{ m.model }}</td>
-          </ng-container>
-          <ng-container matColumnDef="line">
-            <th mat-header-cell *matHeaderCellDef>Production Line</th>
-            <td mat-cell *matCellDef="let m">{{ m.productionLineName }}</td>
-          </ng-container>
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let m">
-              <span class="ff-badge" [class.ff-badge--active]="m.status === 'RUNNING'" [class.ff-badge--pending]="m.status === 'IDLE'" [class.ff-badge--on-hold]="m.status === 'MAINTENANCE'" [class.ff-badge--cancelled]="m.status === 'BREAKDOWN' || m.status === 'INACTIVE'">{{ m.status }}</span>
-            </td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-        <mat-paginator [length]="total()" [pageSize]="size()" [pageIndex]="page()" (page)="onPage($event)" [pageSizeOptions]="[10,20,50]"></mat-paginator>
-      </mat-card-content>
-    </mat-card>
-  `,
+  imports: [
+    DatePipe, NgClass, FormsModule,
+    MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
+    MatInputModule, MatSelectModule, MatPaginatorModule,
+    MatSnackBarModule, MatCardModule, MatMenuModule,
+  ],
+  templateUrl: './machine-list.html',
 })
 export class MachineList {
   private api = inject(ApiService);
+  private snackBar = inject(MatSnackBar);
+
   items = signal<MachineDto[]>([]);
   total = signal(0);
   page = signal(0);
   size = signal(20);
-  displayedColumns = ['code', 'name', 'model', 'line', 'status'];
-  constructor() { this.load(); }
+  keyword = signal('');
+  filterStatus = signal('');
+
+  statuses = MACHINE_STATUSES;
+  displayedColumns = ['code', 'name', 'line', 'status', 'actions'];
+
+  constructor() {
+    this.load();
+  }
+
   load() {
-    this.api.get<{ items: MachineDto[]; totalElements: number }>(`/api/machines?page=${this.page()}&size=${this.size()}`).subscribe(r => {
+    let url = `/api/machines?page=${this.page()}&size=${this.size()}`;
+    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatus()) url += `&statusName=${encodeURIComponent(this.filterStatus())}`;
+    this.api.get<{ items: MachineDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
   }
+
   onPage(e: PageEvent) { this.page.set(e.pageIndex); this.size.set(e.pageSize); this.load(); }
+  search() { this.page.set(0); this.load(); }
+
+  deactivate(m: MachineDto) {
+    this.api.put(`/api/machines/${m.id}/deactivate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Machine deactivated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  changeStatus(m: MachineDto, newStatus: string) {
+    this.api.patch(`/api/machines/${m.id}/status`, { status: newStatus }).subscribe(r => {
+      if (r.success) { this.snackBar.open(`Status changed to ${newStatus}`, 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  isActive(statusName: string) { return statusName !== 'INACTIVE'; }
+
+  getStatusClass(name: string): string {
+    const map: Record<string, string> = {
+      'RUNNING': 'ff-badge--running',
+      'IDLE': 'ff-badge--idle',
+      'MAINTENANCE': 'ff-badge--onhold',
+      'BREAKDOWN': 'ff-badge--cancelled',
+      'INACTIVE': 'ff-badge--cancelled',
+    };
+    return map[name] || '';
+  }
 }

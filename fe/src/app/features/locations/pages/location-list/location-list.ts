@@ -1,74 +1,72 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
-import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
+import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
 import type { LocationDto } from '../../../../core/models/location.model';
+import { LOCATION_STATUSES } from '../../../../configs/constants';
 
 @Component({
   selector: 'app-location-list',
-  imports: [DatePipe, MatTableModule, MatButtonModule, MatIconModule, MatCardModule, MatPaginatorModule],
-  template: `
-    <div class="page-header">
-      <h1 class="page-heading">Locations</h1>
-      <p class="page-subtitle">Warehouse: {{ warehouseId() }}</p>
-    </div>
-    <mat-card class="ff-card">
-      <mat-card-content>
-        <table mat-table [dataSource]="items()" class="full-width">
-          <ng-container matColumnDef="code">
-            <th mat-header-cell *matHeaderCellDef>Code</th>
-            <td mat-cell *matCellDef="let l">{{ l.locationCode }}</td>
-          </ng-container>
-          <ng-container matColumnDef="description">
-            <th mat-header-cell *matHeaderCellDef>Description</th>
-            <td mat-cell *matCellDef="let l">{{ l.description }}</td>
-          </ng-container>
-          <ng-container matColumnDef="capacity">
-            <th mat-header-cell *matHeaderCellDef>Load</th>
-            <td mat-cell *matCellDef="let l">{{ l.currentLoad }}/{{ l.maxCapacity }}</td>
-          </ng-container>
-          <ng-container matColumnDef="status">
-            <th mat-header-cell *matHeaderCellDef>Status</th>
-            <td mat-cell *matCellDef="let l">
-              <span class="ff-badge" [class.ff-badge--active]="l.status === 'AVAILABLE'" [class.ff-badge--on-hold]="l.status === 'MAINTENANCE'" [class.ff-badge--cancelled]="l.status === 'INACTIVE'">{{ l.status }}</span>
-            </td>
-          </ng-container>
-          <ng-container matColumnDef="created">
-            <th mat-header-cell *matHeaderCellDef>Created</th>
-            <td mat-cell *matCellDef="let l">{{ l.createdAt | date:'shortDate' }}</td>
-          </ng-container>
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-        <mat-paginator [length]="total()" [pageSize]="size()" [pageIndex]="page()" (page)="onPage($event)" [pageSizeOptions]="[10,20,50]"></mat-paginator>
-      </mat-card-content>
-    </mat-card>
-  `,
+  imports: [
+    DatePipe, NgClass, FormsModule,
+    MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
+    MatInputModule, MatSelectModule, MatPaginatorModule,
+    MatSnackBarModule, MatCardModule,
+  ],
+  templateUrl: './location-list.html',
 })
 export class LocationList {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
+  private snackBar = inject(MatSnackBar);
+
   warehouseId = signal('');
   items = signal<LocationDto[]>([]);
   total = signal(0);
   page = signal(0);
   size = signal(20);
-  displayedColumns = ['code', 'description', 'capacity', 'status', 'created'];
+  keyword = signal('');
+  filterStatus = signal('');
+
+  statuses = LOCATION_STATUSES;
+  displayedColumns = ['code', 'name', 'status', 'actions'];
+
   constructor() {
-    this.warehouseId.set(this.route.snapshot.params['warehouseId']);
+    const params = this.route.snapshot.params as Record<string, string>;
+    this.warehouseId.set(params['warehouseId']);
     this.load();
   }
+
   load() {
     const wid = this.warehouseId();
-    this.api.get<{ items: LocationDto[]; totalElements: number }>(`/api/warehouses/${wid}/locations?page=${this.page()}&size=${this.size()}`).subscribe(r => {
+    let url = `/api/warehouses/${wid}/locations?page=${this.page()}&size=${this.size()}`;
+    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatus()) url += `&statusName=${encodeURIComponent(this.filterStatus())}`;
+    this.api.get<{ items: LocationDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
   }
+
   onPage(e: PageEvent) { this.page.set(e.pageIndex); this.size.set(e.pageSize); this.load(); }
+  search() { this.page.set(0); this.load(); }
+
+  deactivate(l: LocationDto) {
+    const wid = this.warehouseId();
+    this.api.put(`/api/warehouses/${wid}/locations/${l.id}/deactivate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Location deactivated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  isActive(statusName: string) { return statusName === 'AVAILABLE'; }
 }
