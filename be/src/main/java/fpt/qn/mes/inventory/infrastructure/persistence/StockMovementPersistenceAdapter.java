@@ -2,7 +2,6 @@ package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -13,6 +12,7 @@ import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.SortField;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.repository.BaseRepository;
@@ -56,39 +56,48 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
 
     @Override
     public List<StockMovement> search(StockMovementSearchCriteria criteria) {
-        List<Condition> conditions = new ArrayList<>();
-        if (criteria.getMovementTypeId() != null) {
-            conditions.add(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(criteria.getMovementTypeId()));
-        }
-        if (criteria.getProductId() != null) {
-            conditions.add(STOCK_MOVEMENTS.PRODUCT_ID.eq(criteria.getProductId()));
-        }
-        if (criteria.getLotId() != null) {
-            conditions.add(STOCK_MOVEMENTS.LOT_ID.eq(criteria.getLotId()));
-        }
-        if (criteria.getWarehouseId() != null) {
-            conditions.add(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID.eq(criteria.getWarehouseId())
-                    .or(STOCK_MOVEMENTS.TO_WAREHOUSE_ID.eq(criteria.getWarehouseId())));
-        }
-        if (criteria.getLocationId() != null) {
-            conditions.add(STOCK_MOVEMENTS.FROM_LOCATION_ID.eq(criteria.getLocationId())
-                    .or(STOCK_MOVEMENTS.TO_LOCATION_ID.eq(criteria.getLocationId())));
-        }
-        if (criteria.getReferenceNo() != null && !criteria.getReferenceNo().isBlank()) {
-            conditions.add(STOCK_MOVEMENTS.REFERENCE_NO.containsIgnoreCase(criteria.getReferenceNo()));
-        }
-
+        Condition condition = buildCondition(criteria);
         int page = criteria.getPage();
         int size = criteria.getSize();
 
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
 
         return ctx.selectFrom(STOCK_MOVEMENTS)
-                .where(conditions)
+                .where(condition)
                 .orderBy(orderBy)
                 .limit(size)
                 .offset(page * size)
                 .fetch()
                 .map(r -> mapper.toDomain(r));
+    }
+
+    @Override
+    public long count(StockMovementSearchCriteria criteria) {
+        return count(buildCondition(criteria));
+    }
+
+    private Condition buildCondition(StockMovementSearchCriteria criteria) {
+        Condition condition = DSL.noCondition();
+        if (criteria.getMovementTypeId() != null) {
+            condition = condition.and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(criteria.getMovementTypeId()));
+        }
+        if (criteria.getProductId() != null) {
+            condition = condition.and(STOCK_MOVEMENTS.PRODUCT_ID.eq(criteria.getProductId()));
+        }
+        if (criteria.getLotId() != null) {
+            condition = condition.and(STOCK_MOVEMENTS.LOT_ID.eq(criteria.getLotId()));
+        }
+        if (criteria.getWarehouseId() != null) {
+            condition = condition.and(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID.eq(criteria.getWarehouseId())
+                    .or(STOCK_MOVEMENTS.TO_WAREHOUSE_ID.eq(criteria.getWarehouseId())));
+        }
+        if (criteria.getLocationId() != null) {
+            condition = condition.and(STOCK_MOVEMENTS.FROM_LOCATION_ID.eq(criteria.getLocationId())
+                    .or(STOCK_MOVEMENTS.TO_LOCATION_ID.eq(criteria.getLocationId())));
+        }
+        if (criteria.getReferenceNo() != null && !criteria.getReferenceNo().isBlank()) {
+            condition = condition.and(STOCK_MOVEMENTS.REFERENCE_NO.containsIgnoreCase(criteria.getReferenceNo()));
+        }
+        return condition;
     }
 }

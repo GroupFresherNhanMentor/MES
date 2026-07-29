@@ -8,14 +8,21 @@ import jakarta.validation.constraints.Positive;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Getter @Setter @FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateMovementRequest {
-    @NotNull UUID movementTypeId;
-    @NotNull UUID productId;
+    @NotNull
+    UUID movementTypeId;
+    @NotNull
+    UUID productId;
     UUID lotId;
-    @NotNull UUID warehouseId;
+    @NotNull
+    UUID warehouseId;
     UUID locationId;
-    @NotNull @Positive BigDecimal quantity;
+    @NotNull
+    @Positive
+    BigDecimal quantity;
     UUID fromStatusId;
     UUID toStatusId;
     String referenceNo;

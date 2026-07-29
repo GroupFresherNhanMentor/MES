@@ -24,6 +24,7 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
@@ -32,12 +33,16 @@ import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.service.InventoryService;
+import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
+import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
+import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
@@ -58,6 +63,12 @@ class InventoryServiceTest {
 
     @Mock
     InventoryDtoMapper mapper;
+
+    @Mock
+    MovementTypeRepository movementTypeRepository;
+
+    @Mock
+    StockStatusRepository stockStatusRepository;
 
     @Mock
     WarehouseUseCase warehouseUseCase;
@@ -255,6 +266,7 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
+        when(movementRepository.count(any(StockMovementSearchCriteria.class))).thenReturn(1L);
         when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(List.of(movement));
         when(mapper.toDto(movement)).thenReturn(dto);
 
@@ -262,5 +274,139 @@ class InventoryServiceTest {
 
         assertThat(response).isNotNull();
         assertThat(response.getItems()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("recordStockIn should save new lot, balance, and movement when lot is new")
+    void recordStockIn_NewLot_Success() {
+        StockInRequest request = StockInRequest.builder()
+                .productId(productId)
+                .warehouseId(warehouseId)
+                .locationId(locationId)
+                .lotNumber("LOT-NEW-001")
+                .quantity(new BigDecimal("100.00"))
+                .referenceNo("PO-2026-001")
+                .build();
+
+        UUID availableStatusId = UUID.randomUUID();
+        UUID purchaseInTypeId = UUID.randomUUID();
+
+        when(lotRepository.findByLotNumber("LOT-NEW-001")).thenReturn(Optional.empty());
+        when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(availableStatusId));
+        when(movementTypeRepository.findIdByName(MovementTypeConstants.PURCHASE_IN)).thenReturn(Optional.of(purchaseInTypeId));
+        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId)).thenReturn(Optional.empty());
+
+        StockLot savedLot = StockLot.builder().id(lotId).lotNumber("LOT-NEW-001").productId(productId).build();
+        when(lotRepository.save(any(StockLot.class))).thenReturn(savedLot);
+
+        StockMovement savedMovement = StockMovement.builder()
+                .id(UUID.randomUUID())
+                .productId(productId)
+                .quantity(new BigDecimal("100.00"))
+                .referenceNo("PO-2026-001")
+                .build();
+        StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("100.00")).build();
+
+        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
+        when(mapper.toDto(savedMovement)).thenReturn(dto);
+
+        StockMovementDto result = inventoryService.recordStockIn(request, userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getQuantity()).isEqualTo(new BigDecimal("100.00"));
+        verify(lotRepository).save(any(StockLot.class));
+        verify(balanceRepository).save(any(StockBalance.class));
+        verify(movementRepository).save(any(StockMovement.class));
+    }
+
+    @Test
+    @DisplayName("recordStockIn should reuse existing lot when lot exists for the same product")
+    void recordStockIn_ExistingLot_SameProduct_ReusesLot() {
+        StockInRequest request = StockInRequest.builder()
+                .productId(productId)
+                .warehouseId(warehouseId)
+                .locationId(locationId)
+                .lotNumber("LOT-EXISTING-001")
+                .quantity(new BigDecimal("50.00"))
+                .referenceNo("PO-2026-002")
+                .build();
+
+        StockLot existingLot = StockLot.builder()
+                .id(lotId)
+                .lotNumber("LOT-EXISTING-001")
+                .productId(productId)
+                .build();
+
+        UUID availableStatusId = UUID.randomUUID();
+        UUID purchaseInTypeId = UUID.randomUUID();
+
+        when(lotRepository.findByLotNumber("LOT-EXISTING-001")).thenReturn(Optional.of(existingLot));
+        when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(availableStatusId));
+        when(movementTypeRepository.findIdByName(MovementTypeConstants.PURCHASE_IN)).thenReturn(Optional.of(purchaseInTypeId));
+        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId)).thenReturn(Optional.empty());
+
+        StockMovement savedMovement = StockMovement.builder()
+                .id(UUID.randomUUID())
+                .productId(productId)
+                .quantity(new BigDecimal("50.00"))
+                .referenceNo("PO-2026-002")
+                .build();
+        StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("50.00")).build();
+
+        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
+        when(mapper.toDto(savedMovement)).thenReturn(dto);
+
+        StockMovementDto result = inventoryService.recordStockIn(request, userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getQuantity()).isEqualTo(new BigDecimal("50.00"));
+        verify(balanceRepository).save(any(StockBalance.class));
+        verify(movementRepository).save(any(StockMovement.class));
+    }
+
+    @Test
+    @DisplayName("recordStockIn should throw InvalidStockLotException when existing lot belongs to different product")
+    void recordStockIn_LotProductMismatch_ThrowsException() {
+        StockInRequest request = StockInRequest.builder()
+                .productId(productId)
+                .warehouseId(warehouseId)
+                .locationId(locationId)
+                .lotNumber("LOT-MISMATCH")
+                .quantity(new BigDecimal("50.00"))
+                .referenceNo("PO-2026-002")
+                .build();
+
+        UUID existingProductOtherId = UUID.randomUUID();
+        StockLot existingLot = StockLot.builder()
+                .id(lotId)
+                .lotNumber("LOT-MISMATCH")
+                .productId(existingProductOtherId)
+                .build();
+
+        when(lotRepository.findByLotNumber("LOT-MISMATCH")).thenReturn(Optional.of(existingLot));
+
+        assertThatThrownBy(() -> inventoryService.recordStockIn(request, userId))
+                .isInstanceOf(fpt.qn.mes.inventory.application.exception.InvalidStockLotException.class)
+                .hasMessageContaining("belongs to a different product");
+    }
+
+    @Test
+    @DisplayName("createStockLot should throw StockLotConflictException when lot already exists for product")
+    void createStockLot_Duplicate_ThrowsConflictException() {
+        CreateStockLotRequest request = new CreateStockLotRequest();
+        request.setLotNumber("LOT-EXISTS");
+        request.setProductId(productId);
+
+        StockLot existingLot = StockLot.builder()
+                .id(lotId)
+                .lotNumber("LOT-EXISTS")
+                .productId(productId)
+                .build();
+
+        when(lotRepository.findByLotNumber("LOT-EXISTS")).thenReturn(Optional.of(existingLot));
+
+        assertThatThrownBy(() -> inventoryService.createStockLot(request))
+                .isInstanceOf(fpt.qn.mes.inventory.application.exception.StockLotConflictException.class)
+                .hasMessageContaining("already exists");
     }
 }

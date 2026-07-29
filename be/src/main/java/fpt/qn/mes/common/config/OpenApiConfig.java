@@ -62,7 +62,7 @@ public class OpenApiConfig {
     public GroupedOpenApi inventoryApi() {
         return GroupedOpenApi.builder()
                 .group("03. Inventory")
-                .pathsToMatch("/api/stock-balances/**", "/api/stock-lots/**", "/api/stock-movements/**", "/api/lot-types/**", "/api/stock-statuses/**")
+                .pathsToMatch("/api/stock**","/api/movement-types/**", "/api/lot-types/**")
                 .build();
     }
 

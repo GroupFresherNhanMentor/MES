@@ -49,8 +49,8 @@ class StockBalanceSearchTest {
 
         when(dslContext.fetchCount(any(Table.class), any(List.class))).thenReturn(0);
         when(dslContext.selectFrom(any(Table.class))
-                .where(any(List.class))
-                .orderBy((OrderField<?>) any())
+                .where(any(org.jooq.Condition.class))
+                .orderBy(org.mockito.ArgumentMatchers.anyCollection())
                 .limit(anyInt())
                 .offset(anyInt())
                 .fetch()).thenReturn(mock(Result.class));

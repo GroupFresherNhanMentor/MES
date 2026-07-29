@@ -10,7 +10,11 @@ import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 public interface StockLotRepository {
     Optional<StockLot> findById(UUID id);
 
+    Optional<StockLot> findByLotNumber(String lotNumber);
+
     StockLot save(StockLot lot);
 
     List<StockLot> search(StockLotSearchCriteria criteria);
+
+    long count(StockLotSearchCriteria criteria);
 }

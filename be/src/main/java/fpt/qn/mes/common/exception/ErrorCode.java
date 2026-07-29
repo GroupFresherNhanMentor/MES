@@ -6,7 +6,8 @@ public enum ErrorCode {
     INTERNAL_SERVER_ERROR("INTERNAL_SERVER_ERROR"),
     UNAUTHORIZED("UNAUTHORIZED"),
     FORBIDDEN("FORBIDDEN"),
-    CONFLICT("CONFLICT");
+    CONFLICT("CONFLICT"),
+    BAD_REQUEST("BAD_REQUEST");
 
     private final String code;
 

@@ -65,8 +65,10 @@ public class SecurityConfig {
                                 "/api/stock-balances/**",
                                 "/api/stock-lots/**",
                                 "/api/stock-movements/**",
+                                "/api/stock-in/**",
                                 "/api/lot-types/**",
-                                "/api/stock-statuses/**"
+                                "/api/stock-statuses/**",
+                                "/api/movement-types/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

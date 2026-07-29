@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,40 +28,64 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import org.springframework.http.HttpStatus;
+import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
+import io.swagger.v3.oas.annotations.Operation;
+
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class InventoryController {
 
+    private static final UUID DEFAULT_USER_ID = UUID.fromString("019facbf-316d-71ee-8fa1-78cda592c099");
+
     InventoryUseCase inventoryUseCase;
 
+    @Operation(summary = "Search stock lots with pagination and criteria filtering")
     @GetMapping("/api/stock-lots")
-    public ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> getStockLots(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> getStockLots(@Valid StockLotSearchRequest request) {
+        PageResponse<StockLotDto> result = inventoryUseCase.getStockLots(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @GetMapping("/api/stock-lots/{id}")
     public ResponseEntity<ApiResponse<StockLotDto>> getStockLotById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        StockLotDto result = inventoryUseCase.getStockLotById(id);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @PostMapping("/api/stock-lots")
     public ResponseEntity<ApiResponse<StockLotDto>> createStockLot(@Valid @RequestBody CreateStockLotRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+        StockLotDto result = inventoryUseCase.createStockLot(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock lot created successfully"));
     }
 
     @GetMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
+        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(page, size);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @PostMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<StockMovementDto>> recordMovement(
-            @Valid @RequestBody CreateMovementRequest request, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+            @Valid @RequestBody CreateMovementRequest request, @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockMovementDto result = inventoryUseCase.recordMovement(request, currentUserId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Movement recorded successfully"));
+    }
+
+    @Operation(summary = "Record incoming stock physical receipt into warehouse")
+    @PostMapping("/api/stock-in")
+    public ResponseEntity<ApiResponse<StockMovementDto>> recordStockIn(
+            @Valid @RequestBody StockInRequest request, @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockMovementDto result = inventoryUseCase.recordStockIn(request, currentUserId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock received successfully"));
     }
 
     @GetMapping("/api/stock-balances")
