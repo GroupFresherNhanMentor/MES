@@ -1,16 +1,23 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
 import { adminGuard } from './core/guards/admin-guard';
-import { AppShell } from './shared/components/app-shell/app-shell';
+import { MainLayout } from './layout/main-layout/main-layout';
+import { AuthLayout } from './layout/auth-layout/auth-layout';
 
 export const routes: Routes = [
   {
-    path: 'login',
-    loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.Login),
+    path: '',
+    component: AuthLayout,
+    children: [
+      {
+        path: 'login',
+        loadComponent: () => import('./features/auth/pages/login/login').then((m) => m.Login),
+      },
+    ],
   },
   {
     path: '',
-    component: AppShell,
+    component: MainLayout,
     canActivate: [authGuard],
     children: [
       {

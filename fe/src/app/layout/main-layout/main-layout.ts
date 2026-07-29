@@ -13,8 +13,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
-import { AuthService } from '../../../core/services/auth';
-import { LoadingService } from '../../../core/services/loading';
+import { AuthService } from '../../core/services/auth';
+import { LoadingService } from '../../core/services/loading';
 
 interface NavItem {
   path: string;
@@ -24,17 +24,16 @@ interface NavItem {
 }
 
 @Component({
-  selector: 'app-app-shell',
+  selector: 'app-main-layout',
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatButtonModule, MatIconModule,
     MatListModule, MatDividerModule, MatMenuModule, MatBadgeModule,
     MatProgressBarModule,
   ],
-  templateUrl: './app-shell.html',
-  styleUrl: './app-shell.scss',
+  templateUrl: './main-layout.html',
 })
-export class AppShell {
+export class MainLayout {
   private readonly authService = inject(AuthService);
   private readonly loadingService = inject(LoadingService);
   private readonly router = inject(Router);
