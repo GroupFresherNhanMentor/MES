@@ -9,6 +9,7 @@ import fpt.qn.mes.common.dto.response.PaginationResult;
 
 public interface BomRepository {
     Optional<Bom> findById(UUID id);
+    Optional<Bom> findActiveByFinishedProductId(UUID finishedProductId);
     Bom save(Bom bom);
     PaginationResult<Bom> findAll(int page, int size, UUID finishedProductId, UUID bomStatusId);
     boolean existsByFinishedProductIdAndVersion(UUID finishedProductId, Integer version);
