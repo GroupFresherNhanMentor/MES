@@ -1,48 +1,29 @@
-<div class="app-shell">
-  @if (isLoading()) {
-    <div class="ff-loading-bar"></div>
-    <mat-progress-bar mode="indeterminate" color="accent" class="app-progress-bar" />
-  }
-  <mat-toolbar class="app-toolbar">
-    <button mat-icon-button (click)="toggleSidenav()" class="toolbar-btn">
-      <mat-icon>menu</mat-icon>
-    </button>
-    <div class="toolbar-brand">
-      <span class="brand-text">MES</span>
-    </div>
-    <span class="toolbar-spacer"></span>
-    <span class="toolbar-title">{{ pageTitle() }}</span>
-    <span class="toolbar-spacer"></span>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="toolbar-btn">
-      <mat-icon>account_circle</mat-icon>
-    </button>
-    <mat-menu #userMenu="matMenu" class="user-menu">
-      <div class="user-menu-header">
-        <div class="user-name">{{ currentUser?.fullName ?? 'User' }}</div>
-        <div class="user-role">{{ currentUser?.role }}</div>
-      </div>
+<div class="shell">
+  @if (isLoading()) { <mat-progress-bar mode="indeterminate" class="loader" /> }
+  <mat-toolbar class="toolbar">
+    <button mat-icon-button (click)="toggleSidenav()"><mat-icon>menu</mat-icon></button>
+    <span class="brand">MES</span>
+    <span class="spacer"></span>
+    <span class="title">{{ pageTitle() }}</span>
+    <span class="spacer"></span>
+    <button mat-icon-button [matMenuTriggerFor]="menu"><mat-icon>account_circle</mat-icon></button>
+    <mat-menu #menu="matMenu">
+      <div class="user-info"><strong>{{ currentUser?.fullName }}</strong><span>{{ currentUser?.role }}</span></div>
       <mat-divider />
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
+      <button mat-menu-item (click)="logout()"><mat-icon>logout</mat-icon> Logout</button>
     </mat-menu>
   </mat-toolbar>
-  <mat-drawer-container class="sidenav-container" autosize>
-    <mat-drawer #drawer [opened]="sidenavOpened()" mode="side" class="app-sidenav">
-      <nav class="sidenav-nav">
-        @for (item of filteredNavItems; track item.path) {
-          <a mat-list-item [routerLink]="item.path" routerLinkActive="nav-active" [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }" class="nav-item">
-            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span class="nav-label">{{ item.label }}</span>
-          </a>
-        }
+  <mat-drawer-container class="container" autosize>
+    <mat-drawer [opened]="sidenavOpened()" mode="side" class="sidenav">
+      <nav> @for (item of filteredNavItems; track item.path) {
+        <a mat-list-item [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.path==='/dashboard'}" class="nav-item">
+          <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+          <span class="nav-label">{{ item.label }}</span>
+        </a> }
       </nav>
     </mat-drawer>
-    <mat-drawer-content class="app-content">
-      <div class="page-container ff-fade-in">
-        <router-outlet />
-      </div>
+    <mat-drawer-content class="content">
+      <div class="page"><router-outlet /></div>
     </mat-drawer-content>
   </mat-drawer-container>
 </div>
