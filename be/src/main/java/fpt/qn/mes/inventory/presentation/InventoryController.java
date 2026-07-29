@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,34 +39,40 @@ public class InventoryController {
     InventoryUseCase inventoryUseCase;
 
     @GetMapping("/api/stock-lots")
+    @PreAuthorize("hasAuthority('STOCK_LOT_READ')")
     public ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> getStockLots(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/api/stock-lots/{id}")
+    @PreAuthorize("hasAuthority('STOCK_LOT_READ')")
     public ResponseEntity<ApiResponse<StockLotDto>> getStockLotById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/api/stock-lots")
+    @PreAuthorize("hasAuthority('STOCK_LOT_CREATE')")
     public ResponseEntity<ApiResponse<StockLotDto>> createStockLot(@Valid @RequestBody CreateStockLotRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/api/stock-movements")
+    @PreAuthorize("hasAuthority('STOCK_MOVEMENT_READ')")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/api/stock-movements")
+    @PreAuthorize("hasAuthority('STOCK_MOVEMENT_CREATE')")
     public ResponseEntity<ApiResponse<StockMovementDto>> recordMovement(
             @Valid @RequestBody CreateMovementRequest request, @AuthenticationPrincipal Jwt jwt) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/api/stock-balances")
+    @PreAuthorize("hasAuthority('STOCK_BALANCE_READ')")
     public ResponseEntity<ApiResponse<PageResponse<StockBalanceDto>>> getStockBalances(
             @Valid StockBalanceSearchRequest request) {
         PageResponse<StockBalanceDto> result = inventoryUseCase.getStockBalances(request);
@@ -73,16 +80,19 @@ public class InventoryController {
     }
 
     @GetMapping("/api/lot-types")
+    @PreAuthorize("hasAuthority('LOOKUP_READ')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLotTypes() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/api/stock-statuses")
+    @PreAuthorize("hasAuthority('LOOKUP_READ')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStockStatuses() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/api/movement-types")
+    @PreAuthorize("hasAuthority('LOOKUP_READ')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMovementTypes() {
         throw new UnsupportedOperationException("Not implemented");
     }

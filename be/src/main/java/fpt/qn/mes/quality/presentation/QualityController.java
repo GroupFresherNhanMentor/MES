@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,28 +36,33 @@ public class QualityController {
     QualityUseCase qualityUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('QUALITY_INSPECTION_READ')")
     public ResponseEntity<ApiResponse<PageResponse<QualityInspectionDto>>> getAll(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('QUALITY_INSPECTION_READ')")
     public ResponseEntity<ApiResponse<QualityInspectionDto>> getById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('QUALITY_INSPECTION_CREATE')")
     public ResponseEntity<ApiResponse<QualityInspectionDto>> create(
             @Valid @RequestBody CreateQualityInspectionRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('QUALITY_INSPECTION_DELETE')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{inspectionId}/results")
+    @PreAuthorize("hasAuthority('QUALITY_RESULT_READ')")
     public ResponseEntity<ApiResponse<PageResponse<QualityInspectionResultDto>>> getResults(
             @PathVariable UUID inspectionId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
@@ -64,17 +70,20 @@ public class QualityController {
     }
 
     @PostMapping("/{inspectionId}/results")
+    @PreAuthorize("hasAuthority('QUALITY_RESULT_CREATE')")
     public ResponseEntity<ApiResponse<QualityInspectionResultDto>> addResult(
             @PathVariable UUID inspectionId, @Valid @RequestBody CreateInspectionResultRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/statuses")
+    @PreAuthorize("hasAuthority('LOOKUP_READ')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getQcStatuses() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/defect-types")
+    @PreAuthorize("hasAuthority('LOOKUP_READ')")
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getDefectTypes() {
         throw new UnsupportedOperationException("Not implemented");
     }

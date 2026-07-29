@@ -3,6 +3,7 @@ package fpt.qn.mes.master.warehouse.presentation;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +35,7 @@ public class WarehouseController {
     WarehouseUseCase warehouseUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('WAREHOUSE_READ')")
     public ResponseEntity<ApiResponse<PageResponse<WarehouseDto>>> getWarehouses(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -45,11 +47,13 @@ public class WarehouseController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('WAREHOUSE_READ')")
     public ResponseEntity<ApiResponse<WarehouseDto>> getWarehouseById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getWarehouseById(id), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('WAREHOUSE_CREATE')")
     public ResponseEntity<ApiResponse<WarehouseDto>> createWarehouse(
             @Valid @RequestBody CreateWarehouseRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
@@ -58,6 +62,7 @@ public class WarehouseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('WAREHOUSE_UPDATE')")
     public ResponseEntity<ApiResponse<WarehouseDto>> updateWarehouse(
             @PathVariable UUID id, @RequestBody UpdateWarehouseRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
@@ -66,6 +71,7 @@ public class WarehouseController {
     }
 
     @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('WAREHOUSE_DEACTIVATE')")
     public ResponseEntity<ApiResponse<Void>> deactivateWarehouse(@PathVariable UUID id) {
         warehouseUseCase.deleteWarehouse(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Deactivated"));

@@ -17,4 +17,5 @@ public class AppUserPrincipal {
     String username;
     boolean enabled;
     Collection<String> roles;
+    Collection<String> permissions;
 }

@@ -5,19 +5,19 @@ import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import org.springframework.test.annotation.Rollback;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.oauth2.jwt.JwsHeader;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Transactional
-@Rollback
+@AutoConfigureTestRestTemplate
+@ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
     @ServiceConnection
@@ -30,17 +30,35 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     JwtEncoder jwtEncoder;
 
-    protected String generateToken(UUID userId, String role) {
+    protected String generateToken(UUID userId, String username) {
+        Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(userId.toString())
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plusSeconds(3600))
-                .claim("role", role)
+                .issuedAt(now)
+                .expiresAt(now.plusSeconds(900))
+                .id(UUID.randomUUID().toString())
+                .claim("username", username)
+                .claim("token_type", "access")
+                .issuer("factoryflow-test")
+                .audience(java.util.List.of("factoryflow-api-test"))
                 .build();
-        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+        return jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 
-    protected String generateAdminToken() {
-        return generateToken(UUID.randomUUID(), "ADMIN");
+    protected String generateExpiredToken(UUID userId, String username) {
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(userId.toString())
+                .issuedAt(now.minusSeconds(300))
+                .expiresAt(now.minusSeconds(120))
+                .id(UUID.randomUUID().toString())
+                .claim("username", username)
+                .claim("token_type", "access")
+                .issuer("factoryflow-test")
+                .audience(java.util.List.of("factoryflow-api-test"))
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 }

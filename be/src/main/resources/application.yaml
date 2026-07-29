@@ -15,10 +15,10 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info"
   endpoint:
     shutdown:
-      access: unrestricted
+      access: none
     health:
       probes:
         enabled: true
@@ -29,7 +29,9 @@ management:
       enabled: true
 app:
   jwt:
-    secret: ${JWT_SECRET:k8wT5KF1ZrFojvpXJbhXOcYVv44lCKvOwQudCRY6HjxxTGH3WQbQDHEFZjhS+mCE}
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:factoryflow}
+    audience: ${JWT_AUDIENCE:factoryflow-api}
     access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}     # 15 minutes
     refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
   cors:
@@ -39,3 +41,9 @@ logging:
   level:
     fpt.qn.mes: DEBUG
     org.springframework.security: INFO
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}

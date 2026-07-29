@@ -3,6 +3,7 @@ package fpt.qn.mes.master.machine.presentation;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,6 +37,7 @@ public class MachineController {
     MachineUseCase machineUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('MACHINE_READ')")
     public ResponseEntity<ApiResponse<PageResponse<MachineDto>>> getMachines(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -47,11 +49,13 @@ public class MachineController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('MACHINE_READ')")
     public ResponseEntity<ApiResponse<MachineDto>> getMachineById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(machineUseCase.getMachineById(id), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('MACHINE_CREATE')")
     public ResponseEntity<ApiResponse<MachineDto>> createMachine(
             @Valid @RequestBody CreateMachineRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
@@ -60,6 +64,7 @@ public class MachineController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('MACHINE_UPDATE')")
     public ResponseEntity<ApiResponse<MachineDto>> updateMachine(
             @PathVariable UUID id, @RequestBody UpdateMachineRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
@@ -68,12 +73,14 @@ public class MachineController {
     }
 
     @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasAuthority('MACHINE_DEACTIVATE')")
     public ResponseEntity<ApiResponse<Void>> deactivateMachine(@PathVariable UUID id) {
         machineUseCase.deleteMachine(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Deactivated"));
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAuthority('MACHINE_STATUS_CHANGE')")
     public ResponseEntity<ApiResponse<MachineDto>> changeMachineStatus(
             @PathVariable UUID id, @Valid @RequestBody ChangeMachineStatusRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {

@@ -26,11 +26,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<TokenResponse>> login(@RequestBody @Valid LoginRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(authUseCase.login(request), "Login successful"));
     }
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<TokenResponse>> refresh(@RequestBody @Valid RefreshRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(
+                authUseCase.refresh(request.getRefreshToken()), "Token refreshed successfully"));
     }
 }

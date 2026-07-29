@@ -26,10 +26,58 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
         super(ctx, USERS); this.userMapper = userMapper;
     }
 
-    @Override public Optional<User> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public Optional<User> findByUsername(String username) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public User save(User user) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public User update(User user) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public PaginationResult<User> findAll(int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public boolean existsByUsername(String username) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public Optional<User> findById(UUID id) {
+        return fetchById(id).map(record -> userMapper.toDomain(record));
+    }
+
+    @Override
+    public Optional<User> findByUsername(String username) {
+        return ctx.selectFrom(USERS)
+                .where(USERS.USERNAME.eq(username.trim()))
+                .fetchOptional()
+                .map(record -> userMapper.toDomain(record));
+    }
+
+    @Override
+    public User save(User user) {
+        try {
+            return userMapper.toDomain(create(userMapper.toRecord(user)));
+        } catch (org.jooq.exception.DataAccessException
+                | org.springframework.dao.DuplicateKeyException ex) {
+            throw new fpt.qn.mes.common.exception.ConflictException("Username already exists");
+        }
+    }
+
+    @Override
+    public User update(User user) {
+        UsersRecord record = userMapper.toRecord(user);
+        return userMapper.toDomain(ctx.update(USERS)
+                .set(record)
+                .where(USERS.ID.eq(user.getId()))
+                .returning()
+                .fetchOne());
+    }
+
+    @Override
+    public PaginationResult<User> findAll(int page, int size) {
+        long total = ctx.fetchCount(USERS);
+        var records = ctx.selectFrom(USERS)
+                .orderBy(USERS.USERNAME.asc(), USERS.ID.asc())
+                .limit(size)
+                .offset(page * size)
+                .fetch();
+        java.util.List<User> users = new java.util.ArrayList<>();
+        for (UsersRecord record : records) {
+            users.add(userMapper.toDomain(record));
+        }
+        return PaginationResult.of(users, total, page, size);
+    }
+
+    @Override
+    public boolean existsByUsername(String username) {
+        return ctx.fetchExists(ctx.selectOne()
+                .from(USERS)
+                .where(USERS.USERNAME.eq(username.trim())));
+    }
 }

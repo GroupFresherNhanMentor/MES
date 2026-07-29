@@ -1,6 +1,7 @@
 package fpt.qn.mes.common.config;
 
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -8,7 +9,6 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
@@ -24,7 +24,6 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .description("API documentation for the Manufacturing Execution System (Clean Architecture, Spring Boot, jOOQ)")
                         .contact(new Contact().name("FPT MES Team")))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME,
                                 new SecurityScheme()
@@ -35,74 +34,83 @@ public class OpenApiConfig {
     }
 
     @Bean
-    public GroupedOpenApi allApi() {
+    public GroupedOpenApi allApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("00. All Endpoints")
                 .pathsToMatch("/api/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi authApi() {
+    public GroupedOpenApi authApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("01. Authentication")
                 .pathsToMatch("/api/auth/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi masterDataApi() {
+    public GroupedOpenApi masterDataApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("02. Master Data")
                 .packagesToScan("fpt.qn.mes.master")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi inventoryApi() {
+    public GroupedOpenApi inventoryApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("03. Inventory")
                 .pathsToMatch("/api/stock-balances/**", "/api/stock-lots/**", "/api/stock-movements/**", "/api/lot-types/**", "/api/stock-statuses/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi bomApi() {
+    public GroupedOpenApi bomApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("04. Bill of Materials (BOM)")
                 .pathsToMatch("/api/boms/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi workOrderApi() {
+    public GroupedOpenApi workOrderApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("05. Work Orders")
                 .pathsToMatch("/api/work-orders/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi qualityApi() {
+    public GroupedOpenApi qualityApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("06. Quality Control")
                 .pathsToMatch("/api/quality/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi maintenanceApi() {
+    public GroupedOpenApi maintenanceApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("07. Maintenance")
                 .pathsToMatch("/api/maintenance/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 
     @Bean
-    public GroupedOpenApi userSecurityApi() {
+    public GroupedOpenApi userSecurityApi(OperationCustomizer rbacOperationSecurity) {
         return GroupedOpenApi.builder()
                 .group("08. User & Access Control")
                 .pathsToMatch("/api/users/**", "/api/roles/**", "/api/permissions/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .build();
     }
 }

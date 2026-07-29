@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.exception.ErrorCode;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,7 +32,9 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         }
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
-        objectMapper.writeValue(response.getOutputStream(),
-            ApiResponse.error(ErrorCode.UNAUTHORIZED, ex.getMessage()));
+        objectMapper.writeValue(response.getWriter(), java.util.Map.of(
+                "success", false,
+                "errorCode", ErrorCode.UNAUTHORIZED,
+                "message", "Authentication required"));
     }
 }

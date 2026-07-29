@@ -6,7 +6,11 @@
 > If your implementation differs from what is listed here, **update this file immediately**.
 
 **Base URL:** `/api`  
-**Auth:** All endpoints (except `POST /auth/login`) require `Authorization: Bearer <accessToken>`  
+**Auth:** All endpoints except `POST /auth/login` and `POST /auth/refresh` require
+`Authorization: Bearer <accessToken>`. Access JWTs expire after 15 minutes;
+refresh JWTs expire after 7 days. Refresh is stateless: a valid refresh JWT can
+be reused until it expires; each successful refresh issues a new access/refresh
+pair without storing either token in the database.
 **Response envelope:** All responses wrap in `ApiResponse<T>`
 
 ```json
@@ -17,7 +21,14 @@
 { "success": false, "errorCode": "NOT_FOUND", "message": "...", "timestamp": "..." }
 ```
 
-**Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `OPERATOR` · `QC_INSPECTOR` · `MAINTENANCE_ENGINEER` · `FACTORY_MANAGER` · `AUDITOR`
+**Authorization:** Protected handlers require their exact canonical
+`RESOURCE_ACTION` authority. Role assignments are reloaded from the database
+for every request, then authorities are derived from the static role policy in
+code. `role_permissions` data is not an authorization source. The full endpoint matrix is maintained in
+`specs/001-complete-auth-rbac/contracts/rbac-permission-matrix.md`.
+The older `Roles` labels retained in the catalog below are client-facing
+audience hints only; they are not authorization rules and never override the
+canonical permission matrix.
 
 ---
 
@@ -32,8 +43,17 @@
 ```
 **Response `200`:**
 ```json
-{ "accessToken": "string", "refreshToken": "string" }
+{
+  "userId": "uuid",
+  "username": "string",
+  "accessToken": "string",
+  "refreshToken": "string"
+}
 ```
+
+The response intentionally exposes only the authenticated identity and token
+pair. Invalid credentials always return the same `401` response; login attempts
+are not throttled by this service.
 
 ---
 
@@ -46,7 +66,12 @@
 ```
 **Response `200`:**
 ```json
-{ "accessToken": "string", "refreshToken": "string" }
+{
+  "userId": "uuid",
+  "username": "string",
+  "accessToken": "string",
+  "refreshToken": "string"
+}
 ```
 
 ---
@@ -61,8 +86,8 @@
 **Response `200`:**
 ```json
 {
-  "content": [{ "id": "uuid", "username": "string", "fullName": "string", "active": true, "createdAt": "instant" }],
-  "page": 0, "size": 20, "totalElements": 10, "totalPages": 1
+  "items": [{ "id": "uuid", "username": "string", "fullName": "string", "active": true, "createdAt": "instant" }],
+  "pageNumber": 0, "pageSize": 20, "totalElements": 10, "totalPages": 1
 }
 ```
 
@@ -114,6 +139,27 @@
 
 ---
 
+### GET `/users/{id}/roles`
+> **Permission:** `USER_ROLE_READ`
+
+**Response `200`:** `List<RoleDto>`
+
+---
+
+### PUT `/users/{id}/roles`
+> **Permission:** `USER_ROLE_ASSIGN`
+
+Replaces the user's complete role set atomically. Repeated valid IDs are
+deduplicated; any missing ID rejects the complete mutation.
+
+**Request body:**
+```json
+{ "roleIds": ["uuid"] }
+```
+**Response `200`:** `List<RoleDto>`
+
+---
+
 ## 3. Roles
 
 ### GET `/roles`
@@ -162,55 +208,11 @@
 
 ---
 
-### POST `/roles/{id}/permissions`
-> **Roles:** `ADMIN`
+`permissionNames` is read-only and derived from the static policy for the
+role name. Permission CRUD and role-permission assignment endpoints are not
+part of the API.
 
-**Request body:**
-```json
-{ "permissionIds": ["uuid"] }
-```
-**Response `200`:** `RoleDto`
-
----
-
-## 4. Permissions
-
-### GET `/permissions`
-> **Roles:** `ADMIN`
-
-**Response `200`:**
-```json
-[{ "id": "uuid", "name": "string", "description": "string" }]
-```
-
----
-
-### GET `/permissions/{id}`
-> **Roles:** `ADMIN`
-
-**Response `200`:** `PermissionDto`
-
----
-
-### POST `/permissions`
-> **Roles:** `ADMIN`
-
-**Request body:**
-```json
-{ "name": "string", "description": "string" }
-```
-**Response `201`:** `PermissionDto`
-
----
-
-### DELETE `/permissions/{id}`
-> **Roles:** `ADMIN`
-
-**Response `200`:** no data
-
----
-
-## 5. Products & Materials
+## 4. Products & Materials
 
 ### GET `/products`
 > **Roles:** All authenticated

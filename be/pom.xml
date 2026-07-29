@@ -36,6 +36,7 @@
         <db.url>jdbc:postgresql://localhost:5432/mes</db.url>
         <db.username>postgres</db.username>
         <db.password>postgres</db.password>
+        <auth.performance.excluded-groups>performance</auth.performance.excluded-groups>
     </properties>
     <dependencies>
         <dependency>
@@ -126,6 +127,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-restclient</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -245,6 +251,22 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>${auth.performance.excluded-groups}</excludedGroups>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>auth-performance</id>
+            <properties>
+                <auth.performance.excluded-groups>__none__</auth.performance.excluded-groups>
+            </properties>
+        </profile>
+    </profiles>
 </project>

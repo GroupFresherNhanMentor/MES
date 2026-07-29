@@ -62,7 +62,7 @@ Error shape:
 ## URL Conventions
 
 ```
-GET    /api/{resources}              list (paginated)
+GET    /api/{resources}              list (paginated unless approved legacy catalog)
 GET    /api/{resources}/{id}         single
 POST   /api/{resources}              create
 PUT    /api/{resources}/{id}         full update
@@ -92,6 +92,25 @@ Response uses `PageResponse<T>`:
   }
 }
 ```
+
+All new list endpoints must be paginated. A legacy endpoint may retain an
+unpaginated `List<T>` response only when every condition below is met:
+
+- an existing public contract explicitly requires the response shape to remain
+  unchanged;
+- the endpoint returns bounded configuration/catalog data rather than an
+  operational dataset;
+- the feature plan records the exception in `Complexity Tracking`;
+- the query has deterministic database ordering;
+- an API compatibility test locks the existing response shape.
+
+`FactoryFlow_SRS.md` classifies roles as bounded RBAC configuration data,
+while `FactoryFlow_Manufacturing_Operations_Platform.md` requires pagination
+for large lists. The approved legacy exception is therefore limited to:
+
+- `GET /api/roles`
+
+This exception must not be copied to new endpoints.
 
 ## Validation
 

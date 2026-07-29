@@ -79,13 +79,12 @@ Outer layers depend on inner layers. Inner layers never import outer layers.
 
 ```
 fpt.qn.mes
-├── auth/
+├── auth/              # Authentication, roles, permissions, RBAC
 ├── bom/
 ├── inventory/
 ├── maintenance/
 ├── quality/
 ├── workorder/
-├── role/
 ├── user/
 ├── master/
 │   ├── line/
@@ -254,8 +253,7 @@ The dependency graph must be a directed acyclic graph (DAG). The allowed directi
 
 ```
 auth
-role
-user ──────────────────────→ role
+user ──────────────────────→ auth
 master (product, machine, line, warehouse, location)
 bom ────────────────────────→ master/product
 inventory ──────────────────→ master (product, warehouse, location)
