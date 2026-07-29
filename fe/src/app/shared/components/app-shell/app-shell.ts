@@ -61,20 +61,22 @@ export class AppShell {
 
   readonly navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { path: '/products', label: 'Products', icon: 'inventory_2' },
-    { path: '/warehouses', label: 'Warehouses', icon: 'warehouse' },
-    { path: '/production-lines', label: 'Production Lines', icon: 'precision_manufacturing' },
-    { path: '/machines', label: 'Machines', icon: 'settings' },
-    { path: '/boms', label: 'Bill of Materials', icon: 'description' },
-    { path: '/work-orders', label: 'Work Orders', icon: 'assignment' },
-    { path: '/stock-balances', label: 'Stock Balances', icon: 'shelves' },
-    { path: '/stock-movements', label: 'Stock Movements', icon: 'swap_horiz' },
-    { path: '/quality-inspections', label: 'Quality', icon: 'fact_check' },
-    { path: '/maintenance-tickets', label: 'Maintenance', icon: 'build' },
-    { path: '/reports', label: 'Reports', icon: 'bar_chart', roles: ['ADMIN'] },
+    { path: '/products', label: 'Products', icon: 'inventory_2', roles: ['ADMIN'] },
+    { path: '/warehouses', label: 'Warehouses', icon: 'warehouse', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
+    { path: '/production-lines', label: 'Production Lines', icon: 'precision_manufacturing', roles: ['ADMIN'] },
+    { path: '/machines', label: 'Machines', icon: 'settings', roles: ['ADMIN', 'PRODUCTION_OPERATOR'] },
+    { path: '/boms', label: 'BOM', icon: 'description', roles: ['ADMIN', 'PLANNER'] },
+    { path: '/work-orders', label: 'Work Orders', icon: 'assignment', roles: ['ADMIN', 'PLANNER', 'PRODUCTION_OPERATOR'] },
+    { path: '/stock-balances', label: 'Stock', icon: 'shelves', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
+    { path: '/stock-movements', label: 'Movements', icon: 'swap_horiz', roles: ['ADMIN', 'WAREHOUSE_MANAGER', 'AUDITOR'] },
+    { path: '/quality-inspections', label: 'Quality', icon: 'fact_check', roles: ['ADMIN', 'QC_INSPECTOR'] },
+    { path: '/maintenance-tickets', label: 'Maintenance', icon: 'build', roles: ['ADMIN', 'MAINTENANCE_ENGINEER'] },
+    { path: '/reports', label: 'Reports', icon: 'bar_chart', roles: ['ADMIN', 'FACTORY_MANAGER'] },
   ];
 
-  readonly filteredNavItems = this.navItems;
+  readonly filteredNavItems = this.navItems.filter(
+    (item) => !item.roles || item.roles.includes(this.currentUser?.role ?? ''),
+  );
 
   toggleSidenav(): void {
     this.sidenavOpened.update((v) => !v);

@@ -19,19 +19,7 @@ export class AuthService {
   readonly isLoggedIn = signal<boolean>(this.hasToken());
 
   constructor() {
-    const mockUser: UserDto = {
-      id: '00000000-0000-0000-0000-000000000001',
-      employeeId: 'ADMIN001',
-      fullName: 'Factory Admin',
-      username: 'admin',
-      email: 'admin@factory.com',
-      role: 'ADMIN',
-      status: 'ACTIVE',
-    };
-    if (!this.getCurrentUser()) {
-      this.store(APP_CONSTANTS.userKey, JSON.stringify(mockUser));
-    }
-    this.isLoggedIn.set(true);
+    this.isLoggedIn.set(this.hasToken());
   }
 
   private hasToken(): boolean {
