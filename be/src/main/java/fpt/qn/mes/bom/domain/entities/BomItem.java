@@ -3,6 +3,8 @@ package fpt.qn.mes.bom.domain.entities;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -21,7 +23,7 @@ public class BomItem {
 
     public static BomItem create(UUID bomId, UUID materialProductId, BigDecimal quantityPerUnit, String unit, BigDecimal scrapRate) {
         return BomItem.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .bomId(bomId)
                 .materialProductId(materialProductId)
                 .quantityPerUnit(quantityPerUnit)

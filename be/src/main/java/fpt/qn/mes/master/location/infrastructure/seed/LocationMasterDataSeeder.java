@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -36,7 +37,7 @@ public class LocationMasterDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(LOCATION_STATUSES, LOCATION_STATUSES.ID, LOCATION_STATUSES.NAME, LOCATION_STATUSES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded location_statuses");

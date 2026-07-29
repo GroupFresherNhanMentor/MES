@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -65,7 +67,7 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
     public StockLot save(StockLot lot) {
         StockLotsRecord record = mapper.toRecord(lot);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         ctx.attach(record);
         record.store();

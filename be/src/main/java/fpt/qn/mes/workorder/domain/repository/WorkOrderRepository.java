@@ -13,7 +13,7 @@ public interface WorkOrderRepository {
     WorkOrder save(WorkOrder workOrder);
     WorkOrder update(WorkOrder workOrder);
     void deleteById(UUID id);
-    PaginationResult<WorkOrder> findAll(int page, int size);
+    PaginationResult<WorkOrder> findAll(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria criteria);
 
     WorkOrderMaterial saveMaterial(WorkOrderMaterial material);
     Optional<WorkOrderMaterial> findMaterialById(UUID materialId);

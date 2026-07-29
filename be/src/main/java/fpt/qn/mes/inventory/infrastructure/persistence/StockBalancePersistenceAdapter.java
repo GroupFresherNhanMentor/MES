@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;

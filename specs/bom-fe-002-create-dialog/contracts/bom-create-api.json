@@ -1,0 +1,55 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Create BOM API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/boms": {
+      "post": {
+        "summary": "Create a new BOM header in DRAFT status",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["finishedProductId"],
+                "properties": {
+                  "finishedProductId": { "type": "string", "format": "uuid" },
+                  "version": { "type": "integer", "default": 1 },
+                  "bomStatusId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created BomDto object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "finishedProductId": { "type": "string", "format": "uuid" },
+                        "version": { "type": "integer" },
+                        "bomStatusId": { "type": "string" },
+                        "bomStatusName": { "type": "string" },
+                        "createdAt": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

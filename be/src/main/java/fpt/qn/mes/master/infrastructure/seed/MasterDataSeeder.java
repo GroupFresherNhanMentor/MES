@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -57,7 +59,7 @@ public class MasterDataSeeder implements ApplicationRunner {
                                     .where(DSL.field(DSL.name(tableName, "name")).eq(item.get("name"))));
                     if (!exists) {
                         ctx.insertInto(DSL.table(DSL.name(tableName)))
-                                .set(DSL.field(DSL.name(tableName, "id")), UUID.randomUUID())
+                                .set(DSL.field(DSL.name(tableName, "id")), UuidV7.generate())
                                 .set(DSL.field(DSL.name(tableName, "name")), item.get("name"))
                                 .set(DSL.field(DSL.name(tableName, "description")), item.get("description"))
                                 .execute();

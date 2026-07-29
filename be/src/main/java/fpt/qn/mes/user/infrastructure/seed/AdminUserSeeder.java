@@ -7,6 +7,8 @@ import static fpt.qn.mes.jooq.Tables.USER_ROLES;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -50,7 +52,7 @@ public class AdminUserSeeder implements ApplicationRunner {
             throw new IllegalStateException("ADMIN role not found — RoleDataSeeder must run before AdminUserSeeder");
         }
 
-        UUID userId = UUID.randomUUID();
+        UUID userId = UuidV7.generate();
 
         ctx.insertInto(USERS, USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH, USERS.FULL_NAME, USERS.ACTIVE, USERS.CREATED_AT)
             .values(userId, "admin", passwordEncoder.encode(adminPassword), "System Administrator", true, OffsetDateTime.now())

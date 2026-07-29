@@ -36,6 +36,7 @@ import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
@@ -154,7 +155,7 @@ public class InventoryService implements InventoryUseCase {
         }
 
         StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(StockBalance::getId).orElse(UUID.randomUUID()))
+                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
                 .warehouseId(request.getWarehouseId())
                 .locationId(request.getLocationId())
                 .productId(request.getProductId())

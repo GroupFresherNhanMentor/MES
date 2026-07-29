@@ -3,6 +3,7 @@ package fpt.qn.mes.master.line.domain.entities;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -13,7 +14,7 @@ public class ProductionLine {
 
     public static ProductionLine create(String code, String name, UUID lineStatusId, UUID createdBy) {
         return ProductionLine.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .code(code)
                 .name(name)
                 .lineStatusId(lineStatusId)
