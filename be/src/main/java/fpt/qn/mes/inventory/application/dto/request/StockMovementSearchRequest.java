@@ -2,7 +2,7 @@ package fpt.qn.mes.inventory.application.dto.request;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.request.PageRequest;
+import fpt.qn.mes.common.dto.request.BaseSearchRequest;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +15,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StockMovementSearchRequest extends PageRequest {
+public class StockMovementSearchRequest extends BaseSearchRequest {
 
     UUID movementTypeId;
     UUID productId;

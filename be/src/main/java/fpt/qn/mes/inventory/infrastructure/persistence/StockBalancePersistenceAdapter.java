@@ -4,6 +4,7 @@ import static fpt.qn.mes.jooq.Tables.STOCK_BALANCES;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -13,6 +14,11 @@ import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.repository.BaseRepository;
+import org.jooq.Field;
+import org.jooq.SortField;
+import org.springframework.stereotype.Repository;
+
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
@@ -23,6 +29,13 @@ import lombok.experimental.FieldDefaults;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StockBalancePersistenceAdapter extends BaseRepository<StockBalancesRecord> implements StockBalanceRepository {
+
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "createdAt", STOCK_BALANCES.CREATED_AT,
+            "quantity",  STOCK_BALANCES.QUANTITY
+    );
+
+    private static final Field<?> DEFAULT_SORT_FIELD = STOCK_BALANCES.CREATED_AT;
 
     InventoryRecordMapper mapper;
 
@@ -115,4 +128,5 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
         }
         return conditions.isEmpty() ? DSL.noCondition() : DSL.and(conditions);
     }
+
 }

@@ -2,7 +2,7 @@ package fpt.qn.mes.inventory.domain.repository.criteria;
 
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.BaseSearchCriteria;
+import fpt.qn.mes.common.domainQuery.BaseSearchCriteria;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

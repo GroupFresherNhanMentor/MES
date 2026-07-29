@@ -2,17 +2,20 @@ package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.STOCK_LOTS;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.SortField;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
@@ -23,6 +26,14 @@ import lombok.experimental.FieldDefaults;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> implements StockLotRepository {
+
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "createdAt",  STOCK_LOTS.CREATED_AT,
+            "lotNumber",  STOCK_LOTS.LOT_NUMBER,
+            "expiryDate", STOCK_LOTS.EXPIRY_DATE
+    );
+
+    private static final Field<?> DEFAULT_SORT_FIELD = STOCK_LOTS.CREATED_AT;
 
     InventoryRecordMapper mapper;
 
@@ -52,29 +63,32 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
 
     @Override
     public List<StockLot> search(StockLotSearchCriteria criteria) {
-        List<Condition> conditions = new ArrayList<>();
+        Condition condition = DSL.noCondition();
         if (criteria.getProductId() != null) {
-            conditions.add(STOCK_LOTS.PRODUCT_ID.eq(criteria.getProductId()));
+            condition = condition.and(STOCK_LOTS.PRODUCT_ID.eq(criteria.getProductId()));
         }
+    
         if (criteria.getLotTypeId() != null) {
-            conditions.add(STOCK_LOTS.LOT_TYPE_ID.eq(criteria.getLotTypeId()));
+            condition = condition.and(STOCK_LOTS.LOT_TYPE_ID.eq(criteria.getLotTypeId()));
         }
         if (criteria.getLotNumber() != null && !criteria.getLotNumber().isBlank()) {
-            conditions.add(STOCK_LOTS.LOT_NUMBER.containsIgnoreCase(criteria.getLotNumber()));
+            condition = condition.and(STOCK_LOTS.LOT_NUMBER.containsIgnoreCase(criteria.getLotNumber()));
         }
         if (criteria.getExpiryBefore() != null) {
-            conditions.add(STOCK_LOTS.EXPIRY_DATE.lessOrEqual(criteria.getExpiryBefore()));
+            condition = condition.and(STOCK_LOTS.EXPIRY_DATE.lessOrEqual(criteria.getExpiryBefore()));
         }
 
         int page = criteria.getPage();
         int size = criteria.getSize();
 
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+
         return ctx.selectFrom(STOCK_LOTS)
-                .where(conditions)
-                .orderBy(STOCK_LOTS.CREATED_AT.desc())
+                .where(condition)
+                .orderBy(orderBy)
                 .limit(size)
                 .offset(page * size)
                 .fetch()
-                .map(mapper::toDomain);
+                .map(r -> mapper.toDomain(r));
     }
 }
