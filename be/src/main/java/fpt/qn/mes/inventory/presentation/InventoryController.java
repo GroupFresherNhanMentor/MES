@@ -31,6 +31,7 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 import io.swagger.v3.oas.annotations.Operation;
 
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
@@ -67,7 +68,7 @@ public class InventoryController {
     @Operation(summary = "Search stock movements with pagination and criteria filtering")
     @GetMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
-            @Valid fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest request) {
+            @Valid StockMovementSearchRequest request) {
         PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }

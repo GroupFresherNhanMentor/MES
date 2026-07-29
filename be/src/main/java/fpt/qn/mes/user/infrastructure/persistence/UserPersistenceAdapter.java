@@ -74,14 +74,7 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
                 .fetch()
                 .map(userMapper::toDomain);
 
-        int totalPages = (int) Math.ceil((double) totalElements / size);
-        return PaginationResult.<User>builder()
-                .content(items)
-                .page(page)
-                .size(size)
-                .totalElements(totalElements)
-                .totalPages(totalPages)
-                .build();
+        return PaginationResult.of(items, totalElements, page, size);
     }
 
     @Override
