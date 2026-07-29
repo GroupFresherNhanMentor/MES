@@ -72,7 +72,7 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
 
     @Override
     public StockBalance save(StockBalance balance) {
-        UUID id = balance.getId() != null ? balance.getId() : UUID.randomUUID();
+        UUID id = balance.getId() != null ? balance.getId() : UuidV7.generate();
         StockBalancesRecord record = mapper.toRecord(balance);
         record.setId(id);
 

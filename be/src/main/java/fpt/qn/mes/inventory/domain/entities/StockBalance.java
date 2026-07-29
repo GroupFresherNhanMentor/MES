@@ -28,7 +28,6 @@ public class StockBalance {
     UUID productId;
     UUID lotId;
     UUID stockStatusId;
-    StockStatus stockStatus;
     BigDecimal quantity;
     Long version;
     Instant createdAt;

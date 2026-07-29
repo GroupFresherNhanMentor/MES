@@ -64,10 +64,11 @@ public class InventoryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock lot created successfully"));
     }
 
+    @Operation(summary = "Search stock movements with pagination and criteria filtering")
     @GetMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(page, size);
+            @Valid fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest request) {
+        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 

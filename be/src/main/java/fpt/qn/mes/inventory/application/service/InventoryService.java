@@ -3,19 +3,31 @@ package fpt.qn.mes.inventory.application.service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.response.LocationSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
 import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
@@ -40,18 +52,12 @@ import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.user.domain.entities.User;
+import fpt.qn.mes.user.domain.repository.UserRepository;
+
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import fpt.qn.mes.inventory.application.dto.response.LocationSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
-import fpt.qn.mes.user.domain.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -94,6 +100,7 @@ public class InventoryService implements InventoryUseCase {
                 .orElseThrow(() -> new StockLotNotFoundException("Stock lot not found with ID: " + id));
         return mapper.toDto(lot);
     }
+
     @Override
     @Transactional
     public StockLotDto createStockLot(CreateStockLotRequest request) {
@@ -120,15 +127,53 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockMovementDto> getMovements(int page, int size) {
+    public PageResponse<StockMovementDto> getMovements(StockMovementSearchRequest request) {
         StockMovementSearchCriteria criteria = StockMovementSearchCriteria.builder()
-                .page(page)
-                .size(size)
+                .movementTypeId(request != null ? request.getMovementTypeId() : null)
+                .productId(request != null ? request.getProductId() : null)
+                .lotId(request != null ? request.getLotId() : null)
+                .warehouseId(request != null ? request.getWarehouseId() : null)
+                .locationId(request != null ? request.getLocationId() : null)
+                .referenceNo(request != null ? request.getReferenceNo() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
                 .build();
+
         long totalElements = movementRepository.count(criteria);
         List<StockMovement> items = movementRepository.search(criteria);
-        List<StockMovementDto> dtos = items.stream().map(this::toStockMovementDto).toList();
-        return PageResponse.of(dtos, totalElements, page, size);
+
+        if (items.isEmpty()) {
+            return PageResponse.of(List.of(), totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
+        }
+
+        Map<UUID, ProductSummaryDto> productMap = buildProductMap(items);
+        Map<UUID, WarehouseSummaryDto> warehouseMap = buildWarehouseMap(items);
+        Map<UUID, LocationSummaryDto> locationMap = buildLocationMap(items);
+        Map<UUID, UserSummaryDto> userMap = buildUserMap(items);
+
+        List<StockMovementDto> dtos = items.stream()
+                .map(m -> {
+                    StockMovementDto dto = mapper.toDto(m);
+                    if (dto != null) {
+                        if (m.getProductId() != null) {
+                            dto.setProduct(productMap.get(m.getProductId()));
+                        }
+                        if (m.getWarehouseId() != null) {
+                            dto.setToWarehouse(warehouseMap.get(m.getWarehouseId()));
+                        }
+                        if (m.getLocationId() != null) {
+                            dto.setToLocation(locationMap.get(m.getLocationId()));
+                        }
+                        if (m.getCreatedBy() != null) {
+                            dto.setCreatedBy(userMap.get(m.getCreatedBy()));
+                        }
+                    }
+                    return dto;
+                })
+                .toList();
+
+        return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -194,7 +239,7 @@ public class InventoryService implements InventoryUseCase {
         );
 
         StockMovement savedMovement = movementRepository.save(movement);
-        return toStockMovementDto(savedMovement);
+        return movementRepository.search(StockMovementSearchCriteria.builder().referenceNo(savedMovement.getReferenceNo()).build()).stream().findFirst().map(mapper::toDto).orElseGet(() -> mapper.toDto(savedMovement));
     }
 
     @Override
@@ -264,7 +309,7 @@ public class InventoryService implements InventoryUseCase {
         BigDecimal newQuantity = currentOnHand.add(request.getQuantity());
 
         StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(StockBalance::getId).orElse(UUID.randomUUID()))
+                .id(optBalance.map(StockBalance::getId).orElse(UuidV7.generate()))
                 .warehouseId(request.getWarehouseId())
                 .locationId(request.getLocationId())
                 .productId(request.getProductId())
@@ -294,120 +339,43 @@ public class InventoryService implements InventoryUseCase {
         );
 
         StockMovement savedMovement = movementRepository.save(movement);
-        return toStockMovementDto(savedMovement);
+        return movementRepository.search(StockMovementSearchCriteria.builder().referenceNo(savedMovement.getReferenceNo()).build()).stream().findFirst().map(mapper::toDto).orElseGet(() -> mapper.toDto(savedMovement));
     }
 
-    private StockMovementDto toStockMovementDto(StockMovement movement) {
-        if (movement == null) {
-            return null;
-        }
+    private Map<UUID, ProductSummaryDto> buildProductMap(List<StockMovement> items) {
+        Set<UUID> ids = items.stream().map(StockMovement::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = productUseCase.getProductsByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> ProductSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
 
-        ProductSummaryDto productSummary = null;
-        if (movement.getProductId() != null) {
-            try {
-                var p = productUseCase.getProductById(movement.getProductId());
-                productSummary = ProductSummaryDto.builder()
-                        .id(p.getId())
-                        .code(p.getCode())
-                        .name(p.getName())
-                        .build();
-            } catch (Exception ignored) {}
-        }
+    private Map<UUID, WarehouseSummaryDto> buildWarehouseMap(List<StockMovement> items) {
+        Set<UUID> ids = items.stream().map(StockMovement::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = warehouseUseCase.getWarehousesByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
 
-        WarehouseSummaryDto toWarehouseSummary = null;
-        if (movement.getWarehouseId() != null) {
-            try {
-                var w = warehouseUseCase.getWarehouseById(movement.getWarehouseId());
-                toWarehouseSummary = WarehouseSummaryDto.builder()
-                        .id(w.getId())
-                        .code(w.getCode())
-                        .name(w.getName())
-                        .build();
-            } catch (Exception ignored) {}
-        }
+    private Map<UUID, LocationSummaryDto> buildLocationMap(List<StockMovement> items) {
+        Set<UUID> ids = items.stream().map(StockMovement::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = locationUseCase.getLocationsByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> LocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
 
-        LocationSummaryDto toLocationSummary = null;
-        if (movement.getLocationId() != null) {
-            try {
-                var loc = locationUseCase.getLocationById(movement.getLocationId());
-                toLocationSummary = LocationSummaryDto.builder()
-                        .id(loc.getId())
-                        .code(loc.getCode())
-                        .name(loc.getName())
-                        .build();
-            } catch (Exception ignored) {}
-        }
-
-        StockLotSummaryDto lotSummary = null;
-        if (movement.getLotId() != null) {
-            var optLot = lotRepository.findById(movement.getLotId());
-            if (optLot.isPresent()) {
-                lotSummary = StockLotSummaryDto.builder()
-                        .id(optLot.get().getId())
-                        .lotNumber(optLot.get().getLotNumber())
-                        .build();
-            }
-        }
-
-        MovementTypeSummaryDto movementTypeSummary = null;
-        if (movement.getMovementTypeId() != null) {
-            var optType = movementTypeRepository.findById(movement.getMovementTypeId());
-            if (optType.isPresent()) {
-                movementTypeSummary = MovementTypeSummaryDto.builder()
-                        .id(optType.get().getId())
-                        .name(optType.get().getName())
-                        .build();
-            }
-        }
-
-        StockStatusSummaryDto fromStatusSummary = null;
-        if (movement.getFromStatusId() != null) {
-            var optStatus = stockStatusRepository.findById(movement.getFromStatusId());
-            if (optStatus.isPresent()) {
-                fromStatusSummary = StockStatusSummaryDto.builder()
-                        .id(optStatus.get().getId())
-                        .name(optStatus.get().getName())
-                        .build();
-            }
-        }
-
-        StockStatusSummaryDto toStatusSummary = null;
-        if (movement.getToStatusId() != null) {
-            var optStatus = stockStatusRepository.findById(movement.getToStatusId());
-            if (optStatus.isPresent()) {
-                toStatusSummary = StockStatusSummaryDto.builder()
-                        .id(optStatus.get().getId())
-                        .name(optStatus.get().getName())
-                        .build();
-            }
-        }
-
-        UserSummaryDto userSummary = null;
-        if (movement.getCreatedBy() != null) {
-            var optUser = userRepository.findById(movement.getCreatedBy());
-            if (optUser.isPresent()) {
-                userSummary = UserSummaryDto.builder()
-                        .id(optUser.get().getId())
-                        .username(optUser.get().getUsername())
-                        .fullName(optUser.get().getFullName())
-                        .build();
-            }
-        }
-
-        return StockMovementDto.builder()
-                .id(movement.getId())
-                .movementType(movementTypeSummary)
-                .product(productSummary)
-                .lot(lotSummary)
-                .toWarehouse(toWarehouseSummary)
-                .toLocation(toLocationSummary)
-                .quantity(movement.getQuantity())
-                .fromStatus(fromStatusSummary)
-                .toStatus(toStatusSummary)
-                .referenceNo(movement.getReferenceNo())
-                .reason(movement.getReason())
-                .createdBy(userSummary)
-                .createdAt(movement.getCreatedAt())
-                .build();
+    private Map<UUID, UserSummaryDto> buildUserMap(List<StockMovement> items) {
+        Set<UUID> ids = items.stream().map(StockMovement::getCreatedBy).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        return ids.stream()
+                .map(userRepository::findById)
+                .filter(Objects::nonNull)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(User::getId, user -> UserSummaryDto.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
     }
 }

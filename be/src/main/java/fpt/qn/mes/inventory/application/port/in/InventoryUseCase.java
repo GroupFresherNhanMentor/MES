@@ -13,12 +13,13 @@ import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 
 public interface InventoryUseCase {
     PageResponse<StockLotDto> getStockLots(StockLotSearchRequest request);
     StockLotDto getStockLotById(UUID id);
     StockLotDto createStockLot(CreateStockLotRequest request);
-    PageResponse<StockMovementDto> getMovements(int page, int size);
+    PageResponse<StockMovementDto> getMovements(StockMovementSearchRequest request);
     StockMovementDto recordMovement(CreateMovementRequest request, UUID currentUserId);
     PageResponse<StockBalanceDto> getStockBalances(StockBalanceSearchRequest request);
     StockMovementDto recordStockIn(StockInRequest request, UUID currentUserId);

@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import fpt.qn.mes.common.exception.DomainException;
 import fpt.qn.mes.common.util.UuidV7;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,15 +22,17 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockMovement {
     UUID id;
-    UUID movementTypeId;
     MovementType movementType;
+    StockLot stockLot;
+    StockStatus fromStatus;
+    StockStatus toStatus;
+
     UUID productId;
-    UUID lotId;
-    UUID warehouseId;
-    UUID locationId;
+    UUID fromWarehouseId;
+    UUID fromLocationId;
+    UUID toWarehouseId;
+    UUID toLocationId;
     BigDecimal quantity;
-    UUID fromStatusId;
-    UUID toStatusId;
     String referenceNo;
     String reason;
     UUID createdBy;
@@ -54,20 +55,49 @@ public class StockMovement {
             throw new DomainException("Created-by user ID cannot be null");
         }
 
+        MovementType movementType = movementTypeId != null ? MovementType.builder().id(movementTypeId).build() : null;
+        StockLot stockLot = lotId != null ? StockLot.builder().id(lotId).build() : null;
+        StockStatus fromStatus = fromStatusId != null ? StockStatus.builder().id(fromStatusId).build() : null;
+        StockStatus toStatus = toStatusId != null ? StockStatus.builder().id(toStatusId).build() : null;
+
         return StockMovement.builder()
                 .id(UuidV7.generate())
-                .movementTypeId(movementTypeId)
+                .movementType(movementType)
                 .productId(productId)
-                .lotId(lotId)
-                .warehouseId(warehouseId)
-                .locationId(locationId)
+                .stockLot(stockLot)
+                .toWarehouseId(warehouseId)
+                .toLocationId(locationId)
                 .quantity(quantity)
-                .fromStatusId(fromStatusId)
-                .toStatusId(toStatusId)
+                .fromStatus(fromStatus)
+                .toStatus(toStatus)
                 .referenceNo(referenceNo)
                 .reason(reason)
                 .createdBy(createdBy)
                 .createdAt(Instant.now())
                 .build();
+    }
+
+    public UUID getWarehouseId() {
+        return toWarehouseId != null ? toWarehouseId : fromWarehouseId;
+    }
+
+    public UUID getLocationId() {
+        return toLocationId != null ? toLocationId : fromLocationId;
+    }
+
+    public UUID getMovementTypeId() {
+        return movementType != null ? movementType.getId() : null;
+    }
+
+    public UUID getLotId() {
+        return stockLot != null ? stockLot.getId() : null;
+    }
+
+    public UUID getFromStatusId() {
+        return fromStatus != null ? fromStatus.getId() : null;
+    }
+
+    public UUID getToStatusId() {
+        return toStatus != null ? toStatus.getId() : null;
     }
 }
