@@ -3,6 +3,7 @@ package fpt.qn.mes.master.product.domain.entities;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -30,7 +31,7 @@ public class Product {
 
     public static Product create(String code, String name, UUID productTypeId, UUID unitId, UUID productStatusId, UUID createdBy) {
         return Product.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .code(code)
                 .name(name)
                 .productTypeId(productTypeId)

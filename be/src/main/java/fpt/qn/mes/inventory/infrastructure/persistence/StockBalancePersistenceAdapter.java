@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -73,7 +75,7 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
     public StockBalance save(StockBalance balance) {
         StockBalancesRecord record = mapper.toRecord(balance);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         ctx.attach(record);
         record.store();

@@ -32,6 +32,7 @@
         <org.mapstruct.version>1.6.3</org.mapstruct.version>
         <springdoc.version>3.0.3</springdoc.version>
         <testcontainers.version>1.21.4</testcontainers.version>
+        <uuid-creator.version>6.1.1</uuid-creator.version>
         <!-- override to match local DB when running codegen -->
         <db.url>jdbc:postgresql://localhost:5432/mes</db.url>
         <db.username>postgres</db.username>
@@ -75,6 +76,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>uuid-creator</artifactId>
+            <version>${uuid-creator.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>

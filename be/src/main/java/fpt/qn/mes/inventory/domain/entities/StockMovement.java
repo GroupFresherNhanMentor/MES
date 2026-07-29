@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import fpt.qn.mes.common.exception.DomainException;
+import fpt.qn.mes.common.util.UuidV7;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -54,7 +55,7 @@ public class StockMovement {
         }
 
         return StockMovement.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .movementTypeId(movementTypeId)
                 .productId(productId)
                 .lotId(lotId)

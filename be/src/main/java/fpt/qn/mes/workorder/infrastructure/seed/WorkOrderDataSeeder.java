@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.HashMap;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -55,7 +57,7 @@ public class WorkOrderDataSeeder implements ApplicationRunner {
 
         for (Map<String, Object> row : rows) {
             step = step.values(
-                UUID.randomUUID(),
+                UuidV7.generate(),
                 (String) row.get("name"),
                 (String) row.get("description"),
                 (Boolean) row.get("isInitial"),
@@ -71,7 +73,7 @@ public class WorkOrderDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(WORK_ORDER_PRIORITIES, WORK_ORDER_PRIORITIES.ID, WORK_ORDER_PRIORITIES.NAME, WORK_ORDER_PRIORITIES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded work_order_priorities");
@@ -83,7 +85,7 @@ public class WorkOrderDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(WORK_ORDER_EVENT_TYPES, WORK_ORDER_EVENT_TYPES.ID, WORK_ORDER_EVENT_TYPES.NAME, WORK_ORDER_EVENT_TYPES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded work_order_event_types");
@@ -115,7 +117,7 @@ public class WorkOrderDataSeeder implements ApplicationRunner {
                 throw new IllegalStateException(
                     "Unknown status in transition seed: " + fromName + " -> " + toName);
             }
-            step = step.values(UUID.randomUUID(), fromId, toId, true, (String) row.get("description"));
+            step = step.values(UuidV7.generate(), fromId, toId, true, (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded work_order_status_transitions");
