@@ -1,57 +1,37 @@
-<div class="flex flex-col h-screen bg-surface-app">
-  @if (isLoading()) {
-    <div class="ff-loading-bar"></div>
-    <mat-progress-bar mode="indeterminate" color="accent" class="!fixed !top-0 !left-0 !right-0 !z-[9999]" />
-  }
+<div style="display:flex; flex-direction:column; height:100vh; background:#0c0a09;">
+  @if (isLoading()) { <div class="ff-loading-bar"></div> }
 
-  <mat-toolbar class="!h-14 !bg-surface-elevated !border-b !border-border-default !sticky !top-0 !z-[100] !gap-2 !px-4">
-    <button mat-icon-button (click)="toggleSidenav()" class="!size-9">
-      <mat-icon>menu</mat-icon>
-    </button>
-    <div class="flex items-center min-w-[180px]">
-      <span class="font-bold text-base tracking-widest text-text-primary">MES</span>
-    </div>
-    <span class="flex-1"></span>
-    <span class="text-sm text-text-secondary font-medium">{{ pageTitle() }}</span>
-    <span class="flex-1"></span>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="!size-9">
-      <mat-icon>account_circle</mat-icon>
-    </button>
+  <mat-toolbar style="display:flex; align-items:center; gap:16px; padding:0 16px; height:56px; background:#1c1917; border-bottom:1px solid #44403c; position:sticky; top:0; z-index:100;">
+    <button mat-icon-button (click)="toggleSidenav()" style="width:36px; height:36px;"><mat-icon>menu</mat-icon></button>
+    <span style="font-weight:700; font-size:16px; color:#ea580c; letter-spacing:1px; min-width:60px;">MES</span>
+    <span style="flex:1;"></span>
+    <span style="font-size:14px; color:#fafaf9; font-weight:500;">{{ pageTitle() }}</span>
+    <span style="flex:1;"></span>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" style="width:36px; height:36px;"><mat-icon>account_circle</mat-icon></button>
     <mat-menu #userMenu="matMenu">
-      <div class="px-4 py-2">
-        <div class="text-sm font-medium text-text-primary">{{ currentUser?.fullName ?? 'User' }}</div>
-        <div class="text-xs text-text-secondary">{{ currentUser?.role }}</div>
+      <div style="padding:12px 16px;">
+        <div style="font-size:14px; font-weight:600; color:#fafaf9;">{{ currentUser?.fullName ?? 'User' }}</div>
+        <div style="font-size:11px; color:#a8a29e; text-transform:uppercase;">{{ currentUser?.role }}</div>
       </div>
       <mat-divider />
-      <button mat-menu-item (click)="logout()">
-        <mat-icon>logout</mat-icon>
-        <span>Logout</span>
-      </button>
+      <button mat-menu-item (click)="logout()"><mat-icon>logout</mat-icon> Logout</button>
     </mat-menu>
   </mat-toolbar>
 
-  <mat-drawer-container class="flex-1 !bg-transparent" autosize>
-    <mat-drawer #drawer [opened]="sidenavOpened()" mode="side" class="!w-[220px] !bg-surface-elevated !border-r !border-border-light !pt-2">
-      <nav class="flex flex-col gap-0.5 px-2">
+  <mat-drawer-container style="flex:1; background:transparent;" autosize>
+    <mat-drawer #drawer [opened]="sidenavOpened()" mode="side" style="width:220px; background:#1c1917; border-right:1px solid #292524; overflow-y:auto;">
+      <nav style="display:flex; flex-direction:column; gap:2px; padding:8px;">
         @for (item of filteredNavItems; track item.path) {
-          <a
-            mat-list-item
-            [routerLink]="item.path"
-            routerLinkActive="nav-active"
-            [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
-            class="nav-item"
-          >
-            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-            <span class="nav-label">{{ item.label }}</span>
+          <a [routerLink]="item.path" routerLinkActive="router-active" [routerLinkActiveOptions]="{exact: item.path==='/dashboard'}"
+            style="display:flex; align-items:center; gap:12px; padding:0 12px; height:38px; border-radius:6px; color:#fafaf9; font-size:14px; font-weight:500; text-decoration:none; cursor:pointer; transition:all 0.1s;">
+            <mat-icon style="font-size:20px; width:20px; height:20px;">{{ item.icon }}</mat-icon>
+            <span>{{ item.label }}</span>
           </a>
         }
       </nav>
     </mat-drawer>
-
-    <mat-drawer-content class="!bg-surface-app overflow-y-auto">
-      <div class="px-6 py-6 max-w-[1440px] mx-auto ff-fade-in">
-        <router-outlet />
-      </div>
+    <mat-drawer-content style="background:#0c0a09; overflow-y:auto;">
+      <div style="padding:24px; max-width:1440px; margin:0 auto;"><router-outlet /></div>
     </mat-drawer-content>
   </mat-drawer-container>
 </div>

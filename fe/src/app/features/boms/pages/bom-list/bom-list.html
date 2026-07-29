@@ -5,7 +5,7 @@
     <p class="text-sm text-text-secondary mt-1">Manage BOMs, versions, and component structures</p>
   </div>
   @if (canCreate()) {
-    <button mat-flat-button color="primary" class="!bg-primary text-white font-medium" (click)="onCreateBom()">
+    <button mat-flat-button color="primary" class="!bg-primary text-white font-medium !px-4 !py-2 shadow-md hover:brightness-110 transition-all" (click)="onCreateBom()">
       <mat-icon class="!w-5 !h-5 text-xl mr-1">add</mat-icon> Create BOM
     </button>
   }
@@ -127,10 +127,29 @@
       </table>
     } @else {
       <!-- Empty State -->
-      <div class="flex flex-col items-center justify-center py-16 text-text-muted">
-        <mat-icon class="!w-12 !h-12 text-5xl mb-2 opacity-40">inventory_2</mat-icon>
-        <span class="text-base font-medium text-text-secondary">No BOMs found</span>
-        <span class="text-xs text-text-muted mt-1">Try adjusting filter criteria or create a new BOM</span>
+      <div class="flex flex-col items-center justify-center py-16 px-6">
+        <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-elevated border border-border-light mb-4">
+          <mat-icon class="!w-8 !h-8 !text-3xl text-text-muted">inventory_2</mat-icon>
+        </div>
+        <span class="text-base font-semibold text-text-primary mb-1">
+          @if (selectedProductId() || selectedStatusId()) {
+            No matching BOMs
+          } @else {
+            No BOMs yet
+          }
+        </span>
+        <p class="text-sm text-text-muted text-center max-w-[320px] leading-5 mb-4">
+          @if (selectedProductId() || selectedStatusId()) {
+            No BOMs match your current filters. Try resetting the filter bar above.
+          } @else {
+            Bill of Materials define product structures. Create one to get started.
+          }
+        </p>
+        @if (!selectedProductId() && !selectedStatusId() && canCreate()) {
+          <button mat-stroked-button class="!border-border-default text-text-secondary hover:text-text-primary" (click)="onCreateBom()">
+            <mat-icon class="!w-4 !h-4 text-base mr-1">add</mat-icon> Create First BOM
+          </button>
+        }
       </div>
     }
 
