@@ -1,7 +1,6 @@
 package fpt.qn.mes.bom.presentation;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
@@ -23,6 +22,7 @@ import fpt.qn.mes.bom.application.dto.response.BomItemDto;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.service.LookupEntry;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,8 @@ public class BomController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) UUID finishedProductId,
             @RequestParam(required = false) UUID bomStatusId) {
-        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBoms(page, size, finishedProductId, bomStatusId), "OK"));
+        return ResponseEntity
+                .ok(ApiResponse.success(bomUseCase.getBoms(page, size, finishedProductId, bomStatusId), "OK"));
     }
 
     @GetMapping("/{id}")
@@ -91,7 +92,7 @@ public class BomController {
 
     @GetMapping("/statuses")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getBomStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<List<LookupEntry>>> getBomStatuses() {
+        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBomStatuses(), "OK"));
     }
 }

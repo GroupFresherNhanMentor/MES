@@ -1,11 +1,11 @@
 package fpt.qn.mes.inventory.domain.repository;
 
-import java.util.UUID;
-
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import java.util.List;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 
 public interface StockMovementRepository {
     StockMovement save(StockMovement movement);
-    PaginationResult<StockMovement> findAll(int page, int size);
+
+    List<StockMovement> search(StockMovementSearchCriteria criteria);
 }

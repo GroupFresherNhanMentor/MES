@@ -505,7 +505,7 @@
 ### GET `/boms`
 > **Roles:** `ADMIN` · `PLANNER` · `FACTORY_MANAGER` · `OPERATOR` · `QC_INSPECTOR`
 
-**Query params:** `page` · `size`
+**Query params:** `page` (default 0) · `size` (default 20) · `finishedProductId` (optional UUID) · `bomStatusId` (optional UUID)
 
 **Response `200`:** `PageResponse<BomDto>`
 ```json
@@ -527,7 +527,7 @@
 
 **Request body:**
 ```json
-{ "finishedProductId": "uuid", "version": 1 }
+{ "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid (optional — defaults to DRAFT)" }
 ```
 **Response `201`:** `BomDto`
 
@@ -538,6 +538,14 @@
 > **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
 
 **Response `200`:** `BomDto`
+
+---
+
+### POST `/boms/{id}/new-version`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-003` — Create New BOM Version (Clones BOM header with auto-incremented version and deep-copies component items in `DRAFT` status)
+
+**Response `201`:** `BomDto`
 
 ---
 
@@ -564,7 +572,7 @@
 ### GET `/boms/statuses`
 > **Roles:** All authenticated
 
-**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+**Response `200`:** `[{ "id": "uuid", "name": "string", "description": "string" }]`
 
 ---
 

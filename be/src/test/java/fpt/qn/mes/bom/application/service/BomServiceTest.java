@@ -56,6 +56,9 @@ class BomServiceTest {
     @Mock
     CurrentUserPort currentUserPort;
 
+    @Mock
+    fpt.qn.mes.common.service.LookupRepository lookupRepository;
+
     @InjectMocks
     BomService bomService;
 
@@ -72,6 +75,29 @@ class BomServiceTest {
         draftStatusId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         activeStatusId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         inactiveStatusId = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    }
+
+    @Test
+    void getBomStatuses_HappyPath_ReturnsStatusList() {
+        fpt.qn.mes.common.service.LookupEntry draft = fpt.qn.mes.common.service.LookupEntry.builder()
+                .id(draftStatusId)
+                .name("DRAFT")
+                .description("Draft BOM version")
+                .build();
+        fpt.qn.mes.common.service.LookupEntry active = fpt.qn.mes.common.service.LookupEntry.builder()
+                .id(activeStatusId)
+                .name("ACTIVE")
+                .description("Active BOM version")
+                .build();
+
+        when(lookupRepository.findAll("bom_statuses")).thenReturn(List.of(draft, active));
+
+        List<fpt.qn.mes.common.service.LookupEntry> result = bomService.getBomStatuses();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals("DRAFT", result.get(0).getName());
+        assertEquals("ACTIVE", result.get(1).getName());
     }
 
     @Test

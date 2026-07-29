@@ -1,10 +1,21 @@
 package fpt.qn.mes.inventory.domain.repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 
 public interface StockBalanceRepository {
+    Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
+            UUID lotId);
+
+    StockBalance save(StockBalance balance);
+
     List<StockBalance> findByWarehouseAndProduct(UUID warehouseId, UUID productId);
+
+    List<StockBalance> search(StockBalanceSearchCriteria criteria);
+
+    long count(StockBalanceSearchCriteria criteria);
 }

@@ -15,15 +15,17 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Transactional
 @Rollback
 public abstract class AbstractIntegrationTest {
 
-    @Container
     @ServiceConnection
     static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:18-alpine");
+
+    static {
+        postgres.start();
+    }
 
     @Autowired
     JwtEncoder jwtEncoder;
