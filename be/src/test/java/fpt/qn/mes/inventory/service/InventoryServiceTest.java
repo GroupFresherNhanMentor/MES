@@ -25,6 +25,7 @@ import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
@@ -78,6 +79,9 @@ class InventoryServiceTest {
 
     @Mock
     LocationUseCase locationUseCase;
+
+    @Mock
+    fpt.qn.mes.user.domain.repository.UserRepository userRepository;
 
     @InjectMocks
     InventoryService inventoryService;
@@ -182,7 +186,7 @@ class InventoryServiceTest {
                 .build();
 
         when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(savedMovement)).thenReturn(dto);
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
 
         StockMovementDto result = inventoryService.recordMovement(request, userId);
 
@@ -268,9 +272,12 @@ class InventoryServiceTest {
 
         when(movementRepository.count(any(StockMovementSearchCriteria.class))).thenReturn(1L);
         when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(List.of(movement));
-        when(mapper.toDto(movement)).thenReturn(dto);
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
 
-        PageResponse<StockMovementDto> response = inventoryService.getMovements(0, 10);
+        StockMovementSearchRequest request = new StockMovementSearchRequest();
+        request.setPage(0);
+        request.setSize(10);
+        PageResponse<StockMovementDto> response = inventoryService.getMovements(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getItems()).hasSize(1);
@@ -308,7 +315,7 @@ class InventoryServiceTest {
         StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("100.00")).build();
 
         when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(savedMovement)).thenReturn(dto);
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
 
         StockMovementDto result = inventoryService.recordStockIn(request, userId);
 
@@ -354,7 +361,7 @@ class InventoryServiceTest {
         StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("50.00")).build();
 
         when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(savedMovement)).thenReturn(dto);
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
 
         StockMovementDto result = inventoryService.recordStockIn(request, userId);
 
