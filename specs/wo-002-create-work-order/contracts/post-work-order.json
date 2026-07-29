@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Create Work Order API Contract",
+  "description": "REST endpoint contract for POST /api/v1/work-orders",
+  "type": "object",
+  "endpoint": {
+    "method": "POST",
+    "path": "/api/v1/work-orders",
+    "headers": {
+      "Authorization": "Bearer <JWT>",
+      "Content-Type": "application/json"
+    },
+    "requestBody": {
+      "type": "object",
+      "required": ["code", "finishedProductId", "plannedQuantity", "plannedStartDate", "plannedEndDate"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "example": "WO-2026-0001"
+        },
+        "finishedProductId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+        },
+        "plannedQuantity": {
+          "type": "number",
+          "minimum": 0.0001,
+          "example": 100.0
+        },
+        "plannedStartDate": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2026-08-01T08:00:00Z"
+        },
+        "plannedEndDate": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2026-08-05T17:00:00Z"
+        },
+        "priorityId": {
+          "type": "string",
+          "format": "uuid",
+          "example": "b1ffbc99-9c0b-4ef8-bb6d-6bb9bd380a22"
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Work Order created successfully",
+        "body": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean", "example": true },
+            "message": { "type": "string", "example": "Work Order created successfully" },
+            "data": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "code": { "type": "string", "example": "WO-2026-0001" },
+                "finishedProductId": { "type": "string", "format": "uuid" },
+                "bomId": { "type": "string", "format": "uuid" },
+                "plannedQuantity": { "type": "number", "example": 100.0 },
+                "plannedStartDate": { "type": "string", "format": "date-time" },
+                "plannedEndDate": { "type": "string", "format": "date-time" },
+                "workOrderStatusId": { "type": "string", "format": "uuid" },
+                "createdBy": { "type": "string", "format": "uuid" },
+                "createdAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Validation error or BOM not active",
+        "body": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean", "example": false },
+            "errorCode": { "type": "string", "example": "BOM_NOT_ACTIVE" },
+            "message": { "type": "string", "example": "No active BOM found for finished product: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11" }
+          }
+        }
+      },
+      "403": {
+        "description": "Forbidden - Current user does not have ROLE_PLANNER",
+        "body": {
+          "type": "object",
+          "properties": {
+            "success": { "type": "boolean", "example": false },
+            "errorCode": { "type": "string", "example": "FORBIDDEN" },
+            "message": { "type": "string", "example": "Access Denied" }
+          }
+        }
+      }
+    }
+  }
+}

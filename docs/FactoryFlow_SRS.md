@@ -140,7 +140,7 @@ Factory Manager xem báo cáo | Auditor xem audit log
 - Sai password → lỗi authentication failed. Đúng → JWT hợp lệ.
 
 **FR-AUTH-002 — Role-based access control**
-- API giới hạn theo role (VD: chỉ Admin tạo user, chỉ Planner tạo Work Order). Sai quyền → HTTP 403.
+- API giới hạn theo role (VD: chỉ Admin tạo user, chỉ duy nhất Planner tạo Work Order). Sai quyền → HTTP 403.
 - **Quyết định triển khai:** Permission tính theo role qua map tĩnh trong code (`Map<Role, Set<Permission>>`) ở mức Must Have — không bắt buộc phải có UI quản lý permission động, dù bảng `permissions`/`role_permissions` đã có sẵn trong schema (kế thừa từ `diagram.puml`) cho hướng mở rộng sau này.
 
 **Data model:** `users, roles, permissions, user_roles, role_permissions`
@@ -263,7 +263,10 @@ Thay vì `warehouseId/locationId` đơn, bảng dùng `from_warehouse_id/from_lo
 **Actor:** Planner (tạo/cancel), hệ thống (tính requirement, kiểm soát transition).
 
 **FR-WO-001 — Create Work Order**
-- `plannedQuantity > 0`; sản phẩm phải có BOM ACTIVE; status khởi tạo DRAFT/PLANNED; không xóa WO đã có movement.
+- `plannedQuantity > 0`; sản phẩm phải có BOM ACTIVE (hệ thống tự động liên kết `bomId` của BOM ACTIVE này vào Work Order).
+- Nếu không tìm thấy Active BOM cho sản phẩm → Hệ thống trả về mã lỗi cụ thể: `BOM_NOT_ACTIVE`.
+- Status khởi tạo DRAFT/PLANNED; không xóa WO đã có movement.
+- Ghi nhận lịch sử hành động (Audit Log) với action code `CREATE_WORK_ORDER`.
 
 **FR-WO-002 — Calculate Material Requirement**
 ```
