@@ -4,6 +4,7 @@ Spring Boot 4.1.0 · Java 25 · jOOQ 3.21 · PostgreSQL 18 · Clean Architecture
 
 ## Project Rules
 
+### Backend
 @docs/rules/backend-architecture.md
 @docs/rules/backend-naming.md
 @docs/rules/backend-patterns.md
@@ -12,6 +13,9 @@ Spring Boot 4.1.0 · Java 25 · jOOQ 3.21 · PostgreSQL 18 · Clean Architecture
 @docs/rules/backend-java-style.md
 @docs/rules/backend-query-optimization.md
 @docs/rules/backend-testing.md
+
+### Frontend
+@docs/rules/frontend-tailwind.md
 
 ## Project Layout
 
@@ -29,6 +33,13 @@ mes/
 │       ├── role/
 │       ├── user/
 │       └── master/        # line, location, machine, product, warehouse
+├── fe/                    # Angular 22 frontend
+│   └── src/app/
+│       ├── layout/        # AuthLayout, MainLayout (sidenav shell)
+│       ├── core/          # Guards, interceptors, services, models
+│       ├── features/      # Lazy-loaded page components per domain
+│       ├── shared/        # Reusable components (Table, StatusBadge, etc.)
+│       └── configs/       # API endpoints, constants
 ├── docs/
 │   ├── rules/             # Architecture & coding rules (source of truth)
 │   └── FactoryFlow_URS.md # Product requirements

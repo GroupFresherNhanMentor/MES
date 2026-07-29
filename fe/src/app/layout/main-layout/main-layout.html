@@ -1,0 +1,57 @@
+<div class="flex flex-col h-screen bg-surface-app">
+  @if (isLoading()) {
+    <div class="ff-loading-bar"></div>
+    <mat-progress-bar mode="indeterminate" color="accent" class="!fixed !top-0 !left-0 !right-0 !z-[9999]" />
+  }
+
+  <mat-toolbar class="!h-14 !bg-surface-elevated !border-b !border-border-default !sticky !top-0 !z-[100] !gap-2 !px-4">
+    <button mat-icon-button (click)="toggleSidenav()" class="!size-9">
+      <mat-icon>menu</mat-icon>
+    </button>
+    <div class="flex items-center min-w-[180px]">
+      <span class="font-bold text-base tracking-widest text-text-primary">MES</span>
+    </div>
+    <span class="flex-1"></span>
+    <span class="text-sm text-text-secondary font-medium">{{ pageTitle() }}</span>
+    <span class="flex-1"></span>
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="!size-9">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <div class="px-4 py-2">
+        <div class="text-sm font-medium text-text-primary">{{ currentUser?.fullName ?? 'User' }}</div>
+        <div class="text-xs text-text-secondary">{{ currentUser?.role }}</div>
+      </div>
+      <mat-divider />
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        <span>Logout</span>
+      </button>
+    </mat-menu>
+  </mat-toolbar>
+
+  <mat-drawer-container class="flex-1 !bg-transparent" autosize>
+    <mat-drawer #drawer [opened]="sidenavOpened()" mode="side" class="!w-[220px] !bg-surface-elevated !border-r !border-border-light !pt-2">
+      <nav class="flex flex-col gap-0.5 px-2">
+        @for (item of filteredNavItems; track item.path) {
+          <a
+            mat-list-item
+            [routerLink]="item.path"
+            routerLinkActive="nav-active"
+            [routerLinkActiveOptions]="{ exact: item.path === '/dashboard' }"
+            class="nav-item"
+          >
+            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+    </mat-drawer>
+
+    <mat-drawer-content class="!bg-surface-app overflow-y-auto">
+      <div class="px-6 py-6 max-w-[1440px] mx-auto ff-fade-in">
+        <router-outlet />
+      </div>
+    </mat-drawer-content>
+  </mat-drawer-container>
+</div>

@@ -1,0 +1,76 @@
+<div class="login-page">
+  <div class="login-bg"></div>
+  <div class="login-container">
+    <mat-card class="login-card">
+      <div class="login-header">
+        <div class="login-logo">
+          <span class="logo-icon">FF</span>
+        </div>
+        <h1 class="login-title">MES</h1>
+        <p class="login-subtitle">Manufacturing Operations Platform</p>
+      </div>
+
+      <form class="login-form" (ngSubmit)="login()">
+        @if (error()) {
+          <div class="login-error">
+            <mat-icon style="font-size: 16px; width: 16px; height: 16px;">error_outline</mat-icon>
+            <span>{{ error() }}</span>
+          </div>
+        }
+
+        <mat-form-field appearance="outline" class="login-field">
+          <mat-label>Username</mat-label>
+          <input
+            matInput
+            type="text"
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
+            name="username"
+            placeholder="Enter your username"
+            autocomplete="username"
+            required
+          />
+          <mat-icon matPrefix>person</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="login-field">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            [ngModel]="password()"
+            (ngModelChange)="password.set($event)"
+            name="password"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+            required
+          />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button
+            type="button"
+            mat-icon-button
+            matSuffix
+            (click)="hidePassword.set(!hidePassword())"
+            tabindex="-1"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <button
+          mat-flat-button
+          color="primary"
+          type="submit"
+          class="login-submit"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Sign In
+          }
+        </button>
+      </form>
+    </mat-card>
+  </div>
+</div>
