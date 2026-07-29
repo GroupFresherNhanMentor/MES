@@ -877,4 +877,18 @@ button.btn-success:hover,
   .mat-mdc-menu-item:hover {
     background: #292524 !important;
   }
+
+  /* ── Menu dropdown ── */
+  .mat-mdc-menu-panel {
+    background: #1c1917 !important;
+    border: 1px solid #44403c;
+  }
+
+  .mat-mdc-menu-item {
+    color: #fafaf9 !important;
+  }
+
+  .mat-mdc-menu-item:hover {
+    background: #292524 !important;
+  }
 }
