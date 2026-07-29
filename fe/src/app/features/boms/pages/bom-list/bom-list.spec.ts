@@ -1,15 +1,17 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { of } from 'rxjs';
+import { By } from '@angular/platform-browser';
+
 import { BomList } from './bom-list';
 import { ApiService } from '../../../../core/services/api';
 import { AuthService } from '../../../../core/services/auth';
-import { of } from 'rxjs';
-import { By } from '@angular/platform-browser';
 
 describe('BomList', () => {
   let fixture: ComponentFixture<BomList>;
   let component: BomList;
-  let api: jasmine.SpyObj<ApiService>;
-  let auth: jasmine.SpyObj<AuthService>;
+  let api: { get: ReturnType<typeof vi.fn> };
+  let auth: { getCurrentUser: ReturnType<typeof vi.fn> };
 
   const mockBoms = {
     success: true,
@@ -50,15 +52,17 @@ describe('BomList', () => {
   };
 
   beforeEach(async () => {
-    api = jasmine.createSpyObj('ApiService', ['get']);
-    api.get.and.callFake((url: string) => {
-      if (url.includes('/boms/statuses')) return of(mockStatuses);
-      if (url.includes('/products')) return of(mockProducts);
-      return of(mockBoms);
-    });
+    api = {
+      get: vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/boms/statuses')) return of(mockStatuses);
+        if (url.includes('/products')) return of(mockProducts);
+        return of(mockBoms);
+      }),
+    };
 
-    auth = jasmine.createSpyObj('AuthService', ['getCurrentUser']);
-    auth.getCurrentUser.and.returnValue({ role: 'ADMIN' } as any);
+    auth = {
+      getCurrentUser: vi.fn().mockReturnValue({ role: 'ADMIN' }),
+    };
 
     await TestBed.configureTestingModule({
       imports: [BomList],
@@ -88,7 +92,7 @@ describe('BomList', () => {
   });
 
   it('hides Create BOM for non-privileged role', async () => {
-    auth.getCurrentUser.and.returnValue({ role: 'OPERATOR' } as any);
+    auth.getCurrentUser.mockReturnValue({ role: 'OPERATOR' });
     component = TestBed.createComponent(BomList).componentInstance;
     component.ngOnInit();
     fixture.detectChanges();
@@ -105,7 +109,7 @@ describe('BomList', () => {
   });
 
   it('calls navigate on row click', () => {
-    const router = jasmine.createSpyObj('Router', ['navigate']);
+    const router = { navigate: vi.fn() };
     (component as any).router = router;
     component.onRowClick({ id: 'BOM-001' } as any);
     expect(router.navigate).toHaveBeenCalledWith(['/boms', 'BOM-001']);
