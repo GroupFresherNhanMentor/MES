@@ -28,9 +28,24 @@ public class WorkOrderService implements WorkOrderUseCase {
     WorkOrderRepository repository;
     WorkOrderDtoMapper mapper;
 
-    @Override @Transactional(readOnly = true)
-    public PageResponse<WorkOrderDto> getWorkOrders(int page, int size) {
-        throw new UnsupportedOperationException("Not implemented");
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<WorkOrderDto> getWorkOrders(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request) {
+        fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria criteria =
+                fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria.builder()
+                        .page(request != null ? request.getPage() : 0)
+                        .size(request != null ? request.getSize() : 20)
+                        .finishedProductId(request != null ? request.getFinishedProductId() : null)
+                        .statusId(request != null ? request.getStatusId() : null)
+                        .code(request != null ? request.getCode() : null)
+                        .build();
+
+        var result = repository.findAll(criteria);
+        var dtos = result.getItems().stream()
+                .map(w -> mapper.toDto(w))
+                .toList();
+
+        return PageResponse.<WorkOrderDto>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
     }
 
     @Override @Transactional(readOnly = true)
