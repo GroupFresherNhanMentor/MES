@@ -184,8 +184,9 @@ public class InventoryService implements InventoryUseCase {
                 .page(request != null ? request.getPage() : 0)
                 .size(request != null ? request.getSize() : 20)
                 .build();
+        long totalElements = balanceRepository.count(criteria);
         List<StockBalance> balances = balanceRepository.search(criteria);
         List<StockBalanceDto> dtos = balances.stream().map(mapper::toDto).toList();
-        return PageResponse.of(dtos, dtos.size(), request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
+        return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 }

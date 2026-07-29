@@ -9,24 +9,27 @@ import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.jooq.tables.records.StockBalancesRecord;
 import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Repository
-@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class StockBalancePersistenceAdapter implements StockBalanceRepository {
+public class StockBalancePersistenceAdapter extends BaseRepository<StockBalancesRecord> implements StockBalanceRepository {
 
-    DSLContext ctx;
     InventoryRecordMapper mapper;
+
+    public StockBalancePersistenceAdapter(DSLContext ctx, InventoryRecordMapper mapper) {
+        super(ctx, STOCK_BALANCES);
+        this.mapper = mapper;
+    }
 
     @Override
     public Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId, UUID lotId) {
@@ -75,6 +78,25 @@ public class StockBalancePersistenceAdapter implements StockBalanceRepository {
 
     @Override
     public List<StockBalance> search(StockBalanceSearchCriteria criteria) {
+        Condition condition = buildCondition(criteria);
+        int page = criteria.getPage();
+        int size = criteria.getSize();
+
+        return ctx.selectFrom(STOCK_BALANCES)
+                .where(condition)
+                .orderBy(STOCK_BALANCES.UPDATED_AT.desc())
+                .limit(size)
+                .offset(page * size)
+                .fetch()
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public long count(StockBalanceSearchCriteria criteria) {
+        return count(buildCondition(criteria));
+    }
+
+    private Condition buildCondition(StockBalanceSearchCriteria criteria) {
         List<Condition> conditions = new ArrayList<>();
         if (criteria.getWarehouseId() != null) {
             conditions.add(STOCK_BALANCES.WAREHOUSE_ID.eq(criteria.getWarehouseId()));
@@ -91,16 +113,6 @@ public class StockBalancePersistenceAdapter implements StockBalanceRepository {
         if (criteria.getStockStatusId() != null) {
             conditions.add(STOCK_BALANCES.STOCK_STATUS_ID.eq(criteria.getStockStatusId()));
         }
-
-        int page = criteria.getPage();
-        int size = criteria.getSize();
-
-        return ctx.selectFrom(STOCK_BALANCES)
-                .where(conditions)
-                .orderBy(STOCK_BALANCES.UPDATED_AT.desc())
-                .limit(size)
-                .offset(page * size)
-                .fetch()
-                .map(mapper::toDomain);
+        return conditions.isEmpty() ? DSL.noCondition() : DSL.and(conditions);
     }
 }

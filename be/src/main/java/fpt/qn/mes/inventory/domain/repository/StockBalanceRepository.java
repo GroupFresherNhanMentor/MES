@@ -17,4 +17,6 @@ public interface StockBalanceRepository {
     List<StockBalance> findByWarehouseAndProduct(UUID warehouseId, UUID productId);
 
     List<StockBalance> search(StockBalanceSearchCriteria criteria);
+
+    long count(StockBalanceSearchCriteria criteria);
 }

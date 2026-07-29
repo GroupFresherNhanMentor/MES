@@ -229,6 +229,7 @@ class InventoryServiceTest {
         request.setWarehouseId(warehouseId);
         request.setProductId(productId);
 
+        when(balanceRepository.count(any(StockBalanceSearchCriteria.class))).thenReturn(1L);
         when(balanceRepository.search(any(StockBalanceSearchCriteria.class)))
                 .thenReturn(List.of(balance));
         when(mapper.toDto(balance)).thenReturn(dto);

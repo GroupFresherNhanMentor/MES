@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import fpt.qn.mes.common.util.PaginationUtils;
+
 @Getter
 @Builder
 @NoArgsConstructor
@@ -33,7 +35,7 @@ public class PageResponse<T> {
     }
 
     public static <T> PageResponse<T> of(List<T> items, long totalElements, int pageNumber, int pageSize) {
-        int totalPages = pageSize > 0 ? (int) Math.ceil((double) totalElements / pageSize) : 0;
+        int totalPages = PaginationUtils.calculateTotalPages(totalElements, pageSize);
         return PageResponse.<T>builder()
                 .items(items != null ? items : List.of())
                 .totalElements(totalElements)
