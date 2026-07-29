@@ -8,6 +8,7 @@ import fpt.qn.mes.master.line.domain.entities.ProductionLine;
 
 public interface ProductionLineRepository {
     Optional<ProductionLine> findById(UUID id);
+    java.util.List<ProductionLine> findByIds(java.util.Collection<UUID> ids);
     ProductionLine save(ProductionLine line);
     ProductionLine update(ProductionLine line);
     void deleteById(UUID id);

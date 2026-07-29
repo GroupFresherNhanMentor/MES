@@ -29,6 +29,13 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
     @Override
     public Optional<ProductionLine> findById(UUID id) { return fetchById(id).map(mapper::toDomain); }
     @Override
+    public java.util.List<ProductionLine> findByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.List.of();
+        return ctx.selectFrom(PRODUCTION_LINES)
+                .where(PRODUCTION_LINES.ID.in(ids))
+                .fetch().map(mapper::toDomain);
+    }
+    @Override
     public ProductionLine save(ProductionLine l) { return mapper.toDomain(create(mapper.toRecord(l))); }
     @Override
     public ProductionLine update(ProductionLine l) { return mapper.toDomain(update(mapper.toRecord(l))); }
