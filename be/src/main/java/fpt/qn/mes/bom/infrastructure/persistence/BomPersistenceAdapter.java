@@ -54,6 +54,28 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
     }
 
     @Override
+    public Optional<Bom> findActiveByFinishedProductId(UUID finishedProductId) {
+        Optional<UUID> activeStatusId = findStatusIdByName("ACTIVE");
+        if (activeStatusId.isEmpty()) {
+            return Optional.empty();
+        }
+        BomsRecord record = dslCtx.selectFrom(BOMS)
+                .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
+                .and(BOMS.BOM_STATUS_ID.eq(activeStatusId.get()))
+                .fetchOne();
+
+        if (record == null) {
+            return Optional.empty();
+        }
+
+        List<BomItem> items = dslCtx.selectFrom(BOM_ITEMS)
+                .where(BOM_ITEMS.BOM_ID.eq(record.getId()))
+                .fetch(r -> mapper.toDomain(r));
+
+        return Optional.ofNullable(mapper.toDomain(record, items));
+    }
+
+    @Override
     public Bom save(Bom bom) {
         BomsRecord record = mapper.toRecord(bom);
         dslCtx.insertInto(BOMS)

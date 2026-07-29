@@ -23,6 +23,7 @@ import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
@@ -45,20 +46,27 @@ public class WorkOrderController {
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
-            @jakarta.validation.Valid fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request) {
+            @Valid WorkOrderSearchRequest request) {
         var response = workOrderUseCase.getWorkOrders(request);
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<WorkOrderDto>> getById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        var response = workOrderUseCase.getWorkOrderById(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Work Order details retrieved successfully"));
     }
 
+    @PreAuthorize("hasRole('PLANNER')")
     @PostMapping
     public ResponseEntity<ApiResponse<WorkOrderDto>> create(
-            @Valid @RequestBody CreateWorkOrderRequest req, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+            @Valid @RequestBody CreateWorkOrderRequest req,
+            @AuthenticationPrincipal fpt.qn.mes.auth.application.security.AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : null;
+        var result = workOrderUseCase.createWorkOrder(req, currentUserId);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success(result, "Work Order created successfully"));
     }
 
     @PutMapping("/{id}")

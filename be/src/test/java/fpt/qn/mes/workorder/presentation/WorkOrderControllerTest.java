@@ -22,8 +22,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 
@@ -58,8 +61,7 @@ class WorkOrderControllerTest {
     @DisplayName("getAll should return 200 OK with ApiResponse containing PageResponse")
     void getAll_shouldReturn200WithApiResponse() {
         // Arrange
-        fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request =
-                new fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest();
+        WorkOrderSearchRequest request = new WorkOrderSearchRequest();
         request.setPage(0);
         request.setSize(20);
         request.setFinishedProductId(productId);
@@ -74,7 +76,7 @@ class WorkOrderControllerTest {
                 .pageSize(20)
                 .build();
 
-        when(workOrderUseCase.getWorkOrders(any(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest.class)))
+        when(workOrderUseCase.getWorkOrders(any(WorkOrderSearchRequest.class)))
                 .thenReturn(pageResponse);
 
         // Act
@@ -90,6 +92,57 @@ class WorkOrderControllerTest {
         assertEquals(1, response.getBody().getData().getItems().size());
         assertEquals("WO-2026-0001", response.getBody().getData().getItems().getFirst().getCode());
 
-        verify(workOrderUseCase).getWorkOrders(any(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest.class));
+        verify(workOrderUseCase).getWorkOrders(any(WorkOrderSearchRequest.class));
+    }
+
+    @Test
+    @DisplayName("create should return 201 Created with created WorkOrderDto")
+    void create_shouldReturn201WithApiResponse() {
+        // Arrange
+        CreateWorkOrderRequest req = new CreateWorkOrderRequest();
+        req.setCode("WO-2026-0005");
+        req.setFinishedProductId(productId);
+        req.setPlannedQuantity(BigDecimal.valueOf(100));
+
+        UUID userId = UUID.randomUUID();
+        AppUserPrincipal principal = AppUserPrincipal.builder()
+                        .id(userId)
+                        .username("planner_user")
+                        .roles(List.of("PLANNER"))
+                        .build();
+
+        when(workOrderUseCase.createWorkOrder(eq(req), eq(userId))).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.create(req, principal);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("WO-2026-0001", response.getBody().getData().getCode());
+
+        verify(workOrderUseCase).createWorkOrder(req, userId);
+    }
+
+    @Test
+    @DisplayName("getById should return 200 OK with WorkOrderDto details")
+    void getById_shouldReturn200WithApiResponse() {
+        // Arrange
+        UUID id = sampleDto.getId();
+        when(workOrderUseCase.getWorkOrderById(id)).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.getById(id);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("WO-2026-0001", response.getBody().getData().getCode());
+
+        verify(workOrderUseCase).getWorkOrderById(id);
     }
 }
