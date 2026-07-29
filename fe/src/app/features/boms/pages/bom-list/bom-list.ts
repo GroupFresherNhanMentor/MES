@@ -12,11 +12,14 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+
 import { ApiService } from '../../../../core/services/api';
 import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import type { BomDto } from '../../../../core/models/bom.model';
 import type { ProductDto } from '../../../../core/models/product.model';
+import { BomCreateDialog } from '../../components/bom-create-dialog/bom-create-dialog';
 
 interface BomStatusOption {
   id: string;
@@ -39,6 +42,7 @@ interface BomStatusOption {
     MatSelectModule,
     MatProgressBarModule,
     MatTooltipModule,
+    MatDialogModule,
   ],
   templateUrl: './bom-list.html',
 })
@@ -140,7 +144,18 @@ export class BomList implements OnInit {
     void this.router.navigate(['/boms', row.id]);
   }
 
+  private dialog = inject(MatDialog);
+
   onCreateBom(): void {
-    console.log('Create BOM clicked');
+    const dialogRef = this.dialog.open(BomCreateDialog, {
+      width: '480px',
+      panelClass: 'ff-dialog-panel',
+    });
+
+    dialogRef.afterClosed().subscribe((newBom: BomDto | null) => {
+      if (newBom) {
+        this.load();
+      }
+    });
   }
 }

@@ -1,0 +1,79 @@
+<div class="relative overflow-hidden bg-surface-card rounded-xl">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" class="!absolute !top-0 !left-0 !right-0 !z-10"></mat-progress-bar>
+  }
+
+  <!-- Error alert -->
+  @if (errorMessage()) {
+    <div class="mx-6 mt-4 flex items-start gap-2.5 p-3 rounded-lg bg-error/15 text-error text-sm border border-error/30 ff-fade-in">
+      <mat-icon class="!w-4 !h-4 !text-base mt-0.5 shrink-0">error_outline</mat-icon>
+      <span class="leading-5">{{ errorMessage() }}</span>
+    </div>
+  }
+
+  <!-- Header -->
+  <div class="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border-default">
+    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
+      <mat-icon class="!w-5 !h-5 !text-xl">note_add</mat-icon>
+    </div>
+    <div>
+      <h2 class="text-lg font-bold text-text-primary leading-snug">Create Bill of Materials</h2>
+      <p class="text-xs text-text-secondary mt-0.5">Set up a new BOM header version for production</p>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4 p-6">
+    <!-- Finished Product Select -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+      <mat-label>Finished / Semi-Finished Product</mat-label>
+      <mat-select formControlName="finishedProductId">
+        @for (p of productsList(); track p.id) {
+          <mat-option [value]="p.id">
+            <span class="font-medium text-text-primary">{{ p.name }}</span>
+            <span class="text-xs text-text-muted ml-2 font-mono">({{ p.code }})</span>
+          </mat-option>
+        }
+      </mat-select>
+      @if (form.get('finishedProductId')?.invalid && form.get('finishedProductId')?.touched) {
+        <mat-error class="text-xs text-error mt-1">Finished Product is required</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Version Input -->
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+      <mat-label>BOM Version</mat-label>
+      <input matInput type="number" formControlName="version" min="1" placeholder="1" />
+      @if (form.get('version')?.invalid && form.get('version')?.touched) {
+        <mat-error class="text-xs text-error mt-1">Version must be 1 or greater</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Footer Actions -->
+    <div class="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-border-default">
+      <button
+        mat-button
+        type="button"
+        class="!text-text-secondary hover:!text-text-primary"
+        (click)="onCancel()"
+        [disabled]="loading()"
+      >
+        Cancel
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        class="!bg-primary text-white font-medium !px-5"
+        type="submit"
+        [disabled]="form.invalid || loading()"
+      >
+        @if (loading()) {
+          <mat-icon class="!w-4 !h-4 !text-base mr-1.5 animate-spin">sync</mat-icon>
+        } @else {
+          <mat-icon class="!w-4 !h-4 !text-base mr-1.5">check</mat-icon>
+        }
+        {{ loading() ? 'Creating...' : 'Create BOM' }}
+      </button>
+    </div>
+  </form>
+</div>
