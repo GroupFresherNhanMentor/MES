@@ -33,15 +33,9 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
 import fpt.qn.mes.AbstractIntegrationTest;
 import fpt.qn.mes.common.dto.response.PageResponse;
@@ -58,9 +52,6 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     InventoryService inventoryService;
-
-    @Autowired
-    TestRestTemplate restTemplate;
 
     @Autowired
     DSLContext dsl;
