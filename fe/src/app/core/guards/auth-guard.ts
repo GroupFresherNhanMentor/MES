@@ -1,8 +1,6 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { CanActivateFn } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
 
-export const authGuard: CanActivateFn = () => {
-  const token = localStorage.getItem('ff_access_token');
-  if (token) return true;
-  return inject(Router).createUrlTree(['/login']);
-};
+/** Bypass auth for development */
+export const authGuard: CanActivateFn = () => true;
