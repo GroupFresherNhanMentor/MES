@@ -3,9 +3,11 @@ package fpt.qn.mes.inventory.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
+import fpt.qn.mes.inventory.domain.entities.MovementType;
 
-public interface MovementTypeRepository {
+public interface MovementTypeRepository extends BaseDomainRepository<MovementType, UUID> {
 
     /**
      * Find movement type ID by its unique name string.

@@ -44,6 +44,15 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import fpt.qn.mes.inventory.application.dto.response.LocationSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockLotSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
+import fpt.qn.mes.user.domain.repository.UserRepository;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -54,6 +63,7 @@ public class InventoryService implements InventoryUseCase {
     StockBalanceRepository balanceRepository;
     MovementTypeRepository movementTypeRepository;
     StockStatusRepository stockStatusRepository;
+    UserRepository userRepository;
     InventoryDtoMapper mapper;
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
@@ -117,7 +127,7 @@ public class InventoryService implements InventoryUseCase {
                 .build();
         long totalElements = movementRepository.count(criteria);
         List<StockMovement> items = movementRepository.search(criteria);
-        List<StockMovementDto> dtos = items.stream().map(mapper::toDto).toList();
+        List<StockMovementDto> dtos = items.stream().map(this::toStockMovementDto).toList();
         return PageResponse.of(dtos, totalElements, page, size);
     }
 
@@ -184,7 +194,7 @@ public class InventoryService implements InventoryUseCase {
         );
 
         StockMovement savedMovement = movementRepository.save(movement);
-        return mapper.toDto(savedMovement);
+        return toStockMovementDto(savedMovement);
     }
 
     @Override
@@ -284,6 +294,120 @@ public class InventoryService implements InventoryUseCase {
         );
 
         StockMovement savedMovement = movementRepository.save(movement);
-        return mapper.toDto(savedMovement);
+        return toStockMovementDto(savedMovement);
+    }
+
+    private StockMovementDto toStockMovementDto(StockMovement movement) {
+        if (movement == null) {
+            return null;
+        }
+
+        ProductSummaryDto productSummary = null;
+        if (movement.getProductId() != null) {
+            try {
+                var p = productUseCase.getProductById(movement.getProductId());
+                productSummary = ProductSummaryDto.builder()
+                        .id(p.getId())
+                        .code(p.getCode())
+                        .name(p.getName())
+                        .build();
+            } catch (Exception ignored) {}
+        }
+
+        WarehouseSummaryDto toWarehouseSummary = null;
+        if (movement.getWarehouseId() != null) {
+            try {
+                var w = warehouseUseCase.getWarehouseById(movement.getWarehouseId());
+                toWarehouseSummary = WarehouseSummaryDto.builder()
+                        .id(w.getId())
+                        .code(w.getCode())
+                        .name(w.getName())
+                        .build();
+            } catch (Exception ignored) {}
+        }
+
+        LocationSummaryDto toLocationSummary = null;
+        if (movement.getLocationId() != null) {
+            try {
+                var loc = locationUseCase.getLocationById(movement.getLocationId());
+                toLocationSummary = LocationSummaryDto.builder()
+                        .id(loc.getId())
+                        .code(loc.getCode())
+                        .name(loc.getName())
+                        .build();
+            } catch (Exception ignored) {}
+        }
+
+        StockLotSummaryDto lotSummary = null;
+        if (movement.getLotId() != null) {
+            var optLot = lotRepository.findById(movement.getLotId());
+            if (optLot.isPresent()) {
+                lotSummary = StockLotSummaryDto.builder()
+                        .id(optLot.get().getId())
+                        .lotNumber(optLot.get().getLotNumber())
+                        .build();
+            }
+        }
+
+        MovementTypeSummaryDto movementTypeSummary = null;
+        if (movement.getMovementTypeId() != null) {
+            var optType = movementTypeRepository.findById(movement.getMovementTypeId());
+            if (optType.isPresent()) {
+                movementTypeSummary = MovementTypeSummaryDto.builder()
+                        .id(optType.get().getId())
+                        .name(optType.get().getName())
+                        .build();
+            }
+        }
+
+        StockStatusSummaryDto fromStatusSummary = null;
+        if (movement.getFromStatusId() != null) {
+            var optStatus = stockStatusRepository.findById(movement.getFromStatusId());
+            if (optStatus.isPresent()) {
+                fromStatusSummary = StockStatusSummaryDto.builder()
+                        .id(optStatus.get().getId())
+                        .name(optStatus.get().getName())
+                        .build();
+            }
+        }
+
+        StockStatusSummaryDto toStatusSummary = null;
+        if (movement.getToStatusId() != null) {
+            var optStatus = stockStatusRepository.findById(movement.getToStatusId());
+            if (optStatus.isPresent()) {
+                toStatusSummary = StockStatusSummaryDto.builder()
+                        .id(optStatus.get().getId())
+                        .name(optStatus.get().getName())
+                        .build();
+            }
+        }
+
+        UserSummaryDto userSummary = null;
+        if (movement.getCreatedBy() != null) {
+            var optUser = userRepository.findById(movement.getCreatedBy());
+            if (optUser.isPresent()) {
+                userSummary = UserSummaryDto.builder()
+                        .id(optUser.get().getId())
+                        .username(optUser.get().getUsername())
+                        .fullName(optUser.get().getFullName())
+                        .build();
+            }
+        }
+
+        return StockMovementDto.builder()
+                .id(movement.getId())
+                .movementType(movementTypeSummary)
+                .product(productSummary)
+                .lot(lotSummary)
+                .toWarehouse(toWarehouseSummary)
+                .toLocation(toLocationSummary)
+                .quantity(movement.getQuantity())
+                .fromStatus(fromStatusSummary)
+                .toStatus(toStatusSummary)
+                .referenceNo(movement.getReferenceNo())
+                .reason(movement.getReason())
+                .createdBy(userSummary)
+                .createdAt(movement.getCreatedAt())
+                .build();
     }
 }

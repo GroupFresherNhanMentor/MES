@@ -8,22 +8,25 @@ import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockMovementDto {
     UUID id;
-    UUID movementTypeId;
-    UUID productId;
-    UUID lotId;
-    UUID warehouseId;
-    UUID locationId;
+    MovementTypeSummaryDto movementType;
+    ProductSummaryDto product;
+    StockLotSummaryDto lot;
+    WarehouseSummaryDto fromWarehouse;
+    WarehouseSummaryDto toWarehouse;
+    LocationSummaryDto fromLocation;
+    LocationSummaryDto toLocation;
     BigDecimal quantity;
-    UUID fromStatusId;
-    UUID toStatusId;
+    StockStatusSummaryDto fromStatus;
+    StockStatusSummaryDto toStatus;
     String referenceNo;
     String reason;
-    UUID createdBy;
+    UserSummaryDto createdBy;
     Instant createdAt;
 }

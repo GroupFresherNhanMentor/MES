@@ -4,11 +4,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 
-public interface StockLotRepository {
-    Optional<StockLot> findById(UUID id);
+public interface StockLotRepository extends BaseDomainRepository<StockLot, UUID> {
 
     Optional<StockLot> findByLotNumber(String lotNumber);
 

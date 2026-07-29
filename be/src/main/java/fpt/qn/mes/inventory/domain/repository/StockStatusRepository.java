@@ -3,9 +3,11 @@ package fpt.qn.mes.inventory.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
+import fpt.qn.mes.inventory.domain.entities.StockStatus;
 
-public interface StockStatusRepository {
+public interface StockStatusRepository extends BaseDomainRepository<StockStatus, UUID> {
 
     /**
      * Find stock status ID by its unique name string.

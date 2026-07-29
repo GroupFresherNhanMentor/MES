@@ -9,6 +9,7 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.jooq.tables.records.MovementTypesRecord;
 import lombok.AccessLevel;
@@ -20,6 +21,18 @@ public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypes
 
     public MovementTypePersistenceAdapter(DSLContext ctx) {
         super(ctx, MOVEMENT_TYPES);
+    }
+
+    @Override
+    public Optional<MovementType> findById(UUID id) {
+        if (id == null) {
+            return Optional.empty();
+        }
+        return fetchById(id).map(r -> MovementType.builder()
+                .id(r.getId())
+                .name(r.getName())
+                .description(r.getDescription())
+                .build());
     }
 
     @Override
