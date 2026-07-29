@@ -45,12 +45,8 @@ public class WorkOrderController {
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) UUID finishedProductId,
-            @RequestParam(required = false) UUID statusId,
-            @RequestParam(required = false) String code) {
-        var response = workOrderUseCase.getWorkOrders(page, size, finishedProductId, statusId, code);
+            @jakarta.validation.Valid fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request) {
+        var response = workOrderUseCase.getWorkOrders(request);
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
     }
 

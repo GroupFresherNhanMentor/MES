@@ -30,25 +30,22 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<WorkOrderDto> getWorkOrders(int page, int size) {
-        return getWorkOrders(page, size, null, null, null);
-    }
+    public PageResponse<WorkOrderDto> getWorkOrders(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request) {
+        fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria criteria =
+                fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria.builder()
+                        .page(request != null ? request.getPage() : 0)
+                        .size(request != null ? request.getSize() : 20)
+                        .finishedProductId(request != null ? request.getFinishedProductId() : null)
+                        .statusId(request != null ? request.getStatusId() : null)
+                        .code(request != null ? request.getCode() : null)
+                        .build();
 
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<WorkOrderDto> getWorkOrders(int page, int size, UUID finishedProductId, UUID statusId, String code) {
-        var result = repository.findAll(page, size, finishedProductId, statusId, code);
+        var result = repository.findAll(criteria);
         var dtos = result.getItems().stream()
                 .map(w -> mapper.toDto(w))
                 .toList();
-        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
-        return PageResponse.<WorkOrderDto>builder()
-                .items(dtos)
-                .totalElements(result.getTotal())
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
+
+        return PageResponse.<WorkOrderDto>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
     }
 
     @Override @Transactional(readOnly = true)

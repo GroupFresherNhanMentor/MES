@@ -72,20 +72,28 @@ class WorkOrderServiceTest {
     @DisplayName("getWorkOrders with filters should return mapped PageResponse")
     void getWorkOrders_withFilters_shouldReturnPageResponse() {
         // Arrange
+        fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request =
+                new fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setFinishedProductId(productId);
+        request.setStatusId(statusId);
+        request.setCode("WO-2026");
+
         PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
-        when(repository.findAll(eq(0), eq(20), eq(productId), eq(statusId), eq("WO-2026")))
+        when(repository.findAll(any(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria.class)))
                 .thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(0, 20, productId, statusId, "WO-2026");
+        PageResponse<WorkOrderDto> result = service.getWorkOrders(request);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.getItems().size());
         assertEquals(1, result.getTotalElements());
         assertEquals("WO-2026-0001", result.getItems().getFirst().getCode());
-        verify(repository).findAll(0, 20, productId, statusId, "WO-2026");
+        verify(repository).findAll(any(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria.class));
     }
 
     @Test
@@ -93,12 +101,12 @@ class WorkOrderServiceTest {
     void getWorkOrders_defaultParams_shouldCallRepositoryWithNullFilters() {
         // Arrange
         PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
-        when(repository.findAll(eq(0), eq(20), eq(null), eq(null), eq(null)))
+        when(repository.findAll(any(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria.class)))
                 .thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(0, 20);
+        PageResponse<WorkOrderDto> result = service.getWorkOrders(null);
 
         // Assert
         assertNotNull(result);

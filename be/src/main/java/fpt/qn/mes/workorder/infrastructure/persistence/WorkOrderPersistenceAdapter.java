@@ -34,22 +34,10 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     @Override public WorkOrder update(WorkOrder w) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public void deleteById(UUID id) {}
     @Override
-    public PaginationResult<WorkOrder> findAll(int page, int size) {
-        return findAll(page, size, null, null, null);
-    }
-
-    @Override
-    public PaginationResult<WorkOrder> findAll(int page, int size, UUID finishedProductId, UUID statusId, String code) {
-        var condition = org.jooq.impl.DSL.noCondition();
-        if (finishedProductId != null) {
-            condition = condition.and(WORK_ORDERS.FINISHED_PRODUCT_ID.eq(finishedProductId));
-        }
-        if (statusId != null) {
-            condition = condition.and(WORK_ORDERS.WORK_ORDER_STATUS_ID.eq(statusId));
-        }
-        if (code != null && !code.isBlank()) {
-            condition = condition.and(WORK_ORDERS.CODE.likeIgnoreCase("%" + code + "%"));
-        }
+    public PaginationResult<WorkOrder> findAll(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria criteria) {
+        var condition = buildCondition(criteria);
+        int page = criteria.getPage();
+        int size = criteria.getSize();
 
         var records = dslCtx.selectFrom(WORK_ORDERS)
                 .where(condition)
@@ -62,6 +50,20 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
         var items = records.stream().map(r -> mapper.toDomain(r)).toList();
 
         return PaginationResult.of(items, total, page, size);
+    }
+
+    private org.jooq.Condition buildCondition(fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria criteria) {
+        var condition = org.jooq.impl.DSL.noCondition();
+        if (criteria.getFinishedProductId() != null) {
+            condition = condition.and(WORK_ORDERS.FINISHED_PRODUCT_ID.eq(criteria.getFinishedProductId()));
+        }
+        if (criteria.getStatusId() != null) {
+            condition = condition.and(WORK_ORDERS.WORK_ORDER_STATUS_ID.eq(criteria.getStatusId()));
+        }
+        if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
+            condition = condition.and(WORK_ORDERS.CODE.likeIgnoreCase("%" + criteria.getCode() + "%"));
+        }
+        return condition;
     }
     @Override public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public Optional<WorkOrderMaterial> findMaterialById(UUID materialId) { throw new UnsupportedOperationException("Not implemented"); }

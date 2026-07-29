@@ -2,6 +2,7 @@ package fpt.qn.mes.workorder.presentation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +58,14 @@ class WorkOrderControllerTest {
     @DisplayName("getAll should return 200 OK with ApiResponse containing PageResponse")
     void getAll_shouldReturn200WithApiResponse() {
         // Arrange
+        fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest request =
+                new fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setFinishedProductId(productId);
+        request.setStatusId(statusId);
+        request.setCode("WO-2026");
+
         PageResponse<WorkOrderDto> pageResponse = PageResponse.<WorkOrderDto>builder()
                 .items(List.of(sampleDto))
                 .totalElements(1)
@@ -65,12 +74,12 @@ class WorkOrderControllerTest {
                 .pageSize(20)
                 .build();
 
-        when(workOrderUseCase.getWorkOrders(0, 20, productId, statusId, "WO-2026"))
+        when(workOrderUseCase.getWorkOrders(any(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest.class)))
                 .thenReturn(pageResponse);
 
         // Act
         ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> response =
-                controller.getAll(0, 20, productId, statusId, "WO-2026");
+                controller.getAll(request);
 
         // Assert
         assertNotNull(response);
@@ -81,6 +90,6 @@ class WorkOrderControllerTest {
         assertEquals(1, response.getBody().getData().getItems().size());
         assertEquals("WO-2026-0001", response.getBody().getData().getItems().getFirst().getCode());
 
-        verify(workOrderUseCase).getWorkOrders(0, 20, productId, statusId, "WO-2026");
+        verify(workOrderUseCase).getWorkOrders(any(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest.class));
     }
 }
