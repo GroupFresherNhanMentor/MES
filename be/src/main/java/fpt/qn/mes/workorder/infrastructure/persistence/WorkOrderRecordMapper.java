@@ -30,15 +30,44 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrdersRecord toRecord(WorkOrder w) {
-        return null;
+        if (w == null) return null;
+        WorkOrdersRecord r = new WorkOrdersRecord();
+        r.setId(w.getId());
+        r.setCode(w.getCode());
+        r.setFinishedProductId(w.getFinishedProductId());
+        r.setBomId(w.getBomId());
+        r.setPlannedQuantity(w.getPlannedQuantity());
+        r.setPlannedStartDate(w.getPlannedStartDate() != null ? w.getPlannedStartDate().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setPlannedEndDate(w.getPlannedEndDate() != null ? w.getPlannedEndDate().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setPriorityId(w.getPriorityId());
+        r.setWorkOrderStatusId(w.getWorkOrderStatusId());
+        r.setCreatedBy(w.getCreatedBy());
+        r.setCreatedAt(w.getCreatedAt() != null ? w.getCreatedAt().atOffset(java.time.ZoneOffset.UTC) : null);
+        return r;
     }
 
     public WorkOrderMaterial toDomain(WorkOrderMaterialsRecord r) {
-        return null;
+        if (r == null) return null;
+        return WorkOrderMaterial.builder()
+                .id(r.getId())
+                .workOrderId(r.getWorkOrderId())
+                .materialProductId(r.getMaterialProductId())
+                .requiredQuantity(r.getRequiredQuantity())
+                .reservedQuantity(r.getReservedQuantity())
+                .consumedQuantity(r.getConsumedQuantity())
+                .build();
     }
 
     public WorkOrderMaterialsRecord toRecord(WorkOrderMaterial m) {
-        return null;
+        if (m == null) return null;
+        WorkOrderMaterialsRecord r = new WorkOrderMaterialsRecord();
+        r.setId(m.getId());
+        r.setWorkOrderId(m.getWorkOrderId());
+        r.setMaterialProductId(m.getMaterialProductId());
+        r.setRequiredQuantity(m.getRequiredQuantity());
+        r.setReservedQuantity(m.getReservedQuantity());
+        r.setConsumedQuantity(m.getConsumedQuantity());
+        return r;
     }
 
     public WorkOrderEvent toDomain(WorkOrderEventsRecord r) {

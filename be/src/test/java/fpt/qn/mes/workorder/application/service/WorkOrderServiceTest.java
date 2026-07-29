@@ -34,6 +34,9 @@ class WorkOrderServiceTest {
     WorkOrderRepository repository;
 
     @Mock
+    fpt.qn.mes.bom.domain.repository.BomRepository bomRepository;
+
+    @Mock
     WorkOrderDtoMapper mapper;
 
     @InjectMocks
@@ -105,5 +108,66 @@ class WorkOrderServiceTest {
         assertEquals(1, result.getItems().size());
         assertEquals(0, result.getPageNumber());
         assertEquals(20, result.getPageSize());
+    }
+
+    @Test
+    @DisplayName("createWorkOrder with active BOM should create WorkOrder and calculate material requirements")
+    void createWorkOrder_withActiveBom_shouldCreateWorkOrderAndMaterials() {
+        // Arrange
+        UUID bomId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        fpt.qn.mes.bom.domain.entities.Bom activeBom = fpt.qn.mes.bom.domain.entities.Bom.builder()
+                .id(bomId)
+                .finishedProductId(productId)
+                .items(List.of(
+                        fpt.qn.mes.bom.domain.entities.BomItem.builder()
+                                .id(UUID.randomUUID())
+                                .materialProductId(UUID.randomUUID())
+                                .quantityPerUnit(BigDecimal.valueOf(2))
+                                .scrapRate(BigDecimal.valueOf(0.1))
+                                .build()
+                ))
+                .build();
+
+        fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest req =
+                new fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest();
+        req.setCode("WO-2026-0005");
+        req.setFinishedProductId(productId);
+        req.setPlannedQuantity(BigDecimal.valueOf(100));
+
+        when(bomRepository.findActiveByFinishedProductId(productId))
+                .thenReturn(java.util.Optional.of(activeBom));
+        when(repository.save(any(WorkOrder.class))).thenReturn(sampleEntity);
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+
+        // Act
+        WorkOrderDto result = service.createWorkOrder(req, userId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("WO-2026-0001", result.getCode());
+        verify(repository).save(any(WorkOrder.class));
+        verify(repository).saveMaterial(any(fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial.class));
+    }
+
+    @Test
+    @DisplayName("createWorkOrder without active BOM should throw BomNotActiveException")
+    void createWorkOrder_withoutActiveBom_shouldThrowBomNotActiveException() {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+        fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest req =
+                new fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest();
+        req.setCode("WO-2026-0006");
+        req.setFinishedProductId(productId);
+        req.setPlannedQuantity(BigDecimal.valueOf(50));
+
+        when(bomRepository.findActiveByFinishedProductId(productId))
+                .thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                fpt.qn.mes.workorder.application.exception.BomNotActiveException.class,
+                () -> service.createWorkOrder(req, userId)
+        );
     }
 }

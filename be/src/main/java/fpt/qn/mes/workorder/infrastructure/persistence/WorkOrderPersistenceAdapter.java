@@ -30,7 +30,16 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     }
 
     @Override public Optional<WorkOrder> findById(UUID id) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public WorkOrder save(WorkOrder w) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public WorkOrder save(WorkOrder w) {
+        WorkOrdersRecord record = mapper.toRecord(w);
+        if (record.getId() == null) {
+            record.setId(UUID.randomUUID());
+        }
+        dslCtx.attach(record);
+        record.store();
+        return mapper.toDomain(record);
+    }
     @Override public WorkOrder update(WorkOrder w) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public void deleteById(UUID id) {}
     @Override
@@ -63,7 +72,16 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
 
         return PaginationResult.of(items, total, page, size);
     }
-    @Override public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) {
+        var record = mapper.toRecord(m);
+        if (record.getId() == null) {
+            record.setId(UUID.randomUUID());
+        }
+        dslCtx.attach(record);
+        record.store();
+        return mapper.toDomain(record);
+    }
     @Override public Optional<WorkOrderMaterial> findMaterialById(UUID materialId) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public PaginationResult<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId, int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
     @Override public void deleteMaterialById(UUID materialId) {}

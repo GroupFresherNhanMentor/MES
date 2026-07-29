@@ -83,4 +83,37 @@ class WorkOrderControllerTest {
 
         verify(workOrderUseCase).getWorkOrders(0, 20, productId, statusId, "WO-2026");
     }
+
+    @Test
+    @DisplayName("create should return 201 Created with created WorkOrderDto")
+    void create_shouldReturn201WithApiResponse() {
+        // Arrange
+        fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest req =
+                new fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest();
+        req.setCode("WO-2026-0005");
+        req.setFinishedProductId(productId);
+        req.setPlannedQuantity(BigDecimal.valueOf(100));
+
+        UUID userId = UUID.randomUUID();
+        fpt.qn.mes.auth.application.security.AppUserPrincipal principal =
+                fpt.qn.mes.auth.application.security.AppUserPrincipal.builder()
+                        .id(userId)
+                        .username("planner_user")
+                        .roles(List.of("PLANNER"))
+                        .build();
+
+        when(workOrderUseCase.createWorkOrder(eq(req), eq(userId))).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.create(req, principal);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("WO-2026-0001", response.getBody().getData().getCode());
+
+        verify(workOrderUseCase).createWorkOrder(req, userId);
+    }
 }

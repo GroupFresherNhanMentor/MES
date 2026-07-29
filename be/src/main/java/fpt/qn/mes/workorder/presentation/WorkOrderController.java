@@ -59,10 +59,15 @@ public class WorkOrderController {
         throw new UnsupportedOperationException("Not implemented");
     }
 
+    @PreAuthorize("hasRole('PLANNER')")
     @PostMapping
     public ResponseEntity<ApiResponse<WorkOrderDto>> create(
-            @Valid @RequestBody CreateWorkOrderRequest req, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
+            @Valid @RequestBody CreateWorkOrderRequest req,
+            @AuthenticationPrincipal fpt.qn.mes.auth.application.security.AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : null;
+        var result = workOrderUseCase.createWorkOrder(req, currentUserId);
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success(result, "Work Order created successfully"));
     }
 
     @PutMapping("/{id}")

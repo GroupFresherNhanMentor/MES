@@ -20,12 +20,21 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+import fpt.qn.mes.bom.domain.entities.Bom;
+import fpt.qn.mes.bom.domain.repository.BomRepository;
+import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
+import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkOrderService implements WorkOrderUseCase {
 
     WorkOrderRepository repository;
+    BomRepository bomRepository;
     WorkOrderDtoMapper mapper;
 
     @Override
@@ -56,9 +65,46 @@ public class WorkOrderService implements WorkOrderUseCase {
         throw new UnsupportedOperationException("Not implemented");
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public WorkOrderDto createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
-        throw new UnsupportedOperationException("Not implemented");
+        Bom activeBom = bomRepository.findActiveByFinishedProductId(req.getFinishedProductId())
+                .orElseThrow(() -> new BomNotActiveException("No active BOM found for finished product: " + req.getFinishedProductId()));
+
+        WorkOrder workOrder = WorkOrder.builder()
+                .code(req.getCode())
+                .finishedProductId(req.getFinishedProductId())
+                .bomId(activeBom.getId())
+                .plannedQuantity(req.getPlannedQuantity())
+                .plannedStartDate(req.getPlannedStartDate())
+                .plannedEndDate(req.getPlannedEndDate())
+                .priorityId(req.getPriorityId())
+                .workOrderStatusId(req.getWorkOrderStatusId())
+                .createdBy(currentUserId)
+                .createdAt(Instant.now())
+                .build();
+
+        WorkOrder saved = repository.save(workOrder);
+
+        if (activeBom.getItems() != null && !activeBom.getItems().isEmpty()) {
+            for (var item : activeBom.getItems()) {
+                BigDecimal scrap = item.getScrapRate() != null ? item.getScrapRate() : BigDecimal.ZERO;
+                BigDecimal multiplier = BigDecimal.ONE.add(scrap);
+                BigDecimal reqQty = req.getPlannedQuantity().multiply(item.getQuantityPerUnit()).multiply(multiplier);
+
+                WorkOrderMaterial mat = WorkOrderMaterial.builder()
+                        .workOrderId(saved.getId())
+                        .materialProductId(item.getMaterialProductId())
+                        .requiredQuantity(reqQty)
+                        .reservedQuantity(BigDecimal.ZERO)
+                        .consumedQuantity(BigDecimal.ZERO)
+                        .build();
+
+                repository.saveMaterial(mat);
+            }
+        }
+
+        return mapper.toDto(saved);
     }
 
     @Override @Transactional
