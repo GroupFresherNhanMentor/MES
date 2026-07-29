@@ -114,4 +114,40 @@ class WorkOrderServiceTest {
         assertEquals(0, result.getPageNumber());
         assertEquals(20, result.getPageSize());
     }
+
+    @Test
+    @DisplayName("getWorkOrderById with existing ID should return WorkOrderDto with materials and events")
+    void getWorkOrderById_existingId_shouldReturnDto() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        when(repository.findById(id)).thenReturn(java.util.Optional.of(sampleEntity));
+        when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
+        when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+
+        // Act
+        WorkOrderDto result = service.getWorkOrderById(id);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("WO-2026-0001", result.getCode());
+        verify(repository).findById(id);
+        verify(repository).findMaterialsByWorkOrderId(id);
+        verify(repository).findEventsByWorkOrderId(id);
+    }
+
+    @Test
+    @DisplayName("getWorkOrderById with non-existent ID should throw WorkOrderNotFoundException")
+    void getWorkOrderById_nonExistentId_shouldThrowException() {
+        // Arrange
+        UUID nonExistentId = UUID.randomUUID();
+        when(repository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException.class,
+                () -> service.getWorkOrderById(nonExistentId)
+        );
+        verify(repository).findById(nonExistentId);
+    }
 }

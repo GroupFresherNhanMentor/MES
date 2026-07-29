@@ -18,8 +18,10 @@ public interface WorkOrderRepository {
     WorkOrderMaterial saveMaterial(WorkOrderMaterial material);
     Optional<WorkOrderMaterial> findMaterialById(UUID materialId);
     PaginationResult<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId, int page, int size);
+    java.util.List<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId);
     void deleteMaterialById(UUID materialId);
 
     WorkOrderEvent saveEvent(WorkOrderEvent event);
     PaginationResult<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId, int page, int size);
+    java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId);
 }

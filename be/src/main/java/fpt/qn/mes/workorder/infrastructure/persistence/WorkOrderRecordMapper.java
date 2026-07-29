@@ -34,7 +34,15 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrderMaterial toDomain(WorkOrderMaterialsRecord r) {
-        return null;
+        if (r == null) return null;
+        return WorkOrderMaterial.builder()
+                .id(r.getId())
+                .workOrderId(r.getWorkOrderId())
+                .materialProductId(r.getMaterialProductId())
+                .requiredQuantity(r.getRequiredQuantity())
+                .reservedQuantity(r.getReservedQuantity())
+                .consumedQuantity(r.getConsumedQuantity())
+                .build();
     }
 
     public WorkOrderMaterialsRecord toRecord(WorkOrderMaterial m) {
@@ -42,7 +50,15 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrderEvent toDomain(WorkOrderEventsRecord r) {
-        return null;
+        if (r == null) return null;
+        return WorkOrderEvent.builder()
+                .id(r.getId())
+                .workOrderId(r.getWorkOrderId())
+                .eventTypeId(r.getEventTypeId())
+                .operatorId(r.getOperatorId())
+                .eventTimestamp(r.getEventTimestamp() != null ? r.getEventTimestamp().toInstant() : null)
+                .note(r.getNote())
+                .build();
     }
 
     public WorkOrderEventsRecord toRecord(WorkOrderEvent e) {

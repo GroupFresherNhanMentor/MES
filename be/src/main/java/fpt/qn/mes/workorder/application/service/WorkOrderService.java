@@ -48,9 +48,37 @@ public class WorkOrderService implements WorkOrderUseCase {
         return PageResponse.<WorkOrderDto>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
     }
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public WorkOrderDto getWorkOrderById(UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        var workOrder = repository.findById(id)
+                .orElseThrow(() -> new fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException("Work Order not found with ID: " + id));
+
+        var materials = repository.findMaterialsByWorkOrderId(id).stream()
+                .map(m -> mapper.toDto(m))
+                .toList();
+
+        var events = repository.findEventsByWorkOrderId(id).stream()
+                .map(e -> mapper.toDto(e))
+                .toList();
+
+        WorkOrderDto baseDto = mapper.toDto(workOrder);
+
+        return WorkOrderDto.builder()
+                .id(baseDto.getId())
+                .code(baseDto.getCode())
+                .finishedProductId(baseDto.getFinishedProductId())
+                .bomId(baseDto.getBomId())
+                .plannedQuantity(baseDto.getPlannedQuantity())
+                .plannedStartDate(baseDto.getPlannedStartDate())
+                .plannedEndDate(baseDto.getPlannedEndDate())
+                .priorityId(baseDto.getPriorityId())
+                .workOrderStatusId(baseDto.getWorkOrderStatusId())
+                .createdBy(baseDto.getCreatedBy())
+                .createdAt(baseDto.getCreatedAt())
+                .materials(materials)
+                .events(events)
+                .build();
     }
 
     @Override @Transactional

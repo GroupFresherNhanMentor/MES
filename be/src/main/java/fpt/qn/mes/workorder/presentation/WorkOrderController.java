@@ -50,9 +50,11 @@ public class WorkOrderController {
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<WorkOrderDto>> getById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        var response = workOrderUseCase.getWorkOrderById(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Work Order details retrieved successfully"));
     }
 
     @PostMapping

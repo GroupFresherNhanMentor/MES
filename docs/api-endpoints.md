@@ -686,7 +686,7 @@
 ### GET `/work-orders/{id}`
 > **Roles:** `ADMIN` · `PLANNER` · `OPERATOR` · `FACTORY_MANAGER`
 
-**Response `200`:** `WorkOrderDto`
+**Response `200`:** `WorkOrderDto` (Gồm danh sách `materials` và `events` lồng bên trong)
 
 ---
 

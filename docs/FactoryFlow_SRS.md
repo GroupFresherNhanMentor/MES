@@ -264,6 +264,7 @@ Thay vì `warehouseId/locationId` đơn, bảng dùng `from_warehouse_id/from_lo
 
 **FR-WO-001 — Create Work Order**
 - `plannedQuantity > 0`; sản phẩm phải có BOM ACTIVE; status khởi tạo DRAFT/PLANNED; không xóa WO đã có movement.
+- **API Chi tiết:** `GET /work-orders/{id}` phải trả về kèm danh sách vật tư yêu cầu (`materials` gồm required/reserved/consumed quantity) và danh sách sự kiện (`events` gồm trạng thái START/PAUSE/RESUME/COMPLETE kèm thời gian và người thực hiện).
 
 **FR-WO-002 — Calculate Material Requirement**
 ```

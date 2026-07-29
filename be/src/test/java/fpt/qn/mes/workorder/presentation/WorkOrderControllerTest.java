@@ -92,4 +92,25 @@ class WorkOrderControllerTest {
 
         verify(workOrderUseCase).getWorkOrders(any(fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest.class));
     }
+
+    @Test
+    @DisplayName("getById should return 200 OK with ApiResponse containing WorkOrderDto")
+    void getById_shouldReturn200WithApiResponse() {
+        // Arrange
+        UUID id = sampleDto.getId();
+        when(workOrderUseCase.getWorkOrderById(id)).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.getById(id);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("Work Order details retrieved successfully", response.getBody().getMessage());
+        assertEquals("WO-2026-0001", response.getBody().getData().getCode());
+
+        verify(workOrderUseCase).getWorkOrderById(id);
+    }
 }
