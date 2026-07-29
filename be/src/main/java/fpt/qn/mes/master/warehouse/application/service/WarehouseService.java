@@ -63,6 +63,15 @@ public class WarehouseService implements WarehouseUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, WarehouseDto> getWarehousesByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.Map.of();
+        var warehouses = warehouseRepository.findByIds(ids);
+        return warehouses.stream()
+                .collect(java.util.stream.Collectors.toMap(Warehouse::getId, mapper::toDto, (w1, w2) -> w1));
+    }
+
+    @Override
     @Transactional
     public WarehouseDto createWarehouse(CreateWarehouseRequest request, UUID currentUserId) {
         if (warehouseRepository.existsByCode(request.getCode())) {
