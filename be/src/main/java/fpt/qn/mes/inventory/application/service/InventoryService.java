@@ -25,6 +25,8 @@ import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
+import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
@@ -172,10 +174,19 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<StockBalanceDto> getStockBalances(UUID warehouseId, UUID productId) {
-        List<StockBalance> balances = balanceRepository.findByWarehouseAndProduct(warehouseId, productId);
-        return balances.stream()
-                .map(mapper::toDto)
-                .toList();
+    public PageResponse<StockBalanceDto> getStockBalances(StockBalanceSearchRequest request) {
+        StockBalanceSearchCriteria criteria = StockBalanceSearchCriteria.builder()
+                .warehouseId(request != null ? request.getWarehouseId() : null)
+                .locationId(request != null ? request.getLocationId() : null)
+                .productId(request != null ? request.getProductId() : null)
+                .lotId(request != null ? request.getLotId() : null)
+                .stockStatusId(request != null ? request.getStockStatusId() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .build();
+        long totalElements = balanceRepository.count(criteria);
+        List<StockBalance> balances = balanceRepository.search(criteria);
+        List<StockBalanceDto> dtos = balances.stream().map(mapper::toDto).toList();
+        return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 }

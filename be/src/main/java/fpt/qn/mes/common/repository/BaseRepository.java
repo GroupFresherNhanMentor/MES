@@ -60,10 +60,11 @@ public abstract class BaseRepository<R extends UpdatableRecord<R>> {
         );
     }
 
-    protected int count(Condition condition) {
-        return ctx.fetchCount(
-                ctx.selectFrom(table)
-                        .where(condition)
-        );
+    protected long count() {
+        return ctx.fetchCount(table);
+    }
+
+    protected long count(Condition condition) {
+        return ctx.fetchCount(table, condition);
     }
 }

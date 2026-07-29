@@ -23,11 +23,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.service.InventoryService;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
@@ -207,7 +209,7 @@ class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("getStockBalances should return mapped list of StockBalanceDto")
+    @DisplayName("getStockBalances should return PageResponse of StockBalanceDto")
     void getStockBalances_Success() {
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
@@ -223,14 +225,20 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("120.00"))
                 .build();
 
-        when(balanceRepository.findByWarehouseAndProduct(warehouseId, productId))
+        StockBalanceSearchRequest request = new StockBalanceSearchRequest();
+        request.setWarehouseId(warehouseId);
+        request.setProductId(productId);
+
+        when(balanceRepository.count(any(StockBalanceSearchCriteria.class))).thenReturn(1L);
+        when(balanceRepository.search(any(StockBalanceSearchCriteria.class)))
                 .thenReturn(List.of(balance));
         when(mapper.toDto(balance)).thenReturn(dto);
 
-        List<StockBalanceDto> results = inventoryService.getStockBalances(warehouseId, productId);
+        PageResponse<StockBalanceDto> results = inventoryService.getStockBalances(request);
 
-        assertThat(results).hasSize(1);
-        assertThat(results.get(0).getQuantity()).isEqualTo(new BigDecimal("120.00"));
+        assertThat(results).isNotNull();
+        assertThat(results.getItems()).hasSize(1);
+        assertThat(results.getItems().get(0).getQuantity()).isEqualTo(new BigDecimal("120.00"));
     }
 
     @Test

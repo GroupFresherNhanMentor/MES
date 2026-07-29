@@ -18,15 +18,18 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+@Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -63,10 +66,10 @@ public class InventoryController {
     }
 
     @GetMapping("/api/stock-balances")
-    public ResponseEntity<ApiResponse<List<StockBalanceDto>>> getStockBalances(
-            @RequestParam(required = false) UUID warehouseId,
-            @RequestParam(required = false) UUID productId) {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<StockBalanceDto>>> getStockBalances(
+            @Valid StockBalanceSearchRequest request) {
+        PageResponse<StockBalanceDto> result = inventoryUseCase.getStockBalances(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @GetMapping("/api/lot-types")
