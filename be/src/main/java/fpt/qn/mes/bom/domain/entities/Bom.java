@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,7 +26,7 @@ public class Bom {
 
     public static Bom create(UUID finishedProductId, Integer version, UUID bomStatusId, UUID createdBy) {
         return Bom.builder()
-                .id(UUID.randomUUID())
+                .id(UuidV7.generate())
                 .finishedProductId(finishedProductId)
                 .version(version)
                 .bomStatusId(bomStatusId)

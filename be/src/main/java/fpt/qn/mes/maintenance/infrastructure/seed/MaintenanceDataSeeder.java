@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -44,7 +45,7 @@ public class MaintenanceDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(MAINTENANCE_TICKET_TYPES, MAINTENANCE_TICKET_TYPES.ID, MAINTENANCE_TICKET_TYPES.NAME, MAINTENANCE_TICKET_TYPES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded maintenance_ticket_types");
@@ -56,7 +57,7 @@ public class MaintenanceDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(MAINTENANCE_TICKET_STATUSES, MAINTENANCE_TICKET_STATUSES.ID, MAINTENANCE_TICKET_STATUSES.NAME, MAINTENANCE_TICKET_STATUSES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded maintenance_ticket_statuses");
@@ -68,7 +69,7 @@ public class MaintenanceDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(MAINTENANCE_TICKET_PRIORITIES, MAINTENANCE_TICKET_PRIORITIES.ID, MAINTENANCE_TICKET_PRIORITIES.NAME, MAINTENANCE_TICKET_PRIORITIES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded maintenance_ticket_priorities");

@@ -4,14 +4,46 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import lombok.*;
+import fpt.qn.mes.common.exception.DomainException;
+import fpt.qn.mes.common.util.UuidV7;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@Getter @Builder @FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockLot {
-    UUID id; String lotNumber; UUID productId; UUID lotTypeId; LocalDate expiryDate; Instant createdAt;
+    UUID id;
+    String lotNumber;
+    UUID productId;
+    UUID lotTypeId;
+    LotType lotType;
+    LocalDate expiryDate;
+    Instant createdAt;
 
     public static StockLot create(String lotNumber, UUID productId, UUID lotTypeId, LocalDate expiryDate) {
-        throw new UnsupportedOperationException("Not implemented");
+        if (lotNumber == null || lotNumber.trim().isEmpty()) {
+            throw new DomainException("Lot number cannot be empty or null");
+        }
+        if (productId == null) {
+            throw new DomainException("Product ID cannot be null");
+        }
+        return StockLot.builder()
+                .id(UuidV7.generate())
+                .lotNumber(lotNumber.trim())
+                .productId(productId)
+                .lotTypeId(lotTypeId)
+                .expiryDate(expiryDate)
+                .createdAt(Instant.now())
+                .build();
     }
 }

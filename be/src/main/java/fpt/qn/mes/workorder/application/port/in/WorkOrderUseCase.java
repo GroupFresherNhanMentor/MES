@@ -7,8 +7,7 @@ import fpt.qn.mes.workorder.application.dto.request.*;
 import fpt.qn.mes.workorder.application.dto.response.*;
 
 public interface WorkOrderUseCase {
-    PageResponse<WorkOrderDto> getWorkOrders(int page, int size);
-    PageResponse<WorkOrderDto> getWorkOrders(int page, int size, UUID finishedProductId, UUID statusId, String code);
+    PageResponse<WorkOrderDto> getWorkOrders(WorkOrderSearchRequest request);
     WorkOrderDto getWorkOrderById(UUID id);
     WorkOrderDto createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
     WorkOrderDto updateWorkOrder(UUID id, UpdateWorkOrderRequest request);

@@ -8,13 +8,14 @@ import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 
+import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
+
 public interface WorkOrderRepository {
     Optional<WorkOrder> findById(UUID id);
     WorkOrder save(WorkOrder workOrder);
     WorkOrder update(WorkOrder workOrder);
     void deleteById(UUID id);
-    PaginationResult<WorkOrder> findAll(int page, int size);
-    PaginationResult<WorkOrder> findAll(int page, int size, UUID finishedProductId, UUID statusId, String code);
+    PaginationResult<WorkOrder> findAll(WorkOrderSearchCriteria criteria);
 
     WorkOrderMaterial saveMaterial(WorkOrderMaterial material);
     Optional<WorkOrderMaterial> findMaterialById(UUID materialId);

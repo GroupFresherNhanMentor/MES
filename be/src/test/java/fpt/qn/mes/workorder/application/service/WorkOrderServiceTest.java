@@ -3,13 +3,13 @@ package fpt.qn.mes.workorder.application.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -20,13 +20,21 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import fpt.qn.mes.bom.domain.entities.Bom;
+import fpt.qn.mes.bom.domain.entities.BomItem;
+import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
 import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
+import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 
 @ExtendWith(MockitoExtension.class)
 class WorkOrderServiceTest {
@@ -35,7 +43,7 @@ class WorkOrderServiceTest {
     WorkOrderRepository repository;
 
     @Mock
-    fpt.qn.mes.bom.domain.repository.BomRepository bomRepository;
+    BomRepository bomRepository;
 
     @Mock
     WorkOrderDtoMapper mapper;
@@ -76,20 +84,26 @@ class WorkOrderServiceTest {
     @DisplayName("getWorkOrders with filters should return mapped PageResponse")
     void getWorkOrders_withFilters_shouldReturnPageResponse() {
         // Arrange
+        WorkOrderSearchRequest request = new WorkOrderSearchRequest();
+        request.setPage(0);
+        request.setSize(20);
+        request.setFinishedProductId(productId);
+        request.setStatusId(statusId);
+        request.setCode("WO-2026");
+
         PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
-        when(repository.findAll(eq(0), eq(20), eq(productId), eq(statusId), eq("WO-2026")))
-                .thenReturn(paginationResult);
+        when(repository.findAll(any(WorkOrderSearchCriteria.class))).thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(0, 20, productId, statusId, "WO-2026");
+        PageResponse<WorkOrderDto> result = service.getWorkOrders(request);
 
         // Assert
         assertNotNull(result);
         assertEquals(1, result.getItems().size());
         assertEquals(1, result.getTotalElements());
         assertEquals("WO-2026-0001", result.getItems().getFirst().getCode());
-        verify(repository).findAll(0, 20, productId, statusId, "WO-2026");
+        verify(repository).findAll(any(WorkOrderSearchCriteria.class));
     }
 
     @Test
@@ -97,12 +111,11 @@ class WorkOrderServiceTest {
     void getWorkOrders_defaultParams_shouldCallRepositoryWithNullFilters() {
         // Arrange
         PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
-        when(repository.findAll(eq(0), eq(20), eq(null), eq(null), eq(null)))
-                .thenReturn(paginationResult);
+        when(repository.findAll(any(WorkOrderSearchCriteria.class))).thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(0, 20);
+        PageResponse<WorkOrderDto> result = service.getWorkOrders(null);
 
         // Assert
         assertNotNull(result);
@@ -117,11 +130,11 @@ class WorkOrderServiceTest {
         // Arrange
         UUID bomId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        fpt.qn.mes.bom.domain.entities.Bom activeBom = fpt.qn.mes.bom.domain.entities.Bom.builder()
+        Bom activeBom = Bom.builder()
                 .id(bomId)
                 .finishedProductId(productId)
                 .items(List.of(
-                        fpt.qn.mes.bom.domain.entities.BomItem.builder()
+                        BomItem.builder()
                                 .id(UUID.randomUUID())
                                 .materialProductId(UUID.randomUUID())
                                 .quantityPerUnit(BigDecimal.valueOf(2))
@@ -130,14 +143,12 @@ class WorkOrderServiceTest {
                 ))
                 .build();
 
-        fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest req =
-                new fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest();
+        CreateWorkOrderRequest req = new CreateWorkOrderRequest();
         req.setCode("WO-2026-0005");
         req.setFinishedProductId(productId);
         req.setPlannedQuantity(BigDecimal.valueOf(100));
 
-        when(bomRepository.findActiveByFinishedProductId(productId))
-                .thenReturn(java.util.Optional.of(activeBom));
+        when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(activeBom));
         when(repository.save(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
@@ -148,7 +159,7 @@ class WorkOrderServiceTest {
         assertNotNull(result);
         assertEquals("WO-2026-0001", result.getCode());
         verify(repository).save(any(WorkOrder.class));
-        verify(repository).saveMaterial(any(fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial.class));
+        verify(repository).saveMaterial(any(WorkOrderMaterial.class));
     }
 
     @Test
@@ -156,18 +167,16 @@ class WorkOrderServiceTest {
     void createWorkOrder_withoutActiveBom_shouldThrowBomNotActiveException() {
         // Arrange
         UUID userId = UUID.randomUUID();
-        fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest req =
-                new fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest();
+        CreateWorkOrderRequest req = new CreateWorkOrderRequest();
         req.setCode("WO-2026-0006");
         req.setFinishedProductId(productId);
         req.setPlannedQuantity(BigDecimal.valueOf(50));
 
-        when(bomRepository.findActiveByFinishedProductId(productId))
-                .thenReturn(java.util.Optional.empty());
+        when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.empty());
 
         // Act & Assert
         org.junit.jupiter.api.Assertions.assertThrows(
-                fpt.qn.mes.workorder.application.exception.BomNotActiveException.class,
+                BomNotActiveException.class,
                 () -> service.createWorkOrder(req, userId)
         );
     }
@@ -177,7 +186,7 @@ class WorkOrderServiceTest {
     void getWorkOrderById_existingId_shouldReturnDto() {
         // Arrange
         UUID id = sampleEntity.getId();
-        when(repository.findById(id)).thenReturn(java.util.Optional.of(sampleEntity));
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
         when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
@@ -198,7 +207,7 @@ class WorkOrderServiceTest {
     void getWorkOrderById_nonExistentId_shouldThrowException() {
         // Arrange
         UUID nonExistentId = UUID.randomUUID();
-        when(repository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
+        when(repository.findById(nonExistentId)).thenReturn(Optional.empty());
 
         // Act & Assert
         org.junit.jupiter.api.Assertions.assertThrows(

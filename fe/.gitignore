@@ -1,0 +1,35 @@
+# Angular build
+/dist/
+/tmp/
+/out-tsc/
+
+# Angular cache
+/.angular/
+
+# Node
+/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.local.ts
+
+# Coverage
+/coverage/
+
+# Compiled output
+*.js.map
+*.d.ts

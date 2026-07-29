@@ -23,6 +23,7 @@ import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
@@ -45,12 +46,8 @@ public class WorkOrderController {
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) UUID finishedProductId,
-            @RequestParam(required = false) UUID statusId,
-            @RequestParam(required = false) String code) {
-        var response = workOrderUseCase.getWorkOrders(page, size, finishedProductId, statusId, code);
+            @Valid WorkOrderSearchRequest request) {
+        var response = workOrderUseCase.getWorkOrders(request);
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
     }
 
