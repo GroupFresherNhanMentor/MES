@@ -31,4 +31,15 @@ public class PageResponse<T> {
                 .pageSize(pageSize)
                 .build();
     }
+
+    public static <T> PageResponse<T> of(List<T> items, long totalElements, int pageNumber, int pageSize) {
+        int totalPages = pageSize > 0 ? (int) Math.ceil((double) totalElements / pageSize) : 0;
+        return PageResponse.<T>builder()
+                .items(items != null ? items : List.of())
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .pageNumber(pageNumber)
+                .pageSize(pageSize)
+                .build();
+    }
 }

@@ -38,8 +38,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
+import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
@@ -178,9 +180,13 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
         assertThat(movement).isNotNull();
         assertThat(movement.getReferenceNo()).isEqualTo("PO-9988");
 
-        List<StockBalanceDto> balances = inventoryService.getStockBalances(warehouseId, productId);
-        assertThat(balances).hasSize(1);
-        assertThat(balances.get(0).getQuantity()).isEqualByComparingTo("100.00");
+        StockBalanceSearchRequest searchReq = new StockBalanceSearchRequest();
+        searchReq.setWarehouseId(warehouseId);
+        searchReq.setProductId(productId);
+
+        PageResponse<StockBalanceDto> balances = inventoryService.getStockBalances(searchReq);
+        assertThat(balances.getItems()).hasSize(1);
+        assertThat(balances.getItems().get(0).getQuantity()).isEqualByComparingTo("100.00");
     }
 
     @Test
@@ -197,6 +203,37 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
 
         assertThatThrownBy(() -> inventoryService.recordMovement(request, userId))
                 .isInstanceOf(InsufficientStockException.class);
+    }
+
+    @Test
+    @DisplayName("getStockBalances should return PageResponse of StockBalanceDto")
+    void getStockBalances_Success() {
+        CreateStockLotRequest lotReq = new CreateStockLotRequest();
+        lotReq.setLotNumber("LOT-BAL-01");
+        lotReq.setProductId(productId);
+        lotReq.setLotTypeId(lotTypeId);
+        lotReq.setExpiryDate(LocalDate.now().plusDays(30));
+        StockLotDto lotDto = inventoryService.createStockLot(lotReq);
+
+        CreateMovementRequest req = new CreateMovementRequest();
+        req.setMovementTypeId(movementTypeId);
+        req.setProductId(productId);
+        req.setWarehouseId(warehouseId);
+        req.setLocationId(locationId);
+        req.setLotId(lotDto.getId());
+        req.setToStatusId(stockStatusId);
+        req.setQuantity(new BigDecimal("100.00"));
+        inventoryService.recordMovement(req, userId);
+
+        StockBalanceSearchRequest searchReq = new StockBalanceSearchRequest();
+        searchReq.setWarehouseId(warehouseId);
+        searchReq.setProductId(productId);
+
+        PageResponse<StockBalanceDto> pageRes = inventoryService.getStockBalances(searchReq);
+
+        assertThat(pageRes).isNotNull();
+        assertThat(pageRes.getItems()).hasSize(1);
+        assertThat(pageRes.getItems().get(0).getQuantity()).isEqualByComparingTo(new BigDecimal("100.00"));
     }
 
     @Test
