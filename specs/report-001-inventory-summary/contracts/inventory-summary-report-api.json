@@ -1,0 +1,54 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Inventory Summary Report API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/reports/inventory-summary": {
+      "get": {
+        "summary": "Retrieve aggregated inventory summary report",
+        "parameters": [
+          { "name": "warehouseId", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "productTypeId", "in": "query", "required": false, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "productCode", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inventory summary report entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": { "type": "integer", "example": 200 },
+                    "message": { "type": "string", "example": "OK" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "productCode": { "type": "string", "example": "PROD-001" },
+                          "productName": { "type": "string", "example": "Steel Bracket" },
+                          "warehouseName": { "type": "string", "example": "Main Warehouse" },
+                          "availableQuantity": { "type": "number", "example": 100.0 },
+                          "reservedQuantity": { "type": "number", "example": 20.0 },
+                          "qualityInspectionQuantity": { "type": "number", "example": 5.0 },
+                          "onHoldQuantity": { "type": "number", "example": 0.0 },
+                          "scrappedQuantity": { "type": "number", "example": 2.0 },
+                          "totalOnHand": { "type": "number", "example": 127.0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Forbidden - Insufficient permissions" }
+        }
+      }
+    }
+  }
+}

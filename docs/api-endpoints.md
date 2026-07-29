@@ -1038,6 +1038,32 @@
 
 ---
 
+## 15. Reporting
+
+### GET `/reports/inventory-summary`
+> **Roles:** `ADMIN` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `warehouseId` (optional UUID) · `productTypeId` (optional UUID) · `productCode` (optional String)
+
+**Response `200`:** `InventorySummaryReportDto[]`
+```json
+[
+  {
+    "productCode": "PROD-001",
+    "productName": "Steel Sheet 2mm",
+    "warehouseName": "Main Warehouse",
+    "availableQuantity": 150.00,
+    "reservedQuantity": 30.00,
+    "qualityInspectionQuantity": 10.00,
+    "onHoldQuantity": 0.00,
+    "scrappedQuantity": 5.00,
+    "totalOnHand": 195.00
+  }
+]
+```
+
+---
+
 
 ## Role × Endpoint Matrix
 
@@ -1058,3 +1084,4 @@
 | WO Events | R | — | R | CREATE | — | — | R | — |
 | Quality Inspections | CRUD | — | — | — | CRUD | — | R | R |
 | Maintenance Tickets | CRUD | — | — | — | — | CRUD | R | — |
+| Reports | R | — | — | — | — | — | R | R |
