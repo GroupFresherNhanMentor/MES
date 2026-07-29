@@ -8,4 +8,6 @@ public interface StockMovementRepository {
     StockMovement save(StockMovement movement);
 
     List<StockMovement> search(StockMovementSearchCriteria criteria);
+
+    long count(StockMovementSearchCriteria criteria);
 }

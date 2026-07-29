@@ -51,6 +51,17 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
     }
 
     @Override
+    public Optional<StockLot> findByLotNumber(String lotNumber) {
+        if (lotNumber == null || lotNumber.isBlank()) {
+            return Optional.empty();
+        }
+        StockLotsRecord record = ctx.selectFrom(STOCK_LOTS)
+                .where(STOCK_LOTS.LOT_NUMBER.eq(lotNumber))
+                .fetchOne();
+        return Optional.ofNullable(mapper.toDomain(record));
+    }
+
+    @Override
     public StockLot save(StockLot lot) {
         StockLotsRecord record = mapper.toRecord(lot);
         if (record.getId() == null) {
@@ -63,21 +74,7 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
 
     @Override
     public List<StockLot> search(StockLotSearchCriteria criteria) {
-        Condition condition = DSL.noCondition();
-        if (criteria.getProductId() != null) {
-            condition = condition.and(STOCK_LOTS.PRODUCT_ID.eq(criteria.getProductId()));
-        }
-    
-        if (criteria.getLotTypeId() != null) {
-            condition = condition.and(STOCK_LOTS.LOT_TYPE_ID.eq(criteria.getLotTypeId()));
-        }
-        if (criteria.getLotNumber() != null && !criteria.getLotNumber().isBlank()) {
-            condition = condition.and(STOCK_LOTS.LOT_NUMBER.containsIgnoreCase(criteria.getLotNumber()));
-        }
-        if (criteria.getExpiryBefore() != null) {
-            condition = condition.and(STOCK_LOTS.EXPIRY_DATE.lessOrEqual(criteria.getExpiryBefore()));
-        }
-
+        Condition condition = buildCondition(criteria);
         int page = criteria.getPage();
         int size = criteria.getSize();
 
@@ -90,5 +87,27 @@ public class StockLotPersistenceAdapter extends BaseRepository<StockLotsRecord> 
                 .offset(page * size)
                 .fetch()
                 .map(r -> mapper.toDomain(r));
+    }
+
+    @Override
+    public long count(StockLotSearchCriteria criteria) {
+        return count(buildCondition(criteria));
+    }
+
+    private Condition buildCondition(StockLotSearchCriteria criteria) {
+        Condition condition = DSL.noCondition();
+        if (criteria.getProductId() != null) {
+            condition = condition.and(STOCK_LOTS.PRODUCT_ID.eq(criteria.getProductId()));
+        }
+        if (criteria.getLotTypeId() != null) {
+            condition = condition.and(STOCK_LOTS.LOT_TYPE_ID.eq(criteria.getLotTypeId()));
+        }
+        if (criteria.getLotNumber() != null && !criteria.getLotNumber().isBlank()) {
+            condition = condition.and(STOCK_LOTS.LOT_NUMBER.containsIgnoreCase(criteria.getLotNumber()));
+        }
+        if (criteria.getExpiryBefore() != null) {
+            condition = condition.and(STOCK_LOTS.EXPIRY_DATE.lessOrEqual(criteria.getExpiryBefore()));
+        }
+        return condition;
     }
 }

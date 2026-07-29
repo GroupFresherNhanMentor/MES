@@ -5,27 +5,34 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
+import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
+import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
+import fpt.qn.mes.inventory.application.exception.StockLotConflictException;
 import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
+import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
+import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
@@ -44,6 +51,8 @@ public class InventoryService implements InventoryUseCase {
     StockLotRepository lotRepository;
     StockMovementRepository movementRepository;
     StockBalanceRepository balanceRepository;
+    MovementTypeRepository movementTypeRepository;
+    StockStatusRepository stockStatusRepository;
     InventoryDtoMapper mapper;
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
@@ -51,20 +60,20 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockLotDto> getStockLots(int page, int size) {
+    public PageResponse<StockLotDto> getStockLots(StockLotSearchRequest request) {
         StockLotSearchCriteria criteria = StockLotSearchCriteria.builder()
-                .page(page)
-                .size(size)
+                .productId(request != null ? request.getProductId() : null)
+                .lotTypeId(request != null ? request.getLotTypeId() : null)
+                .lotNumber(request != null ? request.getLotNumber() : null)
+                .expiryBefore(request != null ? request.getExpiryBefore() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
                 .build();
+        long totalElements = lotRepository.count(criteria);
         List<StockLot> items = lotRepository.search(criteria);
         List<StockLotDto> dtos = items.stream().map(mapper::toDto).toList();
-        return PageResponse.<StockLotDto>builder()
-                .items(dtos)
-                .totalElements(dtos.size())
-                .totalPages(dtos.isEmpty() ? 0 : 1)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
+        return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -74,10 +83,20 @@ public class InventoryService implements InventoryUseCase {
                 .orElseThrow(() -> new StockLotNotFoundException("Stock lot not found with ID: " + id));
         return mapper.toDto(lot);
     }
-
     @Override
     @Transactional
     public StockLotDto createStockLot(CreateStockLotRequest request) {
+        Optional<StockLot> existingLot = lotRepository.findByLotNumber(request.getLotNumber());
+        if (existingLot.isPresent()) {
+            StockLot lot = existingLot.get();
+            if (!request.getProductId().equals(lot.getProductId())) {
+                throw new InvalidStockLotException(
+                        "Stock lot '" + request.getLotNumber() + "' belongs to a different product");
+            }
+            throw new StockLotConflictException(
+                    "Stock lot '" + request.getLotNumber() + "' already exists");
+        }
+
         StockLot lot = StockLot.create(
                 request.getLotNumber(),
                 request.getProductId(),
@@ -95,15 +114,10 @@ public class InventoryService implements InventoryUseCase {
                 .page(page)
                 .size(size)
                 .build();
+        long totalElements = movementRepository.count(criteria);
         List<StockMovement> items = movementRepository.search(criteria);
         List<StockMovementDto> dtos = items.stream().map(mapper::toDto).toList();
-        return PageResponse.<StockMovementDto>builder()
-                .items(dtos)
-                .totalElements(dtos.size())
-                .totalPages(dtos.isEmpty() ? 0 : 1)
-                .pageNumber(page)
-                .pageSize(size)
-                .build();
+        return PageResponse.of(dtos, totalElements, page, size);
     }
 
     @Override
@@ -189,5 +203,86 @@ public class InventoryService implements InventoryUseCase {
         List<StockBalance> balances = balanceRepository.search(criteria);
         List<StockBalanceDto> dtos = balances.stream().map(mapper::toDto).toList();
         return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
+    }
+
+    @Override
+    @Transactional
+    public StockMovementDto recordStockIn(StockInRequest request, UUID currentUserId) {
+
+        // Validate master data references
+        productUseCase.getProductById(request.getProductId());
+        warehouseUseCase.getWarehouseById(request.getWarehouseId());
+        locationUseCase.getLocationById(request.getLocationId());
+
+        // Resolve or create StockLot with lotNumber uniqueness / product ownership validation
+        StockLot lot;
+        Optional<StockLot> optExistingLot = lotRepository.findByLotNumber(request.getLotNumber());
+        if (optExistingLot.isPresent()) {
+            lot = optExistingLot.get();
+            if (!request.getProductId().equals(lot.getProductId())) {
+                throw new InvalidStockLotException(
+                        "Stock lot '" + request.getLotNumber() + "' belongs to a different product");
+            }
+        } else {
+            StockLot newLot = StockLot.create(
+                    request.getLotNumber(),
+                    request.getProductId(),
+                    request.getLotTypeId(),
+                    request.getExpiryDate()
+            );
+            lot = lotRepository.save(newLot);
+        }
+
+        // Determine stock status (defaulting to AVAILABLE)
+        UUID statusId = stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)
+                .orElseThrow(() -> new InventoryNotFoundException("Stock status AVAILABLE not found"));
+
+        // Lookup movement type ID for PURCHASE_IN
+        UUID purchaseInTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.PURCHASE_IN)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type PURCHASE_IN not found"));
+
+        // Find or create StockBalance for UPDATE
+        Optional<StockBalance> optBalance = balanceRepository.findForUpdate(
+                request.getWarehouseId(),
+                request.getLocationId(),
+                request.getProductId(),
+                lot.getId()
+        );
+
+        BigDecimal currentOnHand = optBalance.map(StockBalance::getQuantity).orElse(BigDecimal.ZERO);
+        BigDecimal newQuantity = currentOnHand.add(request.getQuantity());
+
+        StockBalance balanceToSave = StockBalance.builder()
+                .id(optBalance.map(StockBalance::getId).orElse(UUID.randomUUID()))
+                .warehouseId(request.getWarehouseId())
+                .locationId(request.getLocationId())
+                .productId(request.getProductId())
+                .lotId(lot.getId())
+                .stockStatusId(statusId)
+                .quantity(newQuantity)
+                .version(optBalance.map(b -> b.getVersion() == null ? 1L : b.getVersion() + 1).orElse(1L))
+                .createdAt(optBalance.map(StockBalance::getCreatedAt).orElse(Instant.now()))
+                .updatedAt(Instant.now())
+                .build();
+
+        balanceRepository.save(balanceToSave);
+
+        // Record stock movement ledger entry
+        StockMovement movement = StockMovement.create(
+                purchaseInTypeId,
+                request.getProductId(),
+                lot.getId(),
+                request.getWarehouseId(),
+                request.getLocationId(),
+                request.getQuantity(),
+                null,
+                statusId,
+                request.getReferenceNo(),
+                request.getReason(),
+                currentUserId
+        );
+
+        StockMovement savedMovement = movementRepository.save(movement);
+        return mapper.toDto(savedMovement);
     }
 }

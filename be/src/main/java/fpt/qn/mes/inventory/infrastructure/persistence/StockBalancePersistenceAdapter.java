@@ -26,18 +26,14 @@ import lombok.experimental.FieldDefaults;
 
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class StockBalancePersistenceAdapter extends BaseRepository<StockBalancesRecord> implements StockBalanceRepository {
+public class StockBalancePersistenceAdapter extends BaseRepository<StockBalancesRecord>
+        implements StockBalanceRepository {
 
-    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
-            "createdAt",     STOCK_BALANCES.CREATED_AT,
-            "updatedAt",     STOCK_BALANCES.UPDATED_AT,
-            "quantity",      STOCK_BALANCES.QUANTITY,
-            "warehouseId",   STOCK_BALANCES.WAREHOUSE_ID,
-            "locationId",    STOCK_BALANCES.LOCATION_ID,
-            "productId",     STOCK_BALANCES.PRODUCT_ID,
-            "lotId",         STOCK_BALANCES.LOT_ID,
-            "stockStatusId", STOCK_BALANCES.STOCK_STATUS_ID
-    );
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of("createdAt",
+            STOCK_BALANCES.CREATED_AT, "updatedAt", STOCK_BALANCES.UPDATED_AT, "quantity",
+            STOCK_BALANCES.QUANTITY, "warehouseId", STOCK_BALANCES.WAREHOUSE_ID, "locationId",
+            STOCK_BALANCES.LOCATION_ID, "productId", STOCK_BALANCES.PRODUCT_ID, "lotId",
+            STOCK_BALANCES.LOT_ID, "stockStatusId", STOCK_BALANCES.STOCK_STATUS_ID);
 
     private static final Field<?> DEFAULT_SORT_FIELD = STOCK_BALANCES.UPDATED_AT;
 
@@ -49,7 +45,8 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
     }
 
     @Override
-    public Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId, UUID lotId) {
+    public Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
+            UUID lotId) {
         Condition condition = STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId)
                 .and(STOCK_BALANCES.PRODUCT_ID.eq(productId));
 
@@ -65,22 +62,24 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
             condition = condition.and(STOCK_BALANCES.LOT_ID.isNull());
         }
 
-        StockBalancesRecord record = ctx.selectFrom(STOCK_BALANCES)
-                .where(condition)
-                .forUpdate()
-                .fetchOne();
+        StockBalancesRecord record =
+                ctx.selectFrom(STOCK_BALANCES).where(condition).forUpdate().fetchOne();
 
         return Optional.ofNullable(mapper.toDomain(record));
     }
 
     @Override
     public StockBalance save(StockBalance balance) {
+        UUID id = balance.getId() != null ? balance.getId() : UUID.randomUUID();
         StockBalancesRecord record = mapper.toRecord(balance);
-        if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
-        }
-        ctx.attach(record);
-        record.store();
+        record.setId(id);
+
+        ctx.insertInto(STOCK_BALANCES)
+            .set(record)
+            .onDuplicateKeyUpdate()
+            .set(record) 
+            .execute();
+
         return mapper.toDomain(record);
     }
 
@@ -89,8 +88,7 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
         return ctx.selectFrom(STOCK_BALANCES)
                 .where(STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId)
                         .and(STOCK_BALANCES.PRODUCT_ID.eq(productId)))
-                .fetch()
-                .map(mapper::toDomain);
+                .fetch().map(mapper::toDomain);
     }
 
     @Override
@@ -99,15 +97,11 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
         int page = criteria.getPage();
         int size = criteria.getSize();
 
-        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+        List<SortField<?>> orderBy =
+                SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
 
-        return ctx.selectFrom(STOCK_BALANCES)
-                .where(condition)
-                .orderBy(orderBy)
-                .limit(size)
-                .offset(page * size)
-                .fetch()
-                .map(mapper::toDomain);
+        return ctx.selectFrom(STOCK_BALANCES).where(condition).orderBy(orderBy).limit(size)
+                .offset(page * size).fetch().map(mapper::toDomain);
     }
 
     @Override
