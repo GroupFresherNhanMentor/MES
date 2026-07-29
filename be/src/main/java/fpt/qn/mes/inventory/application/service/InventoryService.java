@@ -183,6 +183,7 @@ public class InventoryService implements InventoryUseCase {
                 .stockStatusId(request != null ? request.getStockStatusId() : null)
                 .page(request != null ? request.getPage() : 0)
                 .size(request != null ? request.getSize() : 20)
+                .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
                 .build();
         long totalElements = balanceRepository.count(criteria);
         List<StockBalance> balances = balanceRepository.search(criteria);
