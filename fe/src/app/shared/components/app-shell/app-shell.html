@@ -1,27 +1,57 @@
 <div class="shell">
   @if (isLoading()) { <mat-progress-bar mode="indeterminate" class="loader" /> }
+  
   <mat-toolbar class="toolbar">
-    <button mat-icon-button (click)="toggleSidenav()"><mat-icon>menu</mat-icon></button>
-    <span class="brand">MES</span>
+    <button mat-icon-button (click)="toggleSidenav()" class="!w-10 !h-10 hover:bg-surface-card transition-colors">
+      <mat-icon class="text-text-secondary">menu</mat-icon>
+    </button>
+
+    <div class="brand flex items-center gap-2 ml-2">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center text-white font-extrabold text-sm shadow-md">
+        FF
+      </div>
+      <span class="font-extrabold text-base text-text-primary tracking-wider">MES</span>
+    </div>
+
     <span class="spacer"></span>
-    <span class="title">{{ pageTitle() }}</span>
+    <span class="title font-medium text-sm text-text-secondary hidden sm:inline-block">{{ pageTitle() }}</span>
     <span class="spacer"></span>
-    <button mat-icon-button [matMenuTriggerFor]="menu"><mat-icon>account_circle</mat-icon></button>
-    <mat-menu #menu="matMenu">
-      <div class="user-info"><strong>{{ currentUser?.fullName }}</strong><span>{{ currentUser?.role }}</span></div>
+
+    <button mat-button [matMenuTriggerFor]="menu" class="!h-10 !px-3 !rounded-full hover:!bg-surface-card transition-all">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded-full bg-surface-card border border-border-default flex items-center justify-center text-xs font-bold text-primary">
+          {{ currentUser?.fullName?.charAt(0) || 'U' }}
+        </div>
+        <span class="text-xs font-semibold text-text-primary hidden md:inline-block">{{ currentUser?.fullName || 'User' }}</span>
+        <mat-icon class="!w-4 !h-4 text-sm text-text-muted">keyboard_arrow_down</mat-icon>
+      </div>
+    </button>
+
+    <mat-menu #menu="matMenu" class="user-menu">
+      <div class="user-info">
+        <strong>{{ currentUser?.fullName }}</strong>
+        <span>{{ currentUser?.role }}</span>
+      </div>
       <mat-divider />
-      <button mat-menu-item (click)="logout()"><mat-icon>logout</mat-icon> Logout</button>
+      <button mat-menu-item (click)="logout()" class="!text-error">
+        <mat-icon class="!text-error">logout</mat-icon>
+        <span>Logout</span>
+      </button>
     </mat-menu>
   </mat-toolbar>
+
   <mat-drawer-container class="container" autosize>
     <mat-drawer [opened]="sidenavOpened()" mode="side" class="sidenav">
-      <nav> @for (item of filteredNavItems; track item.path) {
-        <a mat-list-item [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.path==='/dashboard'}" class="nav-item">
-          <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-          <span class="nav-label">{{ item.label }}</span>
-        </a> }
+      <nav>
+        @for (item of filteredNavItems; track item.path) {
+          <a mat-list-item [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{exact: item.path==='/dashboard'}" class="nav-item">
+            <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
       </nav>
     </mat-drawer>
+
     <mat-drawer-content class="content">
       <div class="page"><router-outlet /></div>
     </mat-drawer-content>
