@@ -307,15 +307,25 @@ button.btn-success:hover,
 .mat-mdc-dialog-surface {
   background: #292524 !important;
   border: 1px solid #44403c !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
 }
 
 .mat-mdc-dialog-title {
   color: #fafaf9 !important;
   font-size: 20px !important;
+  font-weight: 700 !important;
+  padding: 20px 24px 12px !important;
+  border-bottom: 1px solid #44403c !important;
 }
 
 .mat-mdc-dialog-content {
   color: #a8a29e !important;
+  padding: 20px 24px !important;
+}
+
+.mat-mdc-dialog-actions {
+  padding: 12px 24px 20px !important;
+  border-top: 1px solid #363230 !important;
 }
 
 /* ── Modal Dialog Styles ── */
