@@ -30,6 +30,7 @@ import fpt.qn.mes.workorder.application.exception.InvalidInputException;
 import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
 import fpt.qn.mes.workorder.application.exception.WorkOrderCodeExistsException;
 import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
+import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
@@ -140,53 +141,55 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderDto updateWorkOrder(UUID id, UpdateWorkOrderRequest req) {
+        if (req == null) {
+            throw new InvalidInputException("Update request body cannot be null");
+        }
+
         WorkOrder workOrder = repository.findById(id)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + id));
 
         String currentStatusName = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
-        if (!"DRAFT".equals(currentStatusName) && !"PLANNED".equals(currentStatusName)) {
+        if (!WorkOrderStatusConstants.DRAFT.equals(currentStatusName) && !WorkOrderStatusConstants.PLANNED.equals(currentStatusName)) {
             throw new InvalidWorkOrderStateException(
                     "Work Order cannot be modified in its current state. Only DRAFT and PLANNED Work Orders can be updated.");
         }
 
-        if (req != null) {
-            if (req.getPlannedQuantity() != null && req.getPlannedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-                throw new InvalidInputException("Planned quantity must be greater than 0");
-            }
-
-            Instant effectiveStart = req.getPlannedStartDate() != null ? req.getPlannedStartDate() : workOrder.getPlannedStartDate();
-            Instant effectiveEnd = req.getPlannedEndDate() != null ? req.getPlannedEndDate() : workOrder.getPlannedEndDate();
-            if (effectiveStart != null && effectiveEnd != null && !effectiveStart.isBefore(effectiveEnd)) {
-                throw new InvalidInputException("Planned start date must be before planned end date");
-            }
-
-            if (req.getCode() != null && repository.existsByCodeAndIdNot(req.getCode(), id)) {
-                throw new WorkOrderCodeExistsException(
-                        "Work Order code '" + req.getCode() + "' already exists");
-            }
+        if (req.getPlannedQuantity() != null && req.getPlannedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidInputException("Planned quantity must be greater than 0");
         }
 
-        UUID targetStatusId = (req != null && req.getWorkOrderStatusId() != null) ? req.getWorkOrderStatusId() : workOrder.getWorkOrderStatusId();
-        if (req != null && req.getWorkOrderStatusId() != null && !req.getWorkOrderStatusId().equals(workOrder.getWorkOrderStatusId())) {
+        Instant effectiveStart = req.getPlannedStartDate() != null ? req.getPlannedStartDate() : workOrder.getPlannedStartDate();
+        Instant effectiveEnd = req.getPlannedEndDate() != null ? req.getPlannedEndDate() : workOrder.getPlannedEndDate();
+        if (effectiveStart != null && effectiveEnd != null && !effectiveStart.isBefore(effectiveEnd)) {
+            throw new InvalidInputException("Planned start date must be before planned end date");
+        }
+
+        if (req.getCode() != null && repository.existsByCodeAndIdNot(req.getCode(), id)) {
+            throw new WorkOrderCodeExistsException(
+                    "Work Order code '" + req.getCode() + "' already exists");
+        }
+
+        UUID targetStatusId = req.getWorkOrderStatusId() != null ? req.getWorkOrderStatusId() : workOrder.getWorkOrderStatusId();
+        if (req.getWorkOrderStatusId() != null && !req.getWorkOrderStatusId().equals(workOrder.getWorkOrderStatusId())) {
             String targetStatusName = repository.findStatusNameById(req.getWorkOrderStatusId()).orElse("");
-            if (!"DRAFT".equals(targetStatusName) && !"PLANNED".equals(targetStatusName)) {
+            if (!WorkOrderStatusConstants.DRAFT.equals(targetStatusName) && !WorkOrderStatusConstants.PLANNED.equals(targetStatusName)) {
                 throw new InvalidWorkOrderStateException(
                         "PUT endpoint only supports DRAFT ⇄ PLANNED transitions. Use dedicated action endpoints for other state changes.");
             }
         }
 
-        boolean quantityChanged = req != null && req.getPlannedQuantity() != null
+        boolean quantityChanged = req.getPlannedQuantity() != null
                 && req.getPlannedQuantity().compareTo(workOrder.getPlannedQuantity()) != 0;
 
         WorkOrder updatedWorkOrder = WorkOrder.builder()
                 .id(workOrder.getId())
-                .code(req != null && req.getCode() != null ? req.getCode() : workOrder.getCode())
+                .code(req.getCode() != null ? req.getCode() : workOrder.getCode())
                 .finishedProductId(workOrder.getFinishedProductId())
                 .bomId(workOrder.getBomId())
-                .plannedQuantity(req != null && req.getPlannedQuantity() != null ? req.getPlannedQuantity() : workOrder.getPlannedQuantity())
-                .plannedStartDate(req != null && req.getPlannedStartDate() != null ? req.getPlannedStartDate() : workOrder.getPlannedStartDate())
-                .plannedEndDate(req != null && req.getPlannedEndDate() != null ? req.getPlannedEndDate() : workOrder.getPlannedEndDate())
-                .priorityId(req != null && req.getPriorityId() != null ? req.getPriorityId() : workOrder.getPriorityId())
+                .plannedQuantity(req.getPlannedQuantity() != null ? req.getPlannedQuantity() : workOrder.getPlannedQuantity())
+                .plannedStartDate(req.getPlannedStartDate() != null ? req.getPlannedStartDate() : workOrder.getPlannedStartDate())
+                .plannedEndDate(req.getPlannedEndDate() != null ? req.getPlannedEndDate() : workOrder.getPlannedEndDate())
+                .priorityId(req.getPriorityId() != null ? req.getPriorityId() : workOrder.getPriorityId())
                 .workOrderStatusId(targetStatusId)
                 .createdBy(workOrder.getCreatedBy())
                 .createdAt(workOrder.getCreatedAt())
