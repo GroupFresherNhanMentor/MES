@@ -1,37 +1,28 @@
-import type { WarehouseStatus } from '../../configs/constants';
-
 export interface WarehouseDto {
   id: string;
-  warehouseCode: string;
-  warehouseName: string;
+  code: string;
+  name: string;
   address?: string;
-  city?: string;
-  capacity?: number;
-  usedCapacity?: number;
-  status: WarehouseStatus;
-  locationCount?: number;
+  warehouseStatusId: string;
+  warehouseStatusName: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateWarehouseRequest {
-  warehouseCode: string;
-  warehouseName: string;
+  code: string;
+  name: string;
   address?: string;
-  city?: string;
-  capacity?: number;
 }
 
 export interface UpdateWarehouseRequest {
-  warehouseName?: string;
+  name?: string;
   address?: string;
-  city?: string;
-  capacity?: number;
 }
 
 export interface WarehouseListParams {
   keyword?: string;
-  status?: WarehouseStatus;
+  statusName?: string;
   page?: number;
   size?: number;
 }

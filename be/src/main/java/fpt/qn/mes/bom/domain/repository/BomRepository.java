@@ -5,10 +5,11 @@ import java.util.UUID;
 
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 
 public interface BomRepository {
     Optional<Bom> findById(UUID id);
+    Optional<Bom> findActiveByFinishedProductId(UUID finishedProductId);
     Bom save(Bom bom);
     PaginationResult<Bom> findAll(int page, int size, UUID finishedProductId, UUID bomStatusId);
     boolean existsByFinishedProductIdAndVersion(UUID finishedProductId, Integer version);

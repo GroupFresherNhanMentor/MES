@@ -1,36 +1,25 @@
-import type { ProductionLineStatus } from '../../configs/constants';
-
 export interface ProductionLineDto {
   id: string;
-  lineCode: string;
-  lineName: string;
-  description?: string;
-  status: ProductionLineStatus;
-  machineCount?: number;
-  supervisor?: string;
-  location?: string;
+  code: string;
+  name: string;
+  lineStatusId: string;
+  lineStatusName: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateProductionLineRequest {
-  lineCode: string;
-  lineName: string;
-  description?: string;
-  supervisor?: string;
-  location?: string;
+  code: string;
+  name: string;
 }
 
 export interface UpdateProductionLineRequest {
-  lineName?: string;
-  description?: string;
-  supervisor?: string;
-  location?: string;
+  name?: string;
 }
 
 export interface ProductionLineListParams {
   keyword?: string;
-  status?: ProductionLineStatus;
+  statusName?: string;
   page?: number;
   size?: number;
 }

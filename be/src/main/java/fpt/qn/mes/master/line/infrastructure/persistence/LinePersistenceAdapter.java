@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.ProductionLinesRecord;
 import fpt.qn.mes.master.line.domain.entities.ProductionLine;
@@ -47,7 +47,7 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
         var records = ctx.selectFrom(PRODUCTION_LINES).orderBy(PRODUCTION_LINES.CREATED_AT.desc())
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(PRODUCTION_LINES));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<ProductionLine>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override
@@ -58,7 +58,7 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(PRODUCTION_LINES)
                 .where(PRODUCTION_LINES.LINE_STATUS_ID.eq(statusId)));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<ProductionLine>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override
