@@ -247,6 +247,7 @@ public class InventoryService implements InventoryUseCase {
         UUID toWh = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getWarehouseId() : null;
         UUID toLoc = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getLocationId() : null;
 
+
         StockMovement movement = StockMovement.create(
                 request.getMovementTypeId(),
                 request.getProductId(),
@@ -335,7 +336,7 @@ public class InventoryService implements InventoryUseCase {
         BigDecimal newQuantity = currentOnHand.add(request.getQuantity());
 
         StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(StockBalance::getId).orElse(UuidV7.generate()))
+                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
                 .warehouseId(request.getWarehouseId())
                 .locationId(request.getLocationId())
                 .productId(request.getProductId())

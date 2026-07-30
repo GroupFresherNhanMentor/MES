@@ -5,6 +5,7 @@ import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
@@ -42,7 +43,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     public WorkOrder save(WorkOrder w) {
         WorkOrdersRecord record = mapper.toRecord(w);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();
@@ -92,7 +93,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) {
         var record = mapper.toRecord(m);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();

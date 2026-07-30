@@ -1,0 +1,22 @@
+package fpt.qn.mes.master.product.domain.entities;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UnitOfMeasure {
+    UUID id;
+    String name;
+    String description;
+    UUID createdBy;
+    UUID updatedBy;
+    Instant createdAt;
+    Instant updatedAt;
+}
