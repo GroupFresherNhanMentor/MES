@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, NgClass, SlicePipe } from '@angular/common';
+import { NgClass, SlicePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +22,7 @@ interface LookupEntry { id: string; name: string; description: string; }
 @Component({
   selector: 'app-product-list',
   imports: [
-    DatePipe, SlicePipe, NgClass, FormsModule,
+    SlicePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatDialogModule,
     MatSnackBarModule, MatCardModule, MatTooltipModule,

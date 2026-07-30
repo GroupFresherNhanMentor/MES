@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +21,7 @@ import { LocationFormComponent } from '../location-form/location-form';
 @Component({
   selector: 'app-location-list',
   imports: [
-    DatePipe, NgClass, FormsModule,
+    FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
