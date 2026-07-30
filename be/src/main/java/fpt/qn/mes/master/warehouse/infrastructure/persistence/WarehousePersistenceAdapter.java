@@ -32,6 +32,14 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
     }
 
     @Override
+    public java.util.List<Warehouse> findByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.List.of();
+        return ctx.selectFrom(WAREHOUSES)
+                .where(WAREHOUSES.ID.in(ids))
+                .fetch().map(mapper::toDomain);
+    }
+
+    @Override
     public Warehouse save(Warehouse w) {
         return mapper.toDomain(create(mapper.toRecord(w)));
     }

@@ -23,7 +23,7 @@ class StockMovementTest {
         UUID createdBy = UUID.randomUUID();
 
         StockMovement movement = StockMovement.create(
-                movementTypeId, productId, null, warehouseId, null,
+                movementTypeId, productId, null, null, null, warehouseId, null,
                 new BigDecimal("50.00"), null, null, "PO-10001", "Goods receipt", createdBy
         );
 
@@ -40,7 +40,7 @@ class StockMovementTest {
         UUID createdBy = UUID.randomUUID();
 
         assertThatThrownBy(() -> StockMovement.create(
-                null, productId, null, warehouseId, null,
+                null, productId, null, null, null, warehouseId, null,
                 BigDecimal.ZERO, null, null, null, null, createdBy
         ))
                 .isInstanceOf(DomainException.class)
@@ -54,7 +54,7 @@ class StockMovementTest {
         UUID warehouseId = UUID.randomUUID();
 
         assertThatThrownBy(() -> StockMovement.create(
-                null, productId, null, warehouseId, null,
+                null, productId, null, null, null, warehouseId, null,
                 new BigDecimal("10.00"), null, null, null, null, null
         ))
                 .isInstanceOf(DomainException.class)

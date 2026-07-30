@@ -3,16 +3,13 @@ package fpt.qn.mes.bom.infrastructure.persistence;
 import static fpt.qn.mes.jooq.Tables.BOMS;
 import static fpt.qn.mes.jooq.Tables.BOM_ITEMS;
 import static fpt.qn.mes.jooq.Tables.BOM_STATUSES;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import org.jooq.DSLContext;
 import org.jooq.Condition;
+import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
-
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;

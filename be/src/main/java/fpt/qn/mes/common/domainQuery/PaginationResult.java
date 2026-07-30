@@ -17,6 +17,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PaginationResult<T> {
-     long total;
-     List<T> items;
+    long total;
+    List<T> items;
 }

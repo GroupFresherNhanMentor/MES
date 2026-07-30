@@ -32,6 +32,14 @@ public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> im
     }
 
     @Override
+    public java.util.List<Product> findByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.List.of();
+        return ctx.selectFrom(PRODUCTS)
+                .where(PRODUCTS.ID.in(ids))
+                .fetch().map(mapper::toDomain);
+    }
+
+    @Override
     public Product save(Product product) {
         ProductsRecord record = mapper.toRecord(product);
         ProductsRecord saved = create(record);

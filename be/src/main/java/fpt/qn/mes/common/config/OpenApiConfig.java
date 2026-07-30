@@ -3,7 +3,6 @@ package fpt.qn.mes.common.config;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -62,7 +61,7 @@ public class OpenApiConfig {
     public GroupedOpenApi inventoryApi() {
         return GroupedOpenApi.builder()
                 .group("03. Inventory")
-                .pathsToMatch("/api/stock**","/api/movement-types/**", "/api/lot-types/**")
+                .pathsToMatch("/api/stock**","/api/movement-types/**", "/api/lot-types/**","/api/stock**/**")
                 .build();
     }
 

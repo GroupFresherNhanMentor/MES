@@ -31,9 +31,21 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 import io.swagger.v3.oas.annotations.Operation;
 
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+
+import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
+import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
+import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
 
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
@@ -64,10 +76,11 @@ public class InventoryController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock lot created successfully"));
     }
 
+    @Operation(summary = "Search stock movements with pagination and criteria filtering")
     @GetMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(page, size);
+            @Valid StockMovementSearchRequest request) {
+        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
@@ -95,18 +108,66 @@ public class InventoryController {
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
+    @Operation(summary = "Submit a stock adjustment request")
+    @PostMapping("/api/stock-adjustments")
+    public ResponseEntity<ApiResponse<StockAdjustmentResponse>> adjustStock(
+            @Valid @RequestBody StockAdjustmentRequest request,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockAdjustmentResponse result = inventoryUseCase.adjustStock(request, currentUserId);
+        HttpStatus status = result.isRequiresApproval() ? HttpStatus.ACCEPTED : HttpStatus.OK;
+        return ResponseEntity.status(status).body(ApiResponse.success(result, result.getMessage()));
+    }
+
+    @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager)")
+    @GetMapping("/api/stock-adjustments/pending")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalDto>>> getPendingAdjustments(
+            @Valid StockAdjustmentApprovalSearchCriteria criteria) {
+        PageResponse<StockAdjustmentApprovalDto> result = inventoryUseCase.getPendingAdjustments(criteria);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
+    }
+
+    @Operation(summary = "Approve a pending stock adjustment (Factory Manager)")
+    @PostMapping("/api/stock-adjustments/{id}/approve")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<StockMovementDto>> approveAdjustment(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockMovementDto result = inventoryUseCase.approveAdjustment(id, currentUserId);
+        return ResponseEntity.ok(ApiResponse.success(result, "Adjustment approved and balance updated successfully"));
+    }
+
+    @Operation(summary = "Reject a pending stock adjustment (Factory Manager)")
+    @PostMapping("/api/stock-adjustments/{id}/reject")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<Void>> rejectAdjustment(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        inventoryUseCase.rejectAdjustment(id, currentUserId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Adjustment rejected and request removed"));
+    }
+
+    @Operation(summary = "Search lot types with pagination and criteria filtering")
     @GetMapping("/api/lot-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLotTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<LotTypeSummaryDto>>> getLotTypes(@Valid LotTypeSearchRequest request) {
+        PageResponse<LotTypeSummaryDto> result = inventoryUseCase.getLotTypes(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
+    @Operation(summary = "Search stock statuses with pagination and criteria filtering")
     @GetMapping("/api/stock-statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStockStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<StockStatusSummaryDto>>> getStockStatuses(@Valid StockStatusSearchRequest request) {
+        PageResponse<StockStatusSummaryDto> result = inventoryUseCase.getStockStatuses(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
+    @Operation(summary = "Search movement types with pagination and criteria filtering")
     @GetMapping("/api/movement-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMovementTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<MovementTypeSummaryDto>>> getMovementTypes(@Valid MovementTypeSearchRequest request) {
+        PageResponse<MovementTypeSummaryDto> result = inventoryUseCase.getMovementTypes(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 }

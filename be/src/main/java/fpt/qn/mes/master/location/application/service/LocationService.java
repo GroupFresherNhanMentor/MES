@@ -48,6 +48,15 @@ public class LocationService implements LocationUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, WarehouseLocationDto> getLocationsByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.Map.of();
+        var locations = locationRepository.findByIds(ids);
+        return locations.stream()
+                .collect(java.util.stream.Collectors.toMap(WarehouseLocation::getId, mapper::toDto, (l1, l2) -> l1));
+    }
+
+    @Override
     @Transactional
     public WarehouseLocationDto createLocation(UUID warehouseId, CreateLocationRequest request, UUID currentUserId) {
         if (locationRepository.existsByWarehouseIdAndCode(warehouseId, request.getCode())) {
