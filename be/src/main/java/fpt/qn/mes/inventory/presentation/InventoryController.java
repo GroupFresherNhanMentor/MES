@@ -46,6 +46,7 @@ import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
 import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
 
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
@@ -169,5 +170,15 @@ public class InventoryController {
     public ResponseEntity<ApiResponse<PageResponse<MovementTypeSummaryDto>>> getMovementTypes(@Valid MovementTypeSearchRequest request) {
         PageResponse<MovementTypeSummaryDto> result = inventoryUseCase.getMovementTypes(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
+    }
+
+    @Operation(summary = "Transfer available inventory between warehouse locations")
+    @PostMapping("/api/stock-transfers")
+    public ResponseEntity<ApiResponse<StockTransferResponse>> transferStock(
+            @Valid @RequestBody fpt.qn.mes.inventory.application.dto.request.StockTransferRequest request,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockTransferResponse result = inventoryUseCase.transferStock(request, currentUserId);
+        return ResponseEntity.ok(ApiResponse.success(result, "Stock transfer completed successfully"));
     }
 }

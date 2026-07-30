@@ -27,6 +27,9 @@ import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
 
+import fpt.qn.mes.inventory.application.dto.request.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
+
 public interface InventoryUseCase {
     PageResponse<StockLotDto> getStockLots(StockLotSearchRequest request);
     StockLotDto getStockLotById(UUID id);
@@ -42,4 +45,5 @@ public interface InventoryUseCase {
     PageResponse<LotTypeSummaryDto> getLotTypes(LotTypeSearchRequest request);
     PageResponse<StockStatusSummaryDto> getStockStatuses(StockStatusSearchRequest request);
     PageResponse<MovementTypeSummaryDto> getMovementTypes(MovementTypeSearchRequest request);
+    StockTransferResponse transferStock(StockTransferRequest request, UUID currentUserId);
 }

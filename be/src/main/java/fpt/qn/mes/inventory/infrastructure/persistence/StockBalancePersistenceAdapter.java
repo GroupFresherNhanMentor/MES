@@ -56,7 +56,7 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
 
     @Override
     public Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
-            UUID lotId) {
+            UUID lotId, UUID stockStatusId) {
         Condition condition = STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId)
                 .and(STOCK_BALANCES.PRODUCT_ID.eq(productId));
 
@@ -72,6 +72,10 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
             condition = condition.and(STOCK_BALANCES.LOT_ID.isNull());
         }
 
+        if (stockStatusId != null) {
+            condition = condition.and(STOCK_BALANCES.STOCK_STATUS_ID.eq(stockStatusId));
+        }
+
         StockBalancesRecord record =
                 ctx.selectFrom(STOCK_BALANCES).where(condition).forUpdate().fetchOne();
 
@@ -81,8 +85,14 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
     @Override
     public StockBalance save(StockBalance balance) {
         UUID id = balance.getId() != null ? balance.getId() : UuidV7.generate();
+        Long version = balance.getVersion() != null ? balance.getVersion() : 1L;
         StockBalancesRecord record = mapper.toRecord(balance);
         record.setId(id);
+        record.setVersion(version);
+        if (record.getCreatedAt() == null) {
+            record.setCreatedAt(java.time.OffsetDateTime.now());
+        }
+        record.setUpdatedAt(java.time.OffsetDateTime.now());
 
         ctx.insertInto(STOCK_BALANCES)
             .set(record)

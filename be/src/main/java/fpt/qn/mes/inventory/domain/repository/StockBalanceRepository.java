@@ -10,7 +10,8 @@ import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteri
 
 public interface StockBalanceRepository extends BaseDomainRepository<StockBalance, UUID> {
     Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
-            UUID lotId);
+            UUID lotId, UUID stockStatusId);
+
 
     StockBalance save(StockBalance balance);
 

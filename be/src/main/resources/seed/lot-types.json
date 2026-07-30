@@ -1,5 +1,5 @@
 [
-  { "name": "PURCHASED",   "description": "Lot received from external supplier" },
-  { "name": "PRODUCTION",  "description": "Lot created from internal production output" },
-  { "name": "RETURNED",    "description": "Lot returned from customer or production line" }
+  { "id": "019facbf-1001-7000-8000-000000000001", "name": "PURCHASED",   "description": "Lot received from external supplier" },
+  { "id": "019facbf-1001-7000-8000-000000000002", "name": "PRODUCTION",  "description": "Lot created from internal production output" },
+  { "id": "019facbf-1001-7000-8000-000000000003", "name": "RETURNED",    "description": "Lot returned from customer or production line" }
 ]

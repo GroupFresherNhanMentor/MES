@@ -16,19 +16,27 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.WarehouseLocationSummaryDto;
+import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
 import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
 import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.WarehouseLocationSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentException;
@@ -37,54 +45,42 @@ import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.exception.StockLotConflictException;
 import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
+import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
-import fpt.qn.mes.common.exception.AppException;
-import org.springframework.http.HttpStatus;
 import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
-import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
+import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockStatusSearchCriteria;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
-import fpt.qn.mes.master.product.application.dto.response.ProductDto;
-import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
-import fpt.qn.mes.user.application.dto.response.UserDto;
-import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.domain.entities.User;
 import fpt.qn.mes.user.domain.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
-import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
-import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
-import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
-import fpt.qn.mes.inventory.domain.repository.criteria.StockStatusSearchCriteria;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class InventoryService implements InventoryUseCase {
 
     StockLotRepository lotRepository;
@@ -97,7 +93,6 @@ public class InventoryService implements InventoryUseCase {
     StockAdjustmentApprovalRepository approvalRepository;
     InventoryDtoMapper mapper;
     StockAdjustmentApprovalDtoMapper approvalMapper;
-    UserDtoMapper userDtoMapper;
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
     LocationUseCase locationUseCase;
@@ -202,39 +197,50 @@ public class InventoryService implements InventoryUseCase {
             locationUseCase.getLocationById(request.getLocationId());
         }
 
-        Optional<StockBalance> optBalance = balanceRepository.findForUpdate(
-                request.getWarehouseId(),
-                request.getLocationId(),
-                request.getProductId(),
-                request.getLotId()
-        );
+        // 1. Handle deduction from source status balance if fromStatusId is present
+        if (request.getFromStatusId() != null) {
+            StockBalance fromBalance = balanceRepository.findForUpdate(
+                    request.getWarehouseId(),
+                    request.getLocationId(),
+                    request.getProductId(),
+                    request.getLotId(),
+                    request.getFromStatusId()
+            ).orElseThrow(() -> new InsufficientStockException("Insufficient stock balance for this movement"));
 
-        BigDecimal currentOnHand = optBalance.map(StockBalance::getQuantity).orElse(BigDecimal.ZERO);
-        BigDecimal newQuantity;
-
-        if (request.getFromStatusId() != null && request.getToStatusId() == null) {
-            if (currentOnHand.compareTo(request.getQuantity()) < 0) {
-                throw new InsufficientStockException("Insufficient stock balance for this movement");
-            }
-            newQuantity = currentOnHand.subtract(request.getQuantity());
-        } else {
-            newQuantity = currentOnHand.add(request.getQuantity());
+            fromBalance.deductQuantity(request.getQuantity());
+            balanceRepository.save(fromBalance);
         }
 
-        StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
-                .warehouseId(request.getWarehouseId())
-                .locationId(request.getLocationId())
-                .productId(request.getProductId())
-                .lotId(request.getLotId())
-                .stockStatusId(request.getToStatusId() != null ? request.getToStatusId() : request.getFromStatusId())
-                .quantity(newQuantity)
-                .version(optBalance.map(b -> b.getVersion() == null ? 1L : b.getVersion() + 1).orElse(1L))
-                .createdAt(optBalance.map(StockBalance::getCreatedAt).orElse(Instant.now()))
-                .updatedAt(Instant.now())
-                .build();
+        // 2. Handle addition to destination status balance if toStatusId is present
+        if (request.getToStatusId() != null) {
+            Optional<StockBalance> optToBalance = balanceRepository.findForUpdate(
+                    request.getWarehouseId(),
+                    request.getLocationId(),
+                    request.getProductId(),
+                    request.getLotId(),
+                    request.getToStatusId()
+            );
 
-        balanceRepository.save(balanceToSave);
+            StockBalance toBalance;
+            if (optToBalance.isPresent()) {
+                toBalance = optToBalance.get();
+                toBalance.addQuantity(request.getQuantity());
+            } else {
+                toBalance = StockBalance.builder()
+                        .id(UuidV7.generate())
+                        .warehouseId(request.getWarehouseId())
+                        .locationId(request.getLocationId())
+                        .productId(request.getProductId())
+                        .lotId(request.getLotId())
+                        .stockStatusId(request.getToStatusId())
+                        .quantity(request.getQuantity())
+                        .version(1L)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
+            }
+            balanceRepository.save(toBalance);
+        }
 
         UUID fromWh = request.getFromStatusId() != null ? request.getWarehouseId() : null;
         UUID fromLoc = request.getFromStatusId() != null ? request.getLocationId() : null;
@@ -321,7 +327,8 @@ public class InventoryService implements InventoryUseCase {
                 request.getWarehouseId(),
                 request.getLocationId(),
                 request.getProductId(),
-                lot.getId()
+                lot.getId(),
+                statusId
         );
 
         BigDecimal currentOnHand = optBalance.map(StockBalance::getQuantity).orElse(BigDecimal.ZERO);
@@ -762,5 +769,121 @@ public class InventoryService implements InventoryUseCase {
                 .map(mapper::toSummary)
                 .toList();
         return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
+    }
+
+    @Override
+    @Transactional
+    public StockTransferResponse transferStock(
+            StockTransferRequest request, UUID currentUserId) {
+        if (request == null) {
+            throw new IllegalArgumentException("Stock transfer request cannot be null");
+        }
+        if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+        if (request.getFromLocationId() != null && request.getFromLocationId().equals(request.getToLocationId())) {
+            throw new IllegalArgumentException("Source and destination location cannot be the same");
+        }
+
+        var fromLoc = locationUseCase.getLocationById(request.getFromLocationId());
+        var toLoc = locationUseCase.getLocationById(request.getToLocationId());
+
+        if (!Objects.equals(fromLoc.getWarehouseId(), request.getFromWarehouseId())) {
+            throw new IllegalArgumentException("Source location does not belong to the specified source warehouse");
+        }
+
+        if (!Objects.equals(toLoc.getWarehouseId(), request.getToWarehouseId())) {
+            throw new IllegalArgumentException("Destination location does not belong to the specified destination warehouse");
+        }
+
+        String fromCode = fromLoc != null ? fromLoc.getCode() : "SRC";
+        String toCode = toLoc != null ? toLoc.getCode() : "DST";
+        String dateStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String referenceNumber = "TRF-" + dateStr + "-" + fromCode + "->" + toCode;
+
+        UUID availableStatusId = stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)
+                .orElseThrow(() -> new InventoryNotFoundException("Stock status AVAILABLE not found"));
+
+        UUID transferOutTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_OUT)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type TRANSFER_OUT not found"));
+
+        UUID transferInTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_IN)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type TRANSFER_IN not found"));
+
+
+        StockBalance sourceBalance = balanceRepository.findForUpdate(
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getProductId(),
+                request.getLotId(),
+                availableStatusId
+        ).orElseThrow(() -> new InsufficientStockException("Insufficient stock at source location"));
+
+        sourceBalance.deductQuantity(request.getQuantity());
+        StockBalance updatedSourceBalance = balanceRepository.save(sourceBalance);
+
+        StockBalance destBalance = balanceRepository.findForUpdate(
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getProductId(),
+                request.getLotId(),
+                availableStatusId
+        ).orElse(StockBalance.builder()
+                .id(UuidV7.generate())
+                .warehouseId(request.getToWarehouseId())
+                .locationId(request.getToLocationId())
+                .productId(request.getProductId())
+                .lotId(request.getLotId())
+                .stockStatusId(availableStatusId)
+                .quantity(BigDecimal.ZERO)
+                .version(1L)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        destBalance.addQuantity(request.getQuantity());
+        log.info("PASS");
+        StockBalance updatedDestBalance = balanceRepository.save(destBalance);
+
+        StockMovement outMovement = StockMovement.create(
+                transferOutTypeId,
+                request.getProductId(),
+                request.getLotId(),
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getQuantity(),
+                availableStatusId,
+                availableStatusId,
+                referenceNumber,
+                "Stock Transfer Out",
+                currentUserId
+        );
+        StockMovement savedOutMovement = movementRepository.save(outMovement);
+
+        StockMovement inMovement = StockMovement.create(
+                transferInTypeId,
+                request.getProductId(),
+                request.getLotId(),
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getQuantity(),
+                availableStatusId,
+                availableStatusId,
+                referenceNumber,
+                "Stock Transfer In",
+                currentUserId
+        );
+        StockMovement savedInMovement = movementRepository.save(inMovement);
+
+        return StockTransferResponse.builder()
+                .transferOutMovement(mapper.toDto(savedOutMovement))
+                .transferInMovement(mapper.toDto(savedInMovement))
+                .sourceBalance(mapper.toDto(updatedSourceBalance))
+                .destinationBalance(mapper.toDto(updatedDestBalance))
+                .build();
     }
 }
