@@ -1,5 +1,6 @@
 [
   { "from": "DRAFT",             "to": "PLANNED",           "description": "Submit work order for planning" },
+  { "from": "PLANNED",           "to": "DRAFT",             "description": "Revert work order back to draft for re-editing" },
   { "from": "PLANNED",           "to": "READY_TO_PRODUCE",  "description": "All materials reserved, work order ready for production" },
   { "from": "PLANNED",           "to": "MATERIAL_SHORTAGE", "description": "Insufficient stock to reserve all required materials" },
   { "from": "MATERIAL_SHORTAGE", "to": "READY_TO_PRODUCE",  "description": "Stock replenished and all materials successfully reserved" },

@@ -26,9 +26,14 @@ import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
 import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
+import fpt.qn.mes.workorder.application.exception.InvalidInputException;
+import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
+import fpt.qn.mes.workorder.application.exception.WorkOrderCodeExistsException;
 import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
@@ -215,5 +220,214 @@ class WorkOrderServiceTest {
                 () -> service.getWorkOrderById(nonExistentId)
         );
         verify(repository).findById(nonExistentId);
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder happy path should update WorkOrder and return DTO")
+    void updateWorkOrder_happyPath_shouldUpdateAndReturnDto() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .code("WO-2026-UPDATED")
+                .plannedQuantity(BigDecimal.valueOf(100)) // Same quantity so no recalculation
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
+        when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
+        when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+
+        // Act
+        WorkOrderDto result = service.updateWorkOrder(id, req);
+
+        // Assert
+        assertNotNull(result);
+        verify(repository).update(any(WorkOrder.class));
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder when quantity changes should recalculate materials")
+    void updateWorkOrder_quantityChanged_shouldRecalculateMaterials() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UUID bomId = UUID.randomUUID();
+        UUID matProductId = UUID.randomUUID();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .plannedQuantity(BigDecimal.valueOf(200))
+                .build();
+
+        WorkOrder updatedEntity = WorkOrder.builder()
+                .id(id)
+                .code(sampleEntity.getCode())
+                .finishedProductId(productId)
+                .plannedQuantity(BigDecimal.valueOf(200))
+                .workOrderStatusId(statusId)
+                .build();
+
+        WorkOrderMaterial existingMat = WorkOrderMaterial.builder()
+                .id(UUID.randomUUID())
+                .workOrderId(id)
+                .materialProductId(matProductId)
+                .requiredQuantity(BigDecimal.valueOf(200))
+                .reservedQuantity(BigDecimal.ZERO)
+                .consumedQuantity(BigDecimal.ZERO)
+                .build();
+
+        Bom bom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(productId)
+                .items(List.of(
+                        BomItem.builder()
+                                .id(UUID.randomUUID())
+                                .materialProductId(matProductId)
+                                .quantityPerUnit(BigDecimal.valueOf(2))
+                                .scrapRate(BigDecimal.valueOf(0.1))
+                                .build()
+                ))
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.update(any(WorkOrder.class))).thenReturn(updatedEntity);
+        when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of(existingMat));
+        when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(bom));
+        when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+        when(mapper.toDto(any(WorkOrderMaterial.class))).thenReturn(WorkOrderMaterialDto.builder().build());
+
+        // Act
+        WorkOrderDto result = service.updateWorkOrder(id, req);
+
+        // Assert
+        assertNotNull(result);
+        verify(repository).updateMaterial(any(WorkOrderMaterial.class));
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder transition DRAFT to PLANNED should succeed")
+    void updateWorkOrder_transitionDraftToPlanned_shouldSucceed() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UUID plannedStatusId = UUID.randomUUID();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .workOrderStatusId(plannedStatusId)
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
+        when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
+        when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
+
+        // Act
+        WorkOrderDto result = service.updateWorkOrder(id, req);
+
+        // Assert
+        assertNotNull(result);
+        verify(repository).update(any(WorkOrder.class));
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder transition DRAFT to IN_PROGRESS via PUT should throw InvalidWorkOrderStateException")
+    void updateWorkOrder_transitionToInProgress_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UUID inProgressStatusId = UUID.randomUUID();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .workOrderStatusId(inProgressStatusId)
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.findStatusNameById(inProgressStatusId)).thenReturn(Optional.of("IN_PROGRESS"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderStateException.class,
+                () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder with quantity <= 0 should throw InvalidInputException")
+    void updateWorkOrder_invalidQuantity_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .plannedQuantity(BigDecimal.ZERO)
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidInputException.class,
+                () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder when start date >= end date should throw InvalidInputException")
+    void updateWorkOrder_invalidDates_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        Instant now = Instant.now();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .plannedStartDate(now.plusSeconds(86400))
+                .plannedEndDate(now)
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidInputException.class,
+                () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder on IN_PROGRESS state should throw InvalidWorkOrderStateException")
+    void updateWorkOrder_nonEditableState_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .code("WO-2026-NEW")
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("IN_PROGRESS"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderStateException.class,
+                () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("updateWorkOrder with duplicate code should throw WorkOrderCodeExistsException")
+    void updateWorkOrder_duplicateCode_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .code("WO-EXISTING")
+                .build();
+
+        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.existsByCodeAndIdNot("WO-EXISTING", id)).thenReturn(true);
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                WorkOrderCodeExistsException.class,
+                () -> service.updateWorkOrder(id, req)
+        );
     }
 }
