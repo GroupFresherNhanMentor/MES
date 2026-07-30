@@ -90,8 +90,9 @@ public class AuthService implements AuthUseCase {
     }
 
     private TokenResponse buildResponse(CredentialAccount account) {
-        String accessToken = tokenPort.generateAccessToken(account.getId(), account.getUsername());
+        String accessToken = tokenPort.generateAccessToken(account.getId(), account.getUsername(), account.getRoles());
         String newRefreshToken = tokenPort.generateRefreshToken(account.getId(), account.getUsername());
+
         return TokenResponse.builder()
                 .userId(account.getId())
                 .username(account.getUsername())

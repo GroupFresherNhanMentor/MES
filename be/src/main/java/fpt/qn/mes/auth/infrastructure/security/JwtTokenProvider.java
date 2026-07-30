@@ -2,6 +2,7 @@ package fpt.qn.mes.auth.infrastructure.security;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,18 +42,18 @@ public class JwtTokenProvider implements TokenPort {
         this.properties = properties;
     }
 
-
     @Override
-    public String generateAccessToken(UUID userId, String username) {
+    public String generateAccessToken(UUID userId, String username, List<String> roles) {
         Instant now = clock.instant();
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer(properties.getIssuer())
-            .audience(java.util.List.of(properties.getAudience()))
+            .audience(List.of(properties.getAudience()))
             .subject(userId.toString())
             .issuedAt(now)
             .expiresAt(now.plusMillis(properties.getAccessTokenExpiration()))
             .id(UUID.randomUUID().toString())
             .claim("username", username)
+            .claim("roles", roles != null ? roles : List.of())
             .claim("token_type", "access")
             .build();
         return encode(claims);
@@ -63,7 +64,7 @@ public class JwtTokenProvider implements TokenPort {
         Instant now = clock.instant();
         JwtClaimsSet claims = JwtClaimsSet.builder()
             .issuer(properties.getIssuer())
-            .audience(java.util.List.of(properties.getAudience()))
+            .audience(List.of(properties.getAudience()))
             .subject(userId.toString())
             .issuedAt(now)
             .expiresAt(now.plusMillis(properties.getRefreshTokenExpiration()))
@@ -73,6 +74,7 @@ public class JwtTokenProvider implements TokenPort {
             .build();
         return encode(claims);
     }
+
 
     @Override
     public TokenClaims parseRefreshToken(String token) {

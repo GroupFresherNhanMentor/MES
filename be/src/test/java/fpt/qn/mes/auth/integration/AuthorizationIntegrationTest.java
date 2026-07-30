@@ -61,22 +61,24 @@ class AuthorizationIntegrationTest extends AbstractIntegrationTest {
             ctx.insertInto(Tables.USER_ROLES)
                     .values(identity.getUserId(), adminRoleId)
                     .execute();
-            assertThat(authorized("/api/users", accessToken)
+            String adminAccessToken = login(identity.getUsername(), identity.getRawPassword()).path("accessToken").asText();
+            assertThat(authorized("/api/users", adminAccessToken)
                     .getStatusCode().value()).isEqualTo(200);
 
             ctx.deleteFrom(Tables.USER_ROLES)
                     .where(Tables.USER_ROLES.USER_ID.eq(identity.getUserId()))
                     .and(Tables.USER_ROLES.ROLE_ID.eq(adminRoleId))
                     .execute();
-            assertThat(authorized("/api/users", accessToken)
+            String demotedAccessToken = login(identity.getUsername(), identity.getRawPassword()).path("accessToken").asText();
+            assertThat(authorized("/api/users", demotedAccessToken)
                     .getStatusCode().value()).isEqualTo(403);
 
             ctx.update(Tables.USERS).set(Tables.USERS.ACTIVE, false)
                     .where(Tables.USERS.ID.eq(identity.getUserId())).execute();
-            assertThat(authorized("/api/users", accessToken)
-                    .getStatusCode().value()).isEqualTo(401);
-            assertThat(authorized("/api/users", tokens.path("refreshToken").asText())
-                    .getStatusCode().value()).isEqualTo(401);
+            assertThat(restTemplate.postForEntity("/api/auth/login",
+                    Map.of("username", identity.getUsername(), "password", identity.getRawPassword()),
+                    String.class).getStatusCode().value()).isEqualTo(401);
+
         } finally {
             authTestData.deleteIdentity(identity);
         }

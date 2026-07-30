@@ -56,7 +56,7 @@ class AuthServiceTest {
         CredentialAccount account = account(userId, true);
         when(credentialQueryPort.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordPort.matches("Password@123", account.getPasswordHash())).thenReturn(true);
-        when(tokenPort.generateAccessToken(userId, "alice")).thenReturn("access.jwt");
+        when(tokenPort.generateAccessToken(userId, "alice", account.getRoles())).thenReturn("access.jwt");
         when(tokenPort.generateRefreshToken(userId, "alice")).thenReturn("refresh.jwt");
 
         TokenResponse response = service.login(new LoginRequest("alice", "Password@123"));
@@ -84,7 +84,7 @@ class AuthServiceTest {
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Invalid username or password");
         verify(tokenPort, never()).generateAccessToken(
-                org.mockito.ArgumentMatchers.any(), anyString());
+                org.mockito.ArgumentMatchers.any(), anyString(), org.mockito.ArgumentMatchers.any());
     }
 
     @Test
@@ -99,7 +99,8 @@ class AuthServiceTest {
         CredentialAccount account = account(userId, true);
         when(tokenPort.parseRefreshToken("refresh.jwt")).thenReturn(claims);
         when(credentialQueryPort.findById(userId)).thenReturn(Optional.of(account));
-        when(tokenPort.generateAccessToken(userId, "alice")).thenReturn("next-access");
+        when(tokenPort.generateAccessToken(userId, "alice", account.getRoles())).thenReturn("next-access");
+
         when(tokenPort.generateRefreshToken(userId, "alice")).thenReturn("next-refresh");
 
         TokenResponse response = service.refresh("refresh.jwt");

@@ -96,7 +96,8 @@ class AuthPerformanceIntegrationTest extends AbstractIntegrationTest {
             ResponseEntity<String> protectedResponse = authorized(
                     "/api/users", adminTokens.path("accessToken").asText());
             assertThat(protectedResponse.getStatusCode().value()).isEqualTo(200);
-            assertThat(queryCounter.getAuthorizationSnapshotQueries()).isEqualTo(1);
+            assertThat(queryCounter.getAuthorizationSnapshotQueries()).isEqualTo(0);
+
 
             System.out.println(
                     "AUTH_PERFORMANCE java=" + System.getProperty("java.version")

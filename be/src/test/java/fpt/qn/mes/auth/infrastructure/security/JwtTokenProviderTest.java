@@ -52,7 +52,7 @@ class JwtTokenProviderTest {
     void issuesPurposeSpecificHs256TokensWithRequiredClaimsAndLifetimes() {
         UUID userId = UUID.randomUUID();
 
-        String access = provider.generateAccessToken(userId, "alice");
+        String access = provider.generateAccessToken(userId, "alice", java.util.List.of("ADMIN"));
         String refresh = provider.generateRefreshToken(userId, "alice");
 
         var accessJwt = decoder.decode(access);
@@ -64,6 +64,7 @@ class JwtTokenProviderTest {
         assertThat(accessJwt.getId()).isNotBlank();
         assertThat(accessJwt.hasClaim("sid")).isFalse();
         assertThat(accessJwt.getClaimAsString("token_type")).isEqualTo("access");
+        assertThat(accessJwt.getClaimAsStringList("roles")).containsExactly("ADMIN");
         assertThat(accessJwt.getExpiresAt()).isEqualTo(NOW.plusSeconds(900));
         assertThat(refreshJwt.getId()).isNotBlank().isNotEqualTo(accessJwt.getId());
         assertThat(refreshJwt.getClaimAsString("token_type")).isEqualTo("refresh");
@@ -74,10 +75,11 @@ class JwtTokenProviderTest {
 
     @Test
     void accessTokenCannotBeUsedAsRefreshToken() {
-        String access = provider.generateAccessToken(UUID.randomUUID(), "alice");
+        String access = provider.generateAccessToken(UUID.randomUUID(), "alice", java.util.List.of());
         assertThatThrownBy(() -> provider.parseRefreshToken(access))
                 .isInstanceOf(InvalidTokenException.class);
     }
+
 
     @Test
     void remainsCompatibleWithExistingBcryptHashes() {
