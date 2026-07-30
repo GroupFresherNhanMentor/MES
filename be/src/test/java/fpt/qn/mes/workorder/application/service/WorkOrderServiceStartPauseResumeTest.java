@@ -104,12 +104,12 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.createProductionRun(workOrderId, machineId, lineId, actorId)).thenReturn(runId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").statusName("IN_PROGRESS").build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
         WorkOrderDto result = workOrderService.startWorkOrder(workOrderId, req);
 
         assertNotNull(result);
-        assertEquals("IN_PROGRESS", result.getStatusName());
+        assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
         verify(productionRunPort).updateMachineStatus(machineId, "RUNNING");
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "START", actorId);
     }
@@ -154,12 +154,12 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PAUSED)).thenReturn(Optional.of(pausedStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").statusName("PAUSED").build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(pausedStatusId).build());
 
         WorkOrderDto result = workOrderService.pauseWorkOrder(workOrderId);
 
         assertNotNull(result);
-        assertEquals("PAUSED", result.getStatusName());
+        assertEquals(pausedStatusId, result.getWorkOrderStatusId());
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "PAUSE", actorId);
     }
 
@@ -172,12 +172,12 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").statusName("IN_PROGRESS").build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
         WorkOrderDto result = workOrderService.resumeWorkOrder(workOrderId);
 
         assertNotNull(result);
-        assertEquals("IN_PROGRESS", result.getStatusName());
+        assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "RESUME", actorId);
     }
 }
