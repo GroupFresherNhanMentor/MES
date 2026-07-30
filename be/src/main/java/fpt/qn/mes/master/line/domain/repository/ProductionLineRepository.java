@@ -2,7 +2,6 @@ package fpt.qn.mes.master.line.domain.repository;
 
 import java.util.Optional;
 import java.util.UUID;
-
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.master.line.domain.entities.ProductionLine;
 
