@@ -221,7 +221,6 @@ class WorkOrderServiceTest {
         );
         verify(repository).findById(nonExistentId);
     }
-<<<<<<< HEAD
 
     @Test
     @DisplayName("updateWorkOrder happy path should update WorkOrder and return DTO")
