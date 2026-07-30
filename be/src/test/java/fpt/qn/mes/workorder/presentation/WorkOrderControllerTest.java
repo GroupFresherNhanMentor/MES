@@ -145,4 +145,29 @@ class WorkOrderControllerTest {
 
         verify(workOrderUseCase).getWorkOrderById(id);
     }
+
+    @Test
+    @DisplayName("update should return 200 OK with updated WorkOrderDto")
+    void update_shouldReturn200WithApiResponse() {
+        // Arrange
+        UUID id = sampleDto.getId();
+        fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest req =
+                fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest.builder()
+                        .code("WO-2026-UPDATED")
+                        .build();
+
+        when(workOrderUseCase.updateWorkOrder(eq(id), any())).thenReturn(sampleDto);
+
+        // Act
+        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.update(id, req);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("Work Order updated successfully", response.getBody().getMessage());
+
+        verify(workOrderUseCase).updateWorkOrder(eq(id), any());
+    }
 }

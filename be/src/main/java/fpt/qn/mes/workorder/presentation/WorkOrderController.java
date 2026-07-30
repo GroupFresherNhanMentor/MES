@@ -69,10 +69,12 @@ public class WorkOrderController {
                 .body(ApiResponse.success(result, "Work Order created successfully"));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<WorkOrderDto>> update(
-            @PathVariable UUID id, @RequestBody UpdateWorkOrderRequest req) {
-        throw new UnsupportedOperationException("Not implemented");
+            @PathVariable UUID id, @Valid @RequestBody UpdateWorkOrderRequest req) {
+        var result = workOrderUseCase.updateWorkOrder(id, req);
+        return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
     }
 
     @DeleteMapping("/{id}")

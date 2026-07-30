@@ -284,6 +284,13 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 - Transition không hợp lệ → reject. Mọi transition quan trọng → audit log.
 - **Thiết kế mở rộng:** bảng `work_order_status_transitions` lưu transition hợp lệ dưới dạng dữ liệu (data-driven), có cột `is_initial`/`is_final` trên `work_order_statuses` để xác định trạng thái đầu/cuối — không có trong URS, là cải tiến kiến trúc tự thêm. **Lưu ý khi seed dữ liệu:** không insert row `MATERIAL_RESERVED` vào `work_order_statuses`.
 
+**FR-WO-004 — Update Work Order**
+- **Quyền hạn:** ADMIN và PLANNER.
+- **Ràng buộc:** `plannedQuantity > 0` và `plannedStartDate < plannedEndDate`.
+- **Giới hạn API PUT:** API `PUT /api/v1/work-orders/{id}` chỉ xử lý các chuyển đổi trạng thái lập kế hoạch đơn giản: `DRAFT ⇄ PLANNED`. Mọi trạng thái vận hành khác gửi qua PUT phải bị reject (HTTP 400 Bad Request).
+- **Hủy lệnh & Giải phóng vật tư:** Khi WO chuyển sang `CANCELLED` (thông qua Action Endpoint `/cancel`), hệ thống tự động hoàn trả vật tư từ `RESERVED` về `AVAILABLE` ở `stock_balances`, đồng thời ghi nhận stock movement log với loại hành động là `RELEASE_RESERVATION`.
+- **Xử lý thiếu hụt vật tư:** Khi reserve thiếu hàng, chuyển WO sang `MATERIAL_SHORTAGE`, trả về lỗi `INSUFFICIENT_STOCK` kèm danh sách nguyên vật liệu thiếu để Planner theo dõi. Planner có thể gọi lại API chuyên biệt `/reserve-materials` bất cứ lúc nào để hệ thống thực hiện reserve lại từ đầu bằng Pessimistic Locking.
+
 **Data model:** `work_orders, work_order_statuses, work_order_status_transitions, work_order_priorities, work_order_materials, production_runs, work_order_events, work_order_event_types`
 
 ---
