@@ -18,11 +18,12 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -30,6 +31,8 @@ import com.nimbusds.jose.proc.SecurityContext;
 import fpt.qn.mes.auth.infrastructure.security.AppJwtAuthenticationConverter;
 import fpt.qn.mes.auth.infrastructure.security.JwtAccessDeniedHandler;
 import fpt.qn.mes.auth.infrastructure.security.JwtAuthenticationEntryPoint;
+import fpt.qn.mes.common.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.common.idempotency.infrastructure.filter.IdempotencyFilter;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -46,10 +49,14 @@ public class SecurityConfig {
     List<String> allowedOrigins;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
+    SecurityFilterChain filterChain(HttpSecurity http,
             AppJwtAuthenticationConverter jwtConverter,
             JwtAuthenticationEntryPoint entryPoint,
-            JwtAccessDeniedHandler accessDeniedHandler) throws Exception {
+            JwtAccessDeniedHandler accessDeniedHandler,
+            IdempotencyService idempotencyService, 
+            ObjectMapper objectMapper) throws Exception {
+        IdempotencyFilter idempotencyFilter = new IdempotencyFilter(idempotencyService, objectMapper);
+        
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -81,18 +88,19 @@ public class SecurityConfig {
                         .authenticationEntryPoint(entryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
                 )
+                .addFilterAfter(idempotencyFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
 
     @Bean
-    public JwtDecoder jwtDecoder() {
+    JwtDecoder jwtDecoder() {
         SecretKeySpec key = new SecretKeySpec(
                 jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).build();
     }
 
     @Bean
-    public JwtEncoder jwtEncoder() {
+    JwtEncoder jwtEncoder() {
         SecretKeySpec key = new SecretKeySpec(
                 jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         JWKSource<SecurityContext> jwks = new ImmutableSecret<>(key);
@@ -100,12 +108,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
