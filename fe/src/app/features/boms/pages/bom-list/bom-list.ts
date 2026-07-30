@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { MatInputModule } from '@angular/material/input';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { ApiService } from '../../../../core/services/api';
@@ -39,6 +40,7 @@ interface BomStatusOption {
     MatCardModule,
     MatPaginatorModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatProgressBarModule,
     MatTooltipModule,
@@ -58,6 +60,7 @@ export class BomList implements OnInit {
   size = signal(20);
   loading = signal(false);
 
+  searchQuery = signal<string>('');
   selectedProductId = signal<string | null>(null);
   selectedStatusId = signal<string | null>(null);
 
@@ -69,6 +72,33 @@ export class BomList implements OnInit {
   canCreate = computed(() => {
     const role = this.currentUser?.role;
     return role === 'ADMIN' || role === 'PLANNER';
+  });
+
+  activeCount = computed(() =>
+    this.items().filter((i) => {
+      const name = (i.bomStatusName || '').trim().toUpperCase();
+      const id = (i.bomStatusId || '').trim().toUpperCase();
+      return name === 'ACTIVE' || id === 'BS-ACTIVE' || id === 'ACTIVE';
+    }).length,
+  );
+  draftCount = computed(() =>
+    this.items().filter((i) => {
+      const name = (i.bomStatusName || '').trim().toUpperCase();
+      const id = (i.bomStatusId || '').trim().toUpperCase();
+      return name === 'DRAFT' || id === 'BS-DRAFT' || id === 'DRAFT';
+    }).length,
+  );
+  totalComponentsCount = computed(() => this.items().reduce((acc, b) => acc + (b.items?.length || 0), 0));
+
+  filteredItems = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.items();
+    return this.items().filter(
+      (item) =>
+        (item.finishedProductCode || '').toLowerCase().includes(query) ||
+        (item.finishedProductName || '').toLowerCase().includes(query) ||
+        (item.createdBy || '').toLowerCase().includes(query),
+    );
   });
 
   displayedColumns = ['code', 'product', 'version', 'items', 'status', 'createdBy', 'createdAt', 'actions'];
@@ -128,6 +158,7 @@ export class BomList implements OnInit {
   }
 
   resetFilters(): void {
+    this.searchQuery.set('');
     this.selectedProductId.set(null);
     this.selectedStatusId.set(null);
     this.page.set(0);
@@ -148,13 +179,13 @@ export class BomList implements OnInit {
 
   onCreateBom(): void {
     const dialogRef = this.dialog.open(BomCreateDialog, {
-      width: '480px',
+      width: '560px',
       panelClass: 'ff-dialog-panel',
     });
 
     dialogRef.afterClosed().subscribe((newBom: BomDto | null) => {
-      if (newBom) {
-        this.load();
+      if (newBom && newBom.id) {
+        void this.router.navigate(['/boms', newBom.id]);
       }
     });
   }

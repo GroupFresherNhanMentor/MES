@@ -1,29 +1,104 @@
-<!-- Header section -->
-<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+<!-- Header Section -->
+<div class="page-header-box">
   <div>
     <h1 class="text-2xl font-bold text-text-primary tracking-tight">Bill of Materials</h1>
-    <p class="text-sm text-text-secondary mt-1">Manage BOMs, versions, and component structures</p>
+    <p class="text-sm text-text-secondary mt-1">Manage BOM structures, component items, and product versions</p>
   </div>
   @if (canCreate()) {
-    <button mat-flat-button color="primary" class="!bg-primary text-white font-medium !px-4 !py-2 shadow-md hover:brightness-110 transition-all" (click)="onCreateBom()">
-      <mat-icon class="!w-5 !h-5 text-xl mr-1">add</mat-icon> Create BOM
+    <button
+      mat-flat-button
+      class="btn-primary font-semibold !px-5 !py-2.5 shadow-md flex items-center gap-1.5 shrink-0"
+      (click)="onCreateBom()"
+    >
+      <mat-icon class="!w-5 !h-5 text-xl">add</mat-icon> Create BOM
     </button>
   }
 </div>
 
-<!-- Filter Bar -->
-<div class="flex flex-wrap items-center gap-3 mb-6 bg-surface-card border border-border-default rounded-xl p-4 shadow-sm">
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-[260px]">
+<!-- KPI Summary Cards -->
+<div class="dashboard-grid">
+  <!-- Total BOMs -->
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <span class="kpi-label">Total BOM Headers</span>
+      <div class="w-8 h-8 rounded-lg bg-surface-elevated flex items-center justify-center text-text-secondary border border-border-default">
+        <mat-icon class="!w-4 !h-4 text-base">inventory_2</mat-icon>
+      </div>
+    </div>
+    <div class="kpi-value mt-1">{{ total() }}</div>
+    <span class="kpi-trend text-text-muted">Registered product structures</span>
+  </div>
+
+  <!-- Active Production -->
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <span class="kpi-label">Active Production</span>
+      <div class="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center text-success border border-success/20">
+        <mat-icon class="!w-4 !h-4 text-base">check_circle</mat-icon>
+      </div>
+    </div>
+    <div class="kpi-value text-success mt-1">{{ activeCount() }}</div>
+    <span class="kpi-trend up">Approved for work orders</span>
+  </div>
+
+  <!-- Draft Revisions -->
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <span class="kpi-label">Draft Revisions</span>
+      <div class="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center text-warning border border-warning/20">
+        <mat-icon class="!w-4 !h-4 text-base">edit_note</mat-icon>
+      </div>
+    </div>
+    <div class="kpi-value text-warning mt-1">{{ draftCount() }}</div>
+    <span class="kpi-trend text-warning">Pending activation</span>
+  </div>
+
+  <!-- Linked Components -->
+  <div class="kpi-card">
+    <div class="flex items-center justify-between">
+      <span class="kpi-label">Total Materials</span>
+      <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+        <mat-icon class="!w-4 !h-4 text-base">widgets</mat-icon>
+      </div>
+    </div>
+    <div class="kpi-value text-primary mt-1">{{ totalComponentsCount() }}</div>
+    <span class="kpi-trend text-text-muted">Component items linked</span>
+  </div>
+</div>
+
+<!-- Search & Filter Bar Box -->
+<div class="filter-bar-card">
+  <!-- Keyword Search -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-[280px]">
+    <mat-label>Search BOM or Product</mat-label>
+    <input
+      matInput
+      type="text"
+      placeholder="Code, name, or author..."
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+    />
+    <mat-icon matPrefix class="!w-4 !h-4 text-base mr-2 text-text-muted">search</mat-icon>
+    @if (searchQuery()) {
+      <button matSuffix mat-icon-button (click)="searchQuery.set('')" class="!w-6 !h-6">
+        <mat-icon class="!w-4 !h-4 text-base">clear</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  <!-- Product Select Filter -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-[240px]">
     <mat-label>Finished Product</mat-label>
     <mat-select [ngModel]="selectedProductId()" (ngModelChange)="onProductFilterChange($event)">
-      <mat-option [value]="null">All Finished Products</mat-option>
+      <mat-option [value]="null">All Products</mat-option>
       @for (p of productsList(); track p.id) {
         <mat-option [value]="p.id">{{ p.name }} ({{ p.code }})</mat-option>
       }
     </mat-select>
   </mat-form-field>
 
-  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-[200px]">
+  <!-- Status Select Filter -->
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full sm:w-[180px]">
     <mat-label>BOM Status</mat-label>
     <mat-select [ngModel]="selectedStatusId()" (ngModelChange)="onStatusFilterChange($event)">
       <mat-option [value]="null">All Statuses</mat-option>
@@ -33,85 +108,117 @@
     </mat-select>
   </mat-form-field>
 
-  @if (selectedProductId() || selectedStatusId()) {
-    <button mat-stroked-button class="!border-border-default text-text-secondary hover:text-text-primary" (click)="resetFilters()">
-      <mat-icon class="!w-4 !h-4 text-base mr-1">close</mat-icon> Reset Filters
+  <!-- Reset Button -->
+  @if (selectedProductId() || selectedStatusId() || searchQuery()) {
+    <button
+      mat-stroked-button
+      class="!border-border-default text-text-secondary hover:text-text-primary transition-colors ml-auto"
+      (click)="resetFilters()"
+    >
+      <mat-icon class="!w-4 !h-4 text-base mr-1">restart_alt</mat-icon> Reset Filters
     </button>
   }
 </div>
 
-<!-- Loading indicator -->
+<!-- Loading Bar -->
 @if (loading()) {
   <mat-progress-bar mode="indeterminate" class="!fixed !top-0 !left-0 !z-[9999]"></mat-progress-bar>
 }
 
-<!-- Table Card -->
-<mat-card class="ff-card">
+<!-- Data Table Card -->
+<mat-card class="overflow-hidden border border-border-default !rounded-xl !bg-surface-card shadow-sm">
   <mat-card-content class="!p-0">
-    @if (items().length > 0) {
-      <table mat-table [dataSource]="items()" class="full-width">
+    @if (filteredItems().length > 0) {
+      <table mat-table [dataSource]="filteredItems()" class="w-full">
+        <!-- Product Code -->
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef>Product Code</th>
-          <td mat-cell *matCellDef="let b" class="font-mono text-sm font-medium">
-            {{ b.finishedProductCode || b.finishedProductId }}
+          <td mat-cell *matCellDef="let b">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-surface-elevated text-text-primary border border-border-light">
+              <mat-icon class="!w-3.5 !h-3.5 text-sm text-text-muted">qr_code</mat-icon>
+              {{ b.finishedProductCode || b.finishedProductId }}
+            </span>
           </td>
         </ng-container>
 
+        <!-- Finished Product Name -->
         <ng-container matColumnDef="product">
           <th mat-header-cell *matHeaderCellDef>Product Name</th>
-          <td mat-cell *matCellDef="let b" class="font-medium text-text-primary">
+          <td mat-cell *matCellDef="let b" class="font-semibold text-text-primary">
             {{ b.finishedProductName || '-' }}
           </td>
         </ng-container>
 
+        <!-- Version -->
         <ng-container matColumnDef="version">
           <th mat-header-cell *matHeaderCellDef>Version</th>
           <td mat-cell *matCellDef="let b">
-            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-surface-elevated text-text-primary border border-border-default">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
               v{{ b.version }}
             </span>
           </td>
         </ng-container>
 
+        <!-- Items Count -->
         <ng-container matColumnDef="items">
-          <th mat-header-cell *matHeaderCellDef>Items Count</th>
+          <th mat-header-cell *matHeaderCellDef>Components</th>
           <td mat-cell *matCellDef="let b">
-            {{ b.items?.length ?? 0 }} items
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-text-secondary bg-surface-elevated border border-border-light">
+              <mat-icon class="!w-3.5 !h-3.5 text-sm text-text-muted">account_tree</mat-icon>
+              {{ b.items?.length ?? 0 }} items
+            </span>
           </td>
         </ng-container>
 
+        <!-- Status -->
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let b">
             <span
               class="ff-badge"
-              [class.ff-badge--active]="b.bomStatusName === 'ACTIVE'"
-              [class.ff-badge--pending]="b.bomStatusName === 'DRAFT'"
-              [class.ff-badge--cancelled]="b.bomStatusName === 'INACTIVE'"
+              [class.ff-badge--active]="b.bomStatusName === 'ACTIVE' || b.bomStatusId === 'BS-ACTIVE'"
+              [class.ff-badge--pending]="b.bomStatusName === 'DRAFT' || b.bomStatusId === 'BS-DRAFT'"
+              [class.ff-badge--cancelled]="b.bomStatusName === 'INACTIVE' || b.bomStatusId === 'BS-INACTIVE'"
             >
+              <span class="w-1.5 h-1.5 rounded-full mr-1"
+                [class.bg-success]="b.bomStatusName === 'ACTIVE' || b.bomStatusId === 'BS-ACTIVE'"
+                [class.bg-warning]="b.bomStatusName === 'DRAFT' || b.bomStatusId === 'BS-DRAFT'"
+                [class.bg-error]="b.bomStatusName === 'INACTIVE' || b.bomStatusId === 'BS-INACTIVE'"
+              ></span>
               {{ b.bomStatusName || b.bomStatusId }}
             </span>
           </td>
         </ng-container>
 
+        <!-- Created By -->
         <ng-container matColumnDef="createdBy">
           <th mat-header-cell *matHeaderCellDef>Created By</th>
           <td mat-cell *matCellDef="let b" class="text-text-secondary text-sm">
-            {{ b.createdBy || 'system' }}
+            <div class="flex items-center gap-1.5">
+              <mat-icon class="!w-4 !h-4 text-base text-text-muted">person_outline</mat-icon>
+              <span>{{ b.createdBy || 'system' }}</span>
+            </div>
           </td>
         </ng-container>
 
+        <!-- Created At -->
         <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef>Created At</th>
-          <td mat-cell *matCellDef="let b" class="text-text-muted text-sm">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let b" class="text-text-muted text-sm font-mono">
             {{ b.createdAt | date: 'mediumDate' }}
           </td>
         </ng-container>
 
+        <!-- Actions -->
         <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let b">
-            <button mat-icon-button color="primary" (click)="$event.stopPropagation(); $event.preventDefault(); void router.navigate(['/boms', b.id])" matTooltip="View details">
+          <th mat-header-cell *matHeaderCellDef class="text-right">Actions</th>
+          <td mat-cell *matCellDef="let b" class="text-right">
+            <button
+              mat-icon-button
+              class="!text-text-secondary hover:!text-primary hover:!bg-primary/10 transition-colors"
+              (click)="$event.stopPropagation(); $event.preventDefault(); void router.navigate(['/boms', b.id])"
+              matTooltip="View BOM details"
+            >
               <mat-icon>visibility</mat-icon>
             </button>
           </td>
@@ -121,44 +228,46 @@
         <tr
           mat-row
           *matRowDef="let row; columns: displayedColumns"
-          class="cursor-pointer hover:bg-surface-elevated transition-colors"
+          class="cursor-pointer hover:bg-surface-elevated/70 transition-colors"
           (click)="onRowClick(row)"
         ></tr>
       </table>
     } @else {
       <!-- Empty State -->
-      <div class="flex flex-col items-center justify-center py-16 px-6">
-        <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-elevated border border-border-light mb-4">
-          <mat-icon class="!w-8 !h-8 !text-3xl text-text-muted">inventory_2</mat-icon>
+      <div class="flex flex-col items-center justify-center py-16 px-6 text-center">
+        <div class="flex items-center justify-center w-16 h-16 rounded-2xl bg-surface-elevated border border-border-default mb-4 text-text-muted shadow-inner">
+          <mat-icon class="!w-8 !h-8 !text-3xl">inventory_2</mat-icon>
         </div>
-        <span class="text-base font-semibold text-text-primary mb-1">
-          @if (selectedProductId() || selectedStatusId()) {
-            No matching BOMs
+        <span class="text-lg font-bold text-text-primary mb-1">
+          @if (selectedProductId() || selectedStatusId() || searchQuery()) {
+            No matching BOM structures found
           } @else {
-            No BOMs yet
+            No Bill of Materials created yet
           }
         </span>
-        <p class="text-sm text-text-muted text-center max-w-[320px] leading-5 mb-4">
-          @if (selectedProductId() || selectedStatusId()) {
-            No BOMs match your current filters. Try resetting the filter bar above.
+        <p class="text-sm text-text-muted max-w-[360px] leading-relaxed mb-5">
+          @if (selectedProductId() || selectedStatusId() || searchQuery()) {
+            No BOMs match your current search and filter settings. Try adjusting your query or resetting filters.
           } @else {
-            Bill of Materials define product structures. Create one to get started.
+            Bill of Materials define the raw materials and components needed for production. Create your first BOM to start.
           }
         </p>
-        @if (!selectedProductId() && !selectedStatusId() && canCreate()) {
-          <button mat-stroked-button class="!border-border-default text-text-secondary hover:text-text-primary" (click)="onCreateBom()">
+        @if (!selectedProductId() && !selectedStatusId() && !searchQuery() && canCreate()) {
+          <button mat-flat-button class="btn-primary font-semibold !px-4 !py-2" (click)="onCreateBom()">
             <mat-icon class="!w-4 !h-4 text-base mr-1">add</mat-icon> Create First BOM
           </button>
         }
       </div>
     }
 
+    <!-- Paginator -->
     <mat-paginator
       [length]="total()"
       [pageSize]="size()"
       [pageIndex]="page()"
       (page)="onPage($event)"
       [pageSizeOptions]="[10, 20, 50]"
+      class="border-t border-border-default"
     ></mat-paginator>
   </mat-card-content>
 </mat-card>

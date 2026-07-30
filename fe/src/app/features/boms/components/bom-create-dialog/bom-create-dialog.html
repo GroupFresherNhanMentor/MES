@@ -1,60 +1,70 @@
-<div class="relative overflow-hidden bg-surface-card rounded-xl">
+<div class="w-full relative overflow-hidden bg-surface-card rounded-2xl border border-border-default shadow-2xl">
+  <!-- Loading Bar -->
   @if (loading()) {
-    <mat-progress-bar mode="indeterminate" class="!absolute !top-0 !left-0 !right-0 !z-10"></mat-progress-bar>
+    <mat-progress-bar mode="indeterminate" class="!absolute !top-0 !left-0 !right-0 !z-20"></mat-progress-bar>
   }
 
-  <!-- Error alert -->
-  @if (errorMessage()) {
-    <div class="mx-6 mt-4 flex items-start gap-2.5 p-3 rounded-lg bg-error/15 text-error text-sm border border-error/30 ff-fade-in">
-      <mat-icon class="!w-4 !h-4 !text-base mt-0.5 shrink-0">error_outline</mat-icon>
-      <span class="leading-5">{{ errorMessage() }}</span>
+  <!-- Modal Header Box -->
+  <div class="dialog-header-box">
+    <div class="flex items-center justify-center w-11 h-11 rounded-xl bg-primary/15 text-primary border border-primary/25 shrink-0 shadow-inner">
+      <mat-icon class="!w-6 !h-6 !text-2xl">account_tree</mat-icon>
     </div>
-  }
-
-  <!-- Header -->
-  <div class="flex items-center gap-3.5 px-6 pt-5 pb-4 border-b border-border-default">
-    <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-      <mat-icon class="!w-5 !h-5 !text-xl">note_add</mat-icon>
-    </div>
-    <div>
-      <h2 class="text-lg font-bold text-text-primary leading-snug">Create Bill of Materials</h2>
-      <p class="text-xs text-text-secondary mt-0.5">Set up a new BOM header version for production</p>
+    <div class="flex-1 min-w-0">
+      <h2 class="text-xl font-bold text-text-primary tracking-tight leading-snug">Create Bill of Materials</h2>
+      <p class="text-xs text-text-secondary mt-1 leading-normal">
+        Configure a new product structure and revision version for production
+      </p>
     </div>
   </div>
 
-  <!-- Form -->
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-4 p-6">
-    <!-- Finished Product Select -->
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
-      <mat-label>Finished / Semi-Finished Product</mat-label>
-      <mat-select formControlName="finishedProductId">
+  <!-- Form Body -->
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="p-6 sm:p-8 flex flex-col">
+    <!-- Error Alert -->
+    @if (errorMessage()) {
+      <div class="mb-5 flex items-start gap-3 p-3.5 rounded-xl bg-error/15 text-error text-sm border border-error/30 ff-fade-in">
+        <mat-icon class="!w-5 !h-5 !text-xl mt-0.5 shrink-0">error_outline</mat-icon>
+        <span class="leading-relaxed font-medium">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Field 1: Finished Product Select -->
+    <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-full">
+      <mat-label>Finished Product</mat-label>
+      <mat-select formControlName="finishedProductId" placeholder="Select a product...">
         @for (p of productsList(); track p.id) {
           <mat-option [value]="p.id">
-            <span class="font-medium text-text-primary">{{ p.name }}</span>
-            <span class="text-xs text-text-muted ml-2 font-mono">({{ p.code }})</span>
+            <div class="flex items-center justify-between w-full py-1">
+              <span class="font-semibold text-text-primary">{{ p.name }}</span>
+              <span class="text-xs font-mono font-medium text-text-muted px-2 py-0.5 rounded bg-surface-elevated border border-border-light ml-3">
+                {{ p.code }}
+              </span>
+            </div>
           </mat-option>
         }
       </mat-select>
+      <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">inventory_2</mat-icon>
       @if (form.get('finishedProductId')?.invalid && form.get('finishedProductId')?.touched) {
-        <mat-error class="text-xs text-error mt-1">Finished Product is required</mat-error>
+        <mat-error>Finished Product is required</mat-error>
       }
     </mat-form-field>
 
-    <!-- Version Input -->
-    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+    <!-- Field 2: Version Input -->
+    <mat-form-field appearance="outline" subscriptSizing="fixed" class="w-full">
       <mat-label>BOM Version</mat-label>
       <input matInput type="number" formControlName="version" min="1" placeholder="1" />
+      <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">numbers</mat-icon>
+      <span matSuffix class="text-xs font-mono text-text-muted mr-3">v{{ form.value.version || 1 }}.0</span>
       @if (form.get('version')?.invalid && form.get('version')?.touched) {
-        <mat-error class="text-xs text-error mt-1">Version must be 1 or greater</mat-error>
+        <mat-error>Version number must be 1 or greater</mat-error>
       }
     </mat-form-field>
 
-    <!-- Footer Actions -->
-    <div class="flex items-center justify-end gap-3 pt-4 mt-2 border-t border-border-default">
+    <!-- Modal Footer Actions -->
+    <div class="flex items-center justify-end gap-3 pt-5 border-t border-border-default mt-4">
       <button
         mat-button
         type="button"
-        class="!text-text-secondary hover:!text-text-primary"
+        class="!text-text-secondary hover:!text-text-primary !px-5 !py-2.5 font-medium"
         (click)="onCancel()"
         [disabled]="loading()"
       >
@@ -62,17 +72,16 @@
       </button>
       <button
         mat-flat-button
-        color="primary"
-        class="!bg-primary text-white font-medium !px-5"
+        class="btn-primary font-semibold !px-6 !py-2.5 flex items-center gap-2 shadow-md transition-all"
         type="submit"
         [disabled]="form.invalid || loading()"
       >
         @if (loading()) {
-          <mat-icon class="!w-4 !h-4 !text-base mr-1.5 animate-spin">sync</mat-icon>
+          <mat-icon class="!w-5 !h-5 text-xl animate-spin">sync</mat-icon>
         } @else {
-          <mat-icon class="!w-4 !h-4 !text-base mr-1.5">check</mat-icon>
+          <mat-icon class="!w-5 !h-5 text-xl">check_circle</mat-icon>
         }
-        {{ loading() ? 'Creating...' : 'Create BOM' }}
+        {{ loading() ? 'Creating BOM...' : 'Create BOM Structure' }}
       </button>
     </div>
   </form>
