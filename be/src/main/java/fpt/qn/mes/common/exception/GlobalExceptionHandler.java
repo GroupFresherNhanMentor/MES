@@ -37,7 +37,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> handleAppException(AppException ex, HttpServletRequest request) {
         log.warn("{} at {}: {}", ex.getStatus(), request.getRequestURI(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus())
                 .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage(), ex.getDetails()));

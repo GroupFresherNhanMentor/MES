@@ -26,7 +26,7 @@ public class ApiResponse<T> {
     T data;
     ErrorCode errorCode;
     String message;
-    Object details;
+    T details;
 
     @Builder.Default
     String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
@@ -54,7 +54,7 @@ public class ApiResponse<T> {
                 .build();
     }
 
-    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, Object details) {
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message, T details) {
         return ApiResponse.<T>builder()
                 .success(false)
                 .errorCode(errorCode)
