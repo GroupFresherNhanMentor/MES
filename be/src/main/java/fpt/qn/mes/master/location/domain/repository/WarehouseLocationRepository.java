@@ -8,7 +8,7 @@ import fpt.qn.mes.master.location.domain.entities.WarehouseLocation;
 
 public interface WarehouseLocationRepository {
     Optional<WarehouseLocation> findById(UUID id);
-    java.util.List<WarehouseLocation> findByIds(java.util.Collection<UUID> ids);
+    List<WarehouseLocation> findByIds(java.util.Collection<UUID> ids);
     List<WarehouseLocation> findByWarehouseId(UUID warehouseId);
     WarehouseLocation save(WarehouseLocation location);
     WarehouseLocation update(WarehouseLocation location);
