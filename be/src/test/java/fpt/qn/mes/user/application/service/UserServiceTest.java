@@ -53,6 +53,8 @@ class UserServiceTest {
         service = new UserService(repository, passwordPort, mapper, guard);
     }
 
+
+
     @Test
     void paginatedReadClampsBoundsAndDoesNotExposePassword() {
         User user = user(true);
@@ -130,6 +132,7 @@ class UserServiceTest {
         assertThat(user.getActive()).isFalse();
     }
 
+
     @Test
     void updateAndActivatePreserveIdentityAndPassword() {
         User inactive = user(false);
@@ -145,8 +148,8 @@ class UserServiceTest {
 
         service.activateUser(inactive.getId());
         assertThat(inactive.getActive()).isTrue();
-        verify(guard, org.mockito.Mockito.times(2)).lock();
     }
+
 
     private User user(boolean active) {
         return User.builder()

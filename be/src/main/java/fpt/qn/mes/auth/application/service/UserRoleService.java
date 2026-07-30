@@ -10,9 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.auth.application.dto.request.ReplaceUserRolesRequest;
 import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
+import fpt.qn.mes.auth.application.exception.UserReferenceNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.auth.application.port.in.UserRoleUseCase;
 import fpt.qn.mes.auth.application.port.out.CredentialQueryPort;
+import fpt.qn.mes.auth.application.security.CredentialAccount;
 import fpt.qn.mes.auth.domain.entities.Role;
 import fpt.qn.mes.auth.domain.repository.UserRoleRepository;
 import lombok.AccessLevel;
@@ -44,7 +47,7 @@ public class UserRoleService implements UserRoleUseCase {
         LinkedHashSet<UUID> unique = new LinkedHashSet<>(request.getRoleIds());
         List<UUID> roleIds = new ArrayList<>(unique);
         if (userRoleRepository.countExistingRoleIds(roleIds) != roleIds.size()) {
-            throw new fpt.qn.mes.auth.application.exception.RoleNotFoundException(
+            throw new RoleNotFoundException(
                     "One or more roles were not found");
         }
         userRoleRepository.replaceRoles(userId, roleIds);
@@ -52,11 +55,12 @@ public class UserRoleService implements UserRoleUseCase {
         return toDtos(userRoleRepository.findRolesByUserId(userId));
     }
 
-    private fpt.qn.mes.auth.application.security.CredentialAccount requireUser(UUID userId) {
+    private CredentialAccount requireUser(UUID userId) {
         return credentialQueryPort.findById(userId)
-                .orElseThrow(() -> new fpt.qn.mes.auth.application.exception.UserReferenceNotFoundException(
+                .orElseThrow(() -> new UserReferenceNotFoundException(
                         "User not found"));
     }
+
 
     private List<RoleDto> toDtos(List<Role> roles) {
         List<RoleDto> result = new ArrayList<>();

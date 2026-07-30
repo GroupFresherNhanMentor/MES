@@ -41,6 +41,7 @@ public class JwtTokenProvider implements TokenPort {
         this.properties = properties;
     }
 
+
     @Override
     public String generateAccessToken(UUID userId, String username) {
         Instant now = clock.instant();
@@ -94,8 +95,31 @@ public class JwtTokenProvider implements TokenPort {
         }
     }
 
+    @Override
+    public TokenClaims parseAccessToken(String token) {
+
+        try {
+            var jwt = jwtDecoder.decode(token);
+            String tokenType = jwt.getClaimAsString("token_type");
+            if (!"access".equals(tokenType)) {
+                throw new InvalidTokenException("Invalid access token");
+            }
+            return TokenClaims.builder()
+                    .userId(UUID.fromString(jwt.getSubject()))
+                    .username(jwt.getClaimAsString("username"))
+                    .tokenId(UUID.fromString(jwt.getId()))
+                    .tokenType(tokenType)
+                    .issuedAt(jwt.getIssuedAt())
+                    .expiresAt(jwt.getExpiresAt())
+                    .build();
+        } catch (JwtException | IllegalArgumentException | NullPointerException ex) {
+            throw new InvalidTokenException("Invalid access token");
+        }
+    }
+
     private String encode(JwtClaimsSet claims) {
         JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 }
+

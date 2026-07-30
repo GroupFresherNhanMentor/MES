@@ -3,6 +3,7 @@ package fpt.qn.mes.auth.domain.entities;
 import java.util.Locale;
 import java.util.UUID;
 
+import fpt.qn.mes.auth.domain.exception.AuthDomainException;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -41,9 +42,10 @@ public class Role {
     private static String requireValidName(String value) {
         String normalized = normalizeName(value);
         if (normalized == null || normalized.isBlank() || normalized.length() > 50) {
-            throw new fpt.qn.mes.auth.domain.exception.AuthDomainException(
+            throw new AuthDomainException(
                     "Role name must contain between 1 and 50 characters");
         }
         return normalized;
     }
 }
+

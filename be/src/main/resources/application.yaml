@@ -11,6 +11,11 @@ spring:
   flyway:
     locations: classpath:db/migration
     baseline-on-migrate: false
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
 management:
   endpoints:
     web:
@@ -29,7 +34,7 @@ management:
       enabled: true
 app:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:this-is-a-dev-only-secret-key-at-least-32-chars}
     issuer: ${JWT_ISSUER:factoryflow}
     audience: ${JWT_AUDIENCE:factoryflow-api}
     access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}     # 15 minutes

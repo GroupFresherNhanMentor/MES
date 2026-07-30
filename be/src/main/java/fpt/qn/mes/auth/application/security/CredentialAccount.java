@@ -1,5 +1,6 @@
 package fpt.qn.mes.auth.application.security;
 
+import java.util.List;
 import java.util.UUID;
 
 import lombok.AccessLevel;
@@ -19,4 +20,6 @@ public class CredentialAccount {
     String passwordHash;
     String fullName;
     boolean active;
+    List<String> roles;
 }
+

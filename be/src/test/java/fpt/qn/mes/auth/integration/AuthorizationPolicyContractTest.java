@@ -16,7 +16,6 @@ import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import fpt.qn.mes.AbstractIntegrationTest;
-import fpt.qn.mes.auth.application.security.RoleAccess;
 import fpt.qn.mes.auth.support.EndpointRoleCatalog;
 
 class AuthorizationPolicyContractTest extends AbstractIntegrationTest {
@@ -49,16 +48,17 @@ class AuthorizationPolicyContractTest extends AbstractIntegrationTest {
             Method method = entry.getValue().getMethod();
             PreAuthorize annotation = method.getAnnotation(PreAuthorize.class);
             boolean publicAuth = paths.stream().allMatch(path ->
-                    path.equals("/api/auth/login") || path.equals("/api/auth/refresh"));
+                    path.equals("/api/auth/login") || path.equals("/api/auth/refresh") || path.equals("/api/auth/logout"));
             if (publicAuth) {
                 assertThat(annotation).isNull();
             } else {
                 assertThat(annotation).isNotNull();
-                assertThat(annotation.value()).isEqualTo(RoleAccess.ADMIN_ONLY);
+                assertThat(annotation.value()).isEqualTo("hasRole('ADMIN')");
                 protectedHandlerCount++;
             }
         }
-        assertThat(scopedHandlerCount).isEqualTo(15);
+        assertThat(scopedHandlerCount).isEqualTo(16);
+
         assertThat(protectedHandlerCount).isEqualTo(13);
         assertThat(operations).containsExactlyInAnyOrderEntriesOf(
                 EndpointRoleCatalog.operations());
@@ -77,3 +77,4 @@ class AuthorizationPolicyContractTest extends AbstractIntegrationTest {
                 : EndpointRoleCatalog.ROLE_PROTECTED;
     }
 }
+

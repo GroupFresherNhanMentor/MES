@@ -11,4 +11,7 @@ public interface TokenPort {
     String generateRefreshToken(UUID userId, String username);
 
     TokenClaims parseRefreshToken(String token);
+
+    TokenClaims parseAccessToken(String token);
 }
+

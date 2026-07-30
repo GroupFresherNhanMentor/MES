@@ -25,10 +25,10 @@ public class JwtSecurityProperties {
     String secret;
 
     @NotBlank
-    String issuer;
+    String issuer = "factoryflow";
 
     @NotBlank
-    String audience;
+    String audience = "factoryflow-api";
 
     @Positive
     long accessTokenExpiration = 900_000;
@@ -36,3 +36,4 @@ public class JwtSecurityProperties {
     @Positive
     long refreshTokenExpiration = 604_800_000;
 }
+

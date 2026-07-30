@@ -2,7 +2,9 @@ package fpt.qn.mes.auth.application.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,13 +22,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.dto.request.LoginRequest;
 import fpt.qn.mes.auth.application.dto.response.TokenResponse;
 import fpt.qn.mes.auth.application.exception.UnauthorizedException;
-import fpt.qn.mes.auth.application.port.in.ResolveAuthorizationUseCase;
 import fpt.qn.mes.auth.application.port.out.CredentialQueryPort;
 import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.out.TokenPort;
-import fpt.qn.mes.auth.application.security.AuthorizationSnapshot;
 import fpt.qn.mes.auth.application.security.CredentialAccount;
 import fpt.qn.mes.auth.application.security.TokenClaims;
+
+import fpt.qn.mes.auth.application.port.out.TokenBlacklistPort;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -34,7 +36,7 @@ class AuthServiceTest {
     @Mock TokenPort tokenPort;
     @Mock PasswordPort passwordPort;
     @Mock CredentialQueryPort credentialQueryPort;
-    @Mock ResolveAuthorizationUseCase resolveAuthorizationUseCase;
+    @Mock TokenBlacklistPort tokenBlacklistPort;
 
     AuthService service;
 
@@ -44,17 +46,16 @@ class AuthServiceTest {
                 tokenPort,
                 passwordPort,
                 credentialQueryPort,
-                resolveAuthorizationUseCase);
+                tokenBlacklistPort);
     }
+
 
     @Test
     void successfulLoginReturnsIdentityAndTokensOnly() {
         UUID userId = UUID.randomUUID();
         CredentialAccount account = account(userId, true);
-        AuthorizationSnapshot snapshot = snapshot(userId);
         when(credentialQueryPort.findByUsername("alice")).thenReturn(Optional.of(account));
         when(passwordPort.matches("Password@123", account.getPasswordHash())).thenReturn(true);
-        when(resolveAuthorizationUseCase.resolve(userId)).thenReturn(Optional.of(snapshot));
         when(tokenPort.generateAccessToken(userId, "alice")).thenReturn("access.jwt");
         when(tokenPort.generateRefreshToken(userId, "alice")).thenReturn("refresh.jwt");
 
@@ -95,9 +96,9 @@ class AuthServiceTest {
                 .tokenId(UUID.randomUUID())
                 .tokenType("refresh")
                 .build();
-        AuthorizationSnapshot snapshot = snapshot(userId);
+        CredentialAccount account = account(userId, true);
         when(tokenPort.parseRefreshToken("refresh.jwt")).thenReturn(claims);
-        when(resolveAuthorizationUseCase.resolve(userId)).thenReturn(Optional.of(snapshot));
+        when(credentialQueryPort.findById(userId)).thenReturn(Optional.of(account));
         when(tokenPort.generateAccessToken(userId, "alice")).thenReturn("next-access");
         when(tokenPort.generateRefreshToken(userId, "alice")).thenReturn("next-refresh");
 
@@ -119,13 +120,39 @@ class AuthServiceTest {
                 .tokenType("refresh")
                 .build();
         when(tokenPort.parseRefreshToken("refresh.jwt")).thenReturn(claims);
-        when(resolveAuthorizationUseCase.resolve(userId)).thenReturn(Optional.empty());
+        when(credentialQueryPort.findById(userId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.refresh("refresh.jwt"))
                 .isInstanceOf(UnauthorizedException.class)
                 .hasMessage("Invalid refresh token");
         verify(tokenPort, never()).generateRefreshToken(
                 org.mockito.ArgumentMatchers.any(), anyString());
+    }
+
+    @Test
+    void logoutBlacklistsAccessAndRefreshTokens() {
+        UUID accessId = UUID.randomUUID();
+        UUID refreshId = UUID.randomUUID();
+        java.time.Instant future = java.time.Instant.now().plusSeconds(600);
+
+        TokenClaims accessClaims = TokenClaims.builder()
+                .tokenId(accessId)
+                .expiresAt(future)
+                .tokenType("access")
+                .build();
+        TokenClaims refreshClaims = TokenClaims.builder()
+                .tokenId(refreshId)
+                .expiresAt(future)
+                .tokenType("refresh")
+                .build();
+
+        when(tokenPort.parseAccessToken("access.jwt")).thenReturn(accessClaims);
+        when(tokenPort.parseRefreshToken("refresh.jwt")).thenReturn(refreshClaims);
+
+        service.logout("access.jwt", "refresh.jwt");
+
+        verify(tokenBlacklistPort).blacklistToken(org.mockito.ArgumentMatchers.eq(accessId.toString()), any(java.time.Duration.class));
+        verify(tokenBlacklistPort).blacklistToken(org.mockito.ArgumentMatchers.eq(refreshId.toString()), any(java.time.Duration.class));
     }
 
     private CredentialAccount account(UUID userId, boolean active) {
@@ -135,16 +162,9 @@ class AuthServiceTest {
                 .passwordHash("$2a$encoded")
                 .fullName("Alice")
                 .active(active)
-                .build();
-    }
-
-    private AuthorizationSnapshot snapshot(UUID userId) {
-        return AuthorizationSnapshot.builder()
-                .userId(userId)
-                .username("alice")
-                .fullName("Alice")
-                .active(true)
                 .roles(List.of("ADMIN", "AUDITOR"))
                 .build();
     }
 }
+
+

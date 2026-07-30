@@ -8,12 +8,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.repository.BaseRepository;
-import fpt.qn.mes.jooq.tables.records.RolesRecord;
 import fpt.qn.mes.auth.domain.entities.Role;
 import fpt.qn.mes.auth.domain.repository.RoleRepository;
+import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.jooq.tables.records.RolesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -24,7 +29,8 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
     RoleRecordMapper mapper;
 
     public RolePersistenceAdapter(DSLContext ctx, RoleRecordMapper mapper) {
-        super(ctx, ROLES); this.mapper = mapper;
+        super(ctx, ROLES);
+        this.mapper = mapper;
     }
 
     @Override
@@ -45,9 +51,8 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
     public Role save(Role role) {
         try {
             return mapper.toDomain(create(mapper.toRecord(role)));
-        } catch (org.jooq.exception.DataAccessException
-                | org.springframework.dao.DuplicateKeyException ex) {
-            throw new fpt.qn.mes.common.exception.ConflictException("Role name already exists");
+        } catch (DataAccessException | DuplicateKeyException ex) {
+            throw new ConflictException("Role name already exists");
         }
     }
 
@@ -60,9 +65,8 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
                     .returning()
                     .fetchOne();
             return mapper.toDomain(stored);
-        } catch (org.jooq.exception.DataAccessException
-                | org.springframework.dao.DuplicateKeyException ex) {
-            throw new fpt.qn.mes.common.exception.ConflictException("Role name already exists");
+        } catch (DataAccessException | DuplicateKeyException ex) {
+            throw new ConflictException("Role name already exists");
         }
     }
 
@@ -70,16 +74,15 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
     public void deleteById(UUID id) {
         try {
             hardDeleteById(id);
-        } catch (org.jooq.exception.DataAccessException
-                | org.springframework.dao.DataIntegrityViolationException ex) {
-            throw new fpt.qn.mes.common.exception.ConflictException("Assigned role cannot be deleted");
+        } catch (DataAccessException | DataIntegrityViolationException ex) {
+            throw new ConflictException("Assigned role cannot be deleted");
         }
     }
 
     @Override
     public boolean existsByName(String name) {
         return ctx.fetchExists(ctx.selectOne().from(ROLES)
-                .where(org.jooq.impl.DSL.upper(org.jooq.impl.DSL.trim(ROLES.NAME))
+                .where(DSL.upper(DSL.trim(ROLES.NAME))
                         .eq(Role.normalizeName(name))));
     }
 
@@ -87,5 +90,5 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
     public boolean isAssigned(UUID id) {
         return ctx.fetchExists(ctx.selectOne().from(USER_ROLES).where(USER_ROLES.ROLE_ID.eq(id)));
     }
-
 }
+

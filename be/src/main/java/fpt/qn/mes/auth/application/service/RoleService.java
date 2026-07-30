@@ -28,7 +28,8 @@ public class RoleService implements RoleUseCase {
     RoleDtoMapper mapper;
     AdministrativeAccessGuard administrativeAccessGuard;
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public List<RoleDto> getRoles() {
         List<RoleDto> result = new java.util.ArrayList<>();
         for (Role role : roleRepository.findAll()) {
@@ -37,13 +38,15 @@ public class RoleService implements RoleUseCase {
         return result;
     }
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public RoleDto getRoleById(UUID id) {
         return toDto(roleRepository.findById(id)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found")));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public RoleDto createRole(CreateRoleRequest request) {
         if (roleRepository.existsByName(request.getName())) {
             throw new ConflictException("Role name already exists");
@@ -52,13 +55,15 @@ public class RoleService implements RoleUseCase {
                 request.getName(), request.getDescription())));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public RoleDto updateRole(UUID id, UpdateRoleRequest request) {
         administrativeAccessGuard.lock();
         Role current = roleRepository.findById(id)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found"));
         String normalized = request.getName() == null
-                ? current.getName() : Role.normalizeName(request.getName());
+                ? current.getName()
+                : Role.normalizeName(request.getName());
         if ("ADMIN".equals(current.getName()) && !"ADMIN".equals(normalized)) {
             throw new ConflictException("System role ADMIN cannot be renamed");
         }
@@ -69,7 +74,8 @@ public class RoleService implements RoleUseCase {
                 current.update(request.getName(), request.getDescription())));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public void deleteRole(UUID id) {
         administrativeAccessGuard.lock();
         Role role = roleRepository.findById(id)

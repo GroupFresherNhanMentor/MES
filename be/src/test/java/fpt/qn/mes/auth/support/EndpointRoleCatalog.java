@@ -14,7 +14,9 @@ public final class EndpointRoleCatalog {
 
     private static final List<String> PUBLIC_OPERATIONS = List.of(
             "POST /api/auth/login",
-            "POST /api/auth/refresh");
+            "POST /api/auth/refresh",
+            "POST /api/auth/logout");
+
 
     private static final List<String> PROTECTED_OPERATIONS = List.of(
             "GET /api/users",

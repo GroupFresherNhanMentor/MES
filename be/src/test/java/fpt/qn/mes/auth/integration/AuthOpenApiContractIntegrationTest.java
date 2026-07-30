@@ -39,13 +39,15 @@ class AuthOpenApiContractIntegrationTest extends AbstractIntegrationTest {
                 if (path.has(method)) {
                     operationCount++;
                     if (!path.get(method).path("operationId").asText().equals("login")
-                            && !path.get(method).path("operationId").asText().equals("refresh")) {
+                            && !path.get(method).path("operationId").asText().equals("refresh")
+                            && !path.get(method).path("operationId").asText().equals("logout")) {
                         assertThat(path.get(method).path("security").isArray()).isTrue();
                     }
                 }
             }
         }
-        assertThat(operationCount).isEqualTo(99);
+        assertThat(operationCount).isEqualTo(100);
+
 
         var groupedResponse = restTemplate.getForEntity(
                 URI.create("/v3/api-docs/00.%20All%20Endpoints"),

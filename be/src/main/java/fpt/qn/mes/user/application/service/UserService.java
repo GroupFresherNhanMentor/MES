@@ -31,7 +31,8 @@ public class UserService implements UserUseCase {
     UserDtoMapper userDtoMapper;
     AdministrativeAccessGuardUseCase administrativeAccessGuard;
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<UserDto> getUsers(int page, int size) {
         int normalizedPage = Math.max(0, page);
         int normalizedSize = Math.min(100, Math.max(1, size));
@@ -49,14 +50,16 @@ public class UserService implements UserUseCase {
                 .build();
     }
 
-    @Override @Transactional(readOnly = true)
+    @Override
+    @Transactional(readOnly = true)
     public UserDto getUserById(UUID id) {
         return userRepository.findById(id)
                 .map(user -> userDtoMapper.toDto(user))
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public UserDto createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ConflictException("Username already exists");
@@ -68,7 +71,8 @@ public class UserService implements UserUseCase {
         return userDtoMapper.toDto(userRepository.save(user));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public UserDto updateUser(UUID id, UpdateUserRequest request) {
         administrativeAccessGuard.lock();
         User user = userRepository.findById(id)
@@ -76,7 +80,8 @@ public class UserService implements UserUseCase {
         return userDtoMapper.toDto(userRepository.update(user.updateFullName(request.getFullName())));
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public void activateUser(UUID id) {
         administrativeAccessGuard.lock();
         User user = userRepository.findById(id)
@@ -85,7 +90,8 @@ public class UserService implements UserUseCase {
         userRepository.update(user);
     }
 
-    @Override @Transactional
+    @Override
+    @Transactional
     public void deactivateUser(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

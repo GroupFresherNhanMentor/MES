@@ -3,6 +3,7 @@ package fpt.qn.mes.auth.infrastructure.config;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +12,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -32,13 +35,17 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 
+import fpt.qn.mes.auth.application.port.out.TokenBlacklistPort;
 import fpt.qn.mes.auth.infrastructure.security.AppJwtAuthenticationConverter;
-import fpt.qn.mes.auth.infrastructure.security.JwtAccessDeniedHandler;
-import fpt.qn.mes.auth.infrastructure.security.JwtAuthenticationEntryPoint;
+import fpt.qn.mes.common.dto.response.ApiResponse;
+
+import fpt.qn.mes.common.exception.ErrorCode;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -60,9 +67,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
             AppJwtAuthenticationConverter jwtConverter,
-            JwtAuthenticationEntryPoint entryPoint,
-            JwtAccessDeniedHandler accessDeniedHandler,
             Environment environment,
+            ObjectMapper objectMapper,
             @Qualifier("accessJwtDecoder") JwtDecoder accessJwtDecoder) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
@@ -84,11 +90,20 @@ public class SecurityConfig {
                                 .decoder(accessJwtDecoder)
                                 .jwtAuthenticationConverter(jwtConverter)
                         )
-                        .authenticationEntryPoint(entryPoint)
-                        .accessDeniedHandler(accessDeniedHandler)
+                        .authenticationEntryPoint((req, res, ex) -> writeError(res, HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Authentication required", objectMapper))
+                        .accessDeniedHandler((req, res, ex) -> writeError(res, HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, "Access denied", objectMapper))
                 )
                 .build();
     }
+
+    private void writeError(HttpServletResponse response, HttpStatus status, ErrorCode errorCode, String message, ObjectMapper objectMapper) throws java.io.IOException {
+        if (response.isCommitted()) return;
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setStatus(status.value());
+        objectMapper.writeValue(response.getOutputStream(), ApiResponse.error(errorCode, message));
+    }
+
 
     @Bean
     public JwtDecoder tokenDecoder() {
@@ -98,15 +113,22 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtDecoder accessJwtDecoder() {
+    public JwtDecoder accessJwtDecoder(TokenBlacklistPort tokenBlacklistPort) {
+
+
         NimbusJwtDecoder decoder = buildDecoder();
         OAuth2TokenValidator<Jwt> typeValidator = jwt -> "access".equals(jwt.getClaimAsString("token_type"))
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(
                         new OAuth2Error("invalid_token", "Access token required", null));
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(baseValidator(), typeValidator));
+        OAuth2TokenValidator<Jwt> blacklistValidator = jwt -> (jwt.getId() != null && tokenBlacklistPort.isBlacklisted(jwt.getId()))
+                ? OAuth2TokenValidatorResult.failure(
+                        new OAuth2Error("invalid_token", "Token has been revoked", null))
+                : OAuth2TokenValidatorResult.success();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(baseValidator(), typeValidator, blacklistValidator));
         return decoder;
     }
+
 
     private NimbusJwtDecoder buildDecoder() {
         SecretKeySpec key = new SecretKeySpec(

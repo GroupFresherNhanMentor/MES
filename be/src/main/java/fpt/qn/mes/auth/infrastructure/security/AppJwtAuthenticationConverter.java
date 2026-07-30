@@ -11,8 +11,9 @@ import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 
-import fpt.qn.mes.auth.application.port.in.ResolveAuthorizationUseCase;
+import fpt.qn.mes.auth.application.port.out.CredentialQueryPort;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+import fpt.qn.mes.auth.application.security.CredentialAccount;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -23,7 +24,7 @@ import lombok.experimental.FieldDefaults;
 public class AppJwtAuthenticationConverter
         implements Converter<Jwt, UsernamePasswordAuthenticationToken> {
 
-    ResolveAuthorizationUseCase resolveAuthorizationUseCase;
+    CredentialQueryPort credentialQueryPort;
 
     @Override
     public UsernamePasswordAuthenticationToken convert(Jwt jwt) {
@@ -33,18 +34,20 @@ public class AppJwtAuthenticationConverter
         } catch (RuntimeException ex) {
             throw invalidToken();
         }
-        var snapshot = resolveAuthorizationUseCase.resolve(userId)
-                .orElseThrow(() -> invalidToken());
+
+        CredentialAccount account = credentialQueryPort.findById(userId)
+                .filter(CredentialAccount::isActive)
+                .orElseThrow(this::invalidToken);
 
         AppUserPrincipal principal = AppUserPrincipal.builder()
-            .id(snapshot.getUserId())
-            .username(snapshot.getUsername())
-            .enabled(snapshot.isActive())
-            .roles(snapshot.getRoles())
-            .build();
+                .id(account.getId())
+                .username(account.getUsername())
+                .enabled(account.isActive())
+                .roles(account.getRoles())
+                .build();
 
         var authorities = new ArrayList<SimpleGrantedAuthority>();
-        for (String role : snapshot.getRoles()) {
+        for (String role : account.getRoles()) {
             authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
         }
 
@@ -55,3 +58,4 @@ public class AppJwtAuthenticationConverter
         return new OAuth2AuthenticationException(new OAuth2Error("invalid_token"), "Invalid access token");
     }
 }
+

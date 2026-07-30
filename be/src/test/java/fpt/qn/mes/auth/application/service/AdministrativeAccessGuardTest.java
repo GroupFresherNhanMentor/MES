@@ -1,5 +1,6 @@
 package fpt.qn.mes.auth.application.service;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -27,23 +28,23 @@ class AdministrativeAccessGuardTest {
     }
 
     @Test
-    void delegatesSingletonLock() {
+    void lockDelegatesToPort() {
         guard.lock();
         verify(guardPort).lock();
     }
 
     @Test
-    void acceptsWhenAnActiveEffectiveAdministratorRemains() {
+    void assertionPassesWhenActiveAdministratorExists() {
         when(guardPort.hasActiveAdministrator()).thenReturn(true);
-        guard.assertAdministrativeAccessRemains();
+        assertThatCode(() -> guard.assertAdministrativeAccessRemains())
+                .doesNotThrowAnyException();
     }
 
     @Test
-    void rejectsRemovalOfFinalEffectiveAdministrator() {
+    void assertionFailsWhenNoActiveAdministratorRemains() {
         when(guardPort.hasActiveAdministrator()).thenReturn(false);
-
         assertThatThrownBy(() -> guard.assertAdministrativeAccessRemains())
                 .isInstanceOf(ConflictException.class)
-                .hasMessageContaining("final effective administrator");
+                .hasMessage("Operation would remove the final effective administrator");
     }
 }

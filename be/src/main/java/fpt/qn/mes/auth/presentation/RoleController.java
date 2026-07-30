@@ -19,7 +19,6 @@ import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
 import fpt.qn.mes.auth.application.dto.response.RoleDto;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.auth.application.port.in.RoleUseCase;
-import fpt.qn.mes.auth.application.security.RoleAccess;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -34,27 +33,27 @@ public class RoleController {
     RoleUseCase roleUseCase;
 
     @GetMapping
-    @PreAuthorize(RoleAccess.ADMIN_ONLY)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<RoleDto>>> getRoles() {
         return ResponseEntity.ok(ApiResponse.success(roleUseCase.getRoles(), "Roles retrieved"));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize(RoleAccess.ADMIN_ONLY)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoleDto>> getRoleById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(roleUseCase.getRoleById(id), "Role retrieved"));
     }
 
     @PostMapping
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
-    @PreAuthorize(RoleAccess.ADMIN_ONLY)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoleDto>> createRole(@Valid @RequestBody CreateRoleRequest request) {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.success(roleUseCase.createRole(request), "Role created"));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize(RoleAccess.ADMIN_ONLY)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<RoleDto>> updateRole(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateRoleRequest request) {
@@ -62,9 +61,10 @@ public class RoleController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(RoleAccess.ADMIN_ONLY)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID id) {
         roleUseCase.deleteRole(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Role deleted"));
     }
 }
+

@@ -119,9 +119,11 @@ class UserRoleServiceTest {
         verify(guard, never()).lock();
     }
 
+
     private ReplaceUserRolesRequest request(List<UUID> roleIds) {
         ReplaceUserRolesRequest request = new ReplaceUserRolesRequest();
         request.setRoleIds(roleIds);
         return request;
     }
 }
+

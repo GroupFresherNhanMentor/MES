@@ -2,12 +2,18 @@ package fpt.qn.mes.user.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.USERS;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
+
 import fpt.qn.mes.common.domainQuery.PaginationResult;
+import fpt.qn.mes.common.exception.ConflictException;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.UsersRecord;
 import fpt.qn.mes.user.domain.entities.User;
@@ -43,9 +49,8 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
     public User save(User user) {
         try {
             return userMapper.toDomain(create(userMapper.toRecord(user)));
-        } catch (org.jooq.exception.DataAccessException
-                | org.springframework.dao.DuplicateKeyException ex) {
-            throw new fpt.qn.mes.common.exception.ConflictException("Username already exists");
+        } catch (DataAccessException | DuplicateKeyException ex) {
+            throw new ConflictException("Username already exists");
         }
     }
 
@@ -67,7 +72,7 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
                 .limit(size)
                 .offset(page * size)
                 .fetch();
-        java.util.List<User> users = new java.util.ArrayList<>();
+        List<User> users = new ArrayList<>();
         for (UsersRecord record : records) {
             users.add(userMapper.toDomain(record));
         }
@@ -84,3 +89,4 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
                 .where(USERS.USERNAME.eq(username.trim())));
     }
 }
+
