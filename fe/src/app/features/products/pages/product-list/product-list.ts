@@ -10,10 +10,12 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
 import { ProductDto } from '../../../../core/models/product.model';
+import { ProductFormComponent } from '../product-form/product-form';
 
 interface LookupEntry { id: string; name: string; description: string; }
 
@@ -23,7 +25,7 @@ interface LookupEntry { id: string; name: string; description: string; }
     DatePipe, SlicePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatDialogModule,
-    MatSnackBarModule, MatCardModule,
+    MatSnackBarModule, MatCardModule, MatTooltipModule,
   ],
   templateUrl: './product-list.html',
 })
@@ -64,6 +66,14 @@ export class ProductListComponent {
     this.api.put(`/api/products/${p.id}/deactivate`, {}).subscribe(r => {
       if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
+  }
+
+  openCreate() {
+    this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
+  }
+
+  openEdit(p: ProductDto) {
+    this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: p }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   typeName(id: string) { return this.types().find(t => t.id === id)?.name ?? ''; }
