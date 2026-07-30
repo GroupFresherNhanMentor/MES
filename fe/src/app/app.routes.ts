@@ -65,6 +65,12 @@ export const routes: Routes = [
         data: { title: 'Bill of Materials' },
       },
       {
+        path: 'boms/:id',
+        loadComponent: () =>
+          import('./features/boms/pages/bom-detail/bom-detail').then((m) => m.BomDetail),
+        data: { title: 'BOM Details' },
+      },
+      {
         path: 'work-orders',
         loadComponent: () =>
           import('./features/work-orders/pages/work-order-list/work-order-list').then((m) => m.WorkOrderList),

@@ -3,20 +3,17 @@ package fpt.qn.mes.bom.infrastructure.persistence;
 import static fpt.qn.mes.jooq.Tables.BOMS;
 import static fpt.qn.mes.jooq.Tables.BOM_ITEMS;
 import static fpt.qn.mes.jooq.Tables.BOM_STATUSES;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import org.jooq.DSLContext;
 import org.jooq.Condition;
+import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
-
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.BomItemsRecord;
 import fpt.qn.mes.jooq.tables.records.BomsRecord;
@@ -112,7 +109,7 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
                 .offset(offset)
                 .fetch(r -> mapper.toDomain(r));
         long total = dslCtx.fetchCount(BOMS, condition);
-        return new PaginationResult<>(total, items);
+        return PaginationResult.<Bom>builder().total(total).items(items).build();
     }
 
     @Override

@@ -11,10 +11,28 @@ import fpt.qn.mes.user.domain.entities.User;
 public class UserRecordMapper {
 
     public User toDomain(UsersRecord r) {
-        return null;
+        if (r == null) return null;
+        return User.builder()
+                .id(r.getId())
+                .username(r.getUsername())
+                .passwordHash(r.getPasswordHash())
+                .fullName(r.getFullName())
+                .active(r.getActive())
+                .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().toInstant() : null)
+                .build();
     }
 
     public UsersRecord toRecord(User u) {
-        return null;
+        if (u == null) return null;
+        UsersRecord r = new UsersRecord();
+        r.setId(u.getId());
+        r.setUsername(u.getUsername());
+        r.setPasswordHash(u.getPasswordHash());
+        r.setFullName(u.getFullName());
+        r.setActive(u.getActive());
+        if (u.getCreatedAt() != null) {
+            r.setCreatedAt(u.getCreatedAt().atOffset(ZoneOffset.UTC));
+        }
+        return r;
     }
 }

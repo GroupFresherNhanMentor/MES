@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.WarehousesRecord;
 import fpt.qn.mes.master.warehouse.domain.entities.Warehouse;
@@ -32,6 +32,14 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
     }
 
     @Override
+    public java.util.List<Warehouse> findByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.List.of();
+        return ctx.selectFrom(WAREHOUSES)
+                .where(WAREHOUSES.ID.in(ids))
+                .fetch().map(mapper::toDomain);
+    }
+
+    @Override
     public Warehouse save(Warehouse w) {
         return mapper.toDomain(create(mapper.toRecord(w)));
     }
@@ -49,7 +57,7 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
         var records = ctx.selectFrom(WAREHOUSES).orderBy(WAREHOUSES.CREATED_AT.desc())
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(WAREHOUSES));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<Warehouse>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override
@@ -60,7 +68,7 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
                 .limit(size).offset((long) page * size).fetch();
         int total = ctx.fetchCount(ctx.selectFrom(WAREHOUSES)
                 .where(WAREHOUSES.WAREHOUSE_STATUS_ID.eq(statusId)));
-        return PaginationResult.of(records.stream().map(mapper::toDomain).toList(), total, page, size);
+        return PaginationResult.<Warehouse>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
     }
 
     @Override

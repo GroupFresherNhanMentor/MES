@@ -220,7 +220,7 @@ Cài đặt cần transaction-safe (tránh 2 request cùng lúc sinh trùng `seq
 **Actor:** Hệ thống (tự động, mọi module khác gọi vào).
 
 **FR-MOV-001 — Create Stock Movement**
-- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
+- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
 - Immutable — không update/delete (⚠️ hiện **không** được DB enforce, xem mục 2.6 #17). Quantity > 0.
 
 **Thiết kế cột vị trí (khác URS field list gốc):**
@@ -230,11 +230,11 @@ Thay vì `warehouseId/locationId` đơn, bảng dùng `from_warehouse_id/from_lo
 |---|---|---|
 | PURCHASE_IN | NULL | có |
 | TRANSFER_OUT / TRANSFER_IN | có | có (2 dòng cùng giá trị) |
-| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_PASS / ADJUSTMENT | có | = from (không đổi vị trí) |
+| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_RELEASE / ADJUSTMENT | có | = from (không đổi vị trí) |
 | CONSUME_IN_PRODUCTION / SCRAP / SHIP_OUT | có | NULL |
 | PRODUCTION_OUTPUT / RETURN_TO_WAREHOUSE | NULL | có |
 
-**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
+**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
 
 **Data model:** `stock_movements, movement_types`
 
@@ -357,7 +357,7 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 - Chỉ áp dụng cho **output của Work Order** (bán thành phẩm/thành phẩm) — **không** áp dụng cho nguyên vật liệu Stock In.
 
 **FR-QC-002 — Pass QC**
-- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển `QUALITY_INSPECTION→AVAILABLE`, tạo movement `QC_PASS`. QC status: `PENDING_INSPECTION → PASSED`.
+- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển `QUALITY_INSPECTION→AVAILABLE`, tạo movement `QC_RELEASE`. QC status: `PENDING_INSPECTION → PASSED`.
 
 **FR-QC-003 — Fail QC**
 - Bắt buộc `defectTypeId + reason`. `action ∈ {SCRAP, HOLD, REWORK}`:
@@ -435,9 +435,9 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 
 **Actor:** Hệ thống (tự động ghi), Admin/Factory Manager/Auditor (xem).
 
-**FR-AUD-001** — Ghi log cho 17 action: `CREATE_WORK_ORDER, RESERVE_MATERIAL, RELEASE_RESERVATION, START_PRODUCTION, PAUSE_PRODUCTION, RESUME_PRODUCTION, COMPLETE_PRODUCTION, QC_PASS, QC_FAIL, QC_HOLD, QC_RELEASE, SCRAP_STOCK, CREATE_MAINTENANCE_TICKET, START_MAINTENANCE, CLOSE_MAINTENANCE_TICKET, ADJUST_STOCK, ACTIVATE_BOM`.
+**FR-AUD-001** — Ghi log cho 17 action: `CREATE_WORK_ORDER, RESERVE_MATERIAL, RELEASE_RESERVATION, START_PRODUCTION, PAUSE_PRODUCTION, RESUME_PRODUCTION, COMPLETE_PRODUCTION, QC_PASS, QC_FAIL, QC_HOLD, SCRAP_STOCK, CREATE_MAINTENANCE_TICKET, START_MAINTENANCE, CLOSE_MAINTENANCE_TICKET, ADJUST_STOCK, ACTIVATE_BOM`.
 
-> `QC_RELEASE` trong audit log tương ứng với movement `QC_PASS` — đây là log hành động "QC Inspector pass", không phải tên movement.
+> `QC_PASS` trong audit log là log hành động "QC Inspector pass", không phải tên movement. Movement tương ứng là `QC_RELEASE`.
 - Không sửa/xóa (⚠️ không được DB enforce, xem mục 2.6 #17). Action quan trọng thiếu log = chưa đạt requirement.
 
 **Data model:** `audit_logs`

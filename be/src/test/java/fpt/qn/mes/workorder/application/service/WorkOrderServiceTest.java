@@ -23,8 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.common.dto.response.PaginationResult;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
@@ -96,7 +96,7 @@ class WorkOrderServiceTest {
         request.setStatusId(statusId);
         request.setCode("WO-2026");
 
-        PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
+        PaginationResult<WorkOrder> paginationResult = PaginationResult.<WorkOrder>builder().total(1).items(List.of(sampleEntity)).build();
         when(repository.findAll(any(WorkOrderSearchCriteria.class))).thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
@@ -115,7 +115,7 @@ class WorkOrderServiceTest {
     @DisplayName("getWorkOrders default pagination should call repository with null filters")
     void getWorkOrders_defaultParams_shouldCallRepositoryWithNullFilters() {
         // Arrange
-        PaginationResult<WorkOrder> paginationResult = PaginationResult.of(List.of(sampleEntity), 1, 0, 20);
+        PaginationResult<WorkOrder> paginationResult = PaginationResult.<WorkOrder>builder().total(1).items(List.of(sampleEntity)).build();
         when(repository.findAll(any(WorkOrderSearchCriteria.class))).thenReturn(paginationResult);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
@@ -221,6 +221,7 @@ class WorkOrderServiceTest {
         );
         verify(repository).findById(nonExistentId);
     }
+<<<<<<< HEAD
 
     @Test
     @DisplayName("updateWorkOrder happy path should update WorkOrder and return DTO")

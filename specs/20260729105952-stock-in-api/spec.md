@@ -8,6 +8,12 @@
 
 **Input**: User description: "POST /api/stock-in help me complete this api with its requirement"
 
+## Clarifications
+
+### Session 2026-07-29
+
+- Q: How should `POST /api/stock-adjustments` modify inventory balances and record audit movements when performing a stock adjustment? → A: Process delta adjustment (`quantityAdjustment`), update `StockBalance`, and record `ADJUSTMENT_IN` / `ADJUSTMENT_OUT` ledger movement.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Record Stock Receipt into Warehouse (Priority: P1)

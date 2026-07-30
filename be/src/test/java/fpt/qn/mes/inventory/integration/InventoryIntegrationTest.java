@@ -75,19 +75,19 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        productTypeId = UUID.randomUUID();
-        unitId = UUID.randomUUID();
-        productStatusId = UUID.randomUUID();
-        productId = UUID.randomUUID();
-        warehouseStatusId = UUID.randomUUID();
-        warehouseId = UUID.randomUUID();
-        locationStatusId = UUID.randomUUID();
-        locationId = UUID.randomUUID();
-        lotTypeId = UUID.randomUUID();
-        lotId = UUID.randomUUID();
-        stockStatusId = UUID.randomUUID();
-        movementTypeId = UUID.randomUUID();
-        userId = UUID.randomUUID();
+        productTypeId = fpt.qn.mes.common.util.UuidV7.generate();
+        unitId = fpt.qn.mes.common.util.UuidV7.generate();
+        productStatusId = fpt.qn.mes.common.util.UuidV7.generate();
+        productId = fpt.qn.mes.common.util.UuidV7.generate();
+        warehouseStatusId = fpt.qn.mes.common.util.UuidV7.generate();
+        warehouseId = fpt.qn.mes.common.util.UuidV7.generate();
+        locationStatusId = fpt.qn.mes.common.util.UuidV7.generate();
+        locationId = fpt.qn.mes.common.util.UuidV7.generate();
+        lotTypeId = fpt.qn.mes.common.util.UuidV7.generate();
+        lotId = fpt.qn.mes.common.util.UuidV7.generate();
+        stockStatusId = fpt.qn.mes.common.util.UuidV7.generate();
+        movementTypeId = fpt.qn.mes.common.util.UuidV7.generate();
+        userId = fpt.qn.mes.common.util.UuidV7.generate();
 
         // Seed master data required by foreign keys
         dsl.insertInto(USERS, USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH)
@@ -187,6 +187,30 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
         PageResponse<StockBalanceDto> balances = inventoryService.getStockBalances(searchReq);
         assertThat(balances.getItems()).hasSize(1);
         assertThat(balances.getItems().get(0).getQuantity()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    @DisplayName("getMovements should return paginated StockMovementDto list")
+    void getStockMovements_Success() {
+        CreateMovementRequest req = new CreateMovementRequest();
+        req.setMovementTypeId(movementTypeId);
+        req.setProductId(productId);
+        req.setWarehouseId(warehouseId);
+        req.setLocationId(locationId);
+        req.setLotId(lotId);
+        req.setToStatusId(stockStatusId);
+        req.setQuantity(new BigDecimal("100.00"));
+        req.setReferenceNo("PO-GET-001");
+        inventoryService.recordMovement(req, userId);
+
+        fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest searchReq = new fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest();
+        searchReq.setReferenceNo("PO-GET-001");
+
+        PageResponse<StockMovementDto> pageRes = inventoryService.getMovements(searchReq);
+
+        assertThat(pageRes).isNotNull();
+        assertThat(pageRes.getItems()).hasSize(1);
+        assertThat(pageRes.getItems().get(0).getReferenceNo()).isEqualTo("PO-GET-001");
     }
 
     @Test

@@ -76,6 +76,15 @@ public class ProductService implements ProductUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<UUID, ProductDto> getProductsByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return java.util.Map.of();
+        var products = productRepository.findByIds(ids);
+        return products.stream()
+                .collect(java.util.stream.Collectors.toMap(Product::getId, mapper::toDto, (p1, p2) -> p1));
+    }
+
+    @Override
     @Transactional
     public ProductDto createProduct(CreateProductRequest request, UUID currentUserId) {
         if (productRepository.existsByCode(request.getCode())) {

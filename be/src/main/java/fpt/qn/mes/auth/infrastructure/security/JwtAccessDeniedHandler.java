@@ -1,6 +1,7 @@
 package fpt.qn.mes.auth.infrastructure.security;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -32,8 +33,9 @@ public class JwtAccessDeniedHandler implements AccessDeniedHandler {
             return;
         }
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name()); // Prevents encoding issues
         response.setStatus(HttpStatus.FORBIDDEN.value());
         objectMapper.writeValue(response.getOutputStream(),
-            ApiResponse.error(ErrorCode.FORBIDDEN, ex.getMessage()));
+                ApiResponse.error(ErrorCode.FORBIDDEN, ex.getMessage()));
     }
 }

@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 
 public interface BomRepository {
     Optional<Bom> findById(UUID id);

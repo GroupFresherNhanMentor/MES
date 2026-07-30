@@ -2,8 +2,7 @@ package fpt.qn.mes.user.domain.repository;
 
 import java.util.Optional;
 import java.util.UUID;
-
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.user.domain.entities.User;
 
 public interface UserRepository {

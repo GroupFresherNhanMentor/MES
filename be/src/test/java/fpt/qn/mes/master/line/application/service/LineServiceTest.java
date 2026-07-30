@@ -15,7 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.master.line.application.dto.request.CreateLineRequest;
 import fpt.qn.mes.master.line.application.dto.request.UpdateLineRequest;
 import fpt.qn.mes.master.line.application.dto.response.ProductionLineDto;

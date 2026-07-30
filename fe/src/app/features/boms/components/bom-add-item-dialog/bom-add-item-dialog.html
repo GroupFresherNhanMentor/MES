@@ -1,0 +1,106 @@
+<!-- Loading Bar -->
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" class="!absolute !top-0 !left-0 !right-0 !z-20"></mat-progress-bar>
+}
+
+<!-- Dialog Title Header -->
+<div mat-dialog-title class="!flex !items-center !gap-3.5 !py-4 !px-6 !m-0 !border-b !border-border-default !bg-surface-elevated">
+  <div class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/15 text-primary border border-primary/25 shrink-0">
+    <mat-icon class="!w-5 !h-5 !text-xl">post_add</mat-icon>
+  </div>
+  <div class="flex-1 min-w-0">
+    <h2 class="text-lg font-bold text-text-primary tracking-tight leading-tight">Add Material Component</h2>
+    <p class="text-xs text-text-secondary font-normal mt-0.5 leading-normal">Specify raw material or assembly quantity and scrap allowance</p>
+  </div>
+</div>
+
+<!-- Dialog Body Content -->
+<mat-dialog-content class="!p-6">
+  <form [formGroup]="form" id="addItemForm" (ngSubmit)="onSubmit()" class="flex flex-col gap-5">
+    <!-- Error Alert -->
+    @if (errorMessage()) {
+      <div class="flex items-start gap-3 p-3.5 rounded-xl bg-error/15 text-error text-sm border border-error/30">
+        <mat-icon class="!w-5 !h-5 !text-xl mt-0.5 shrink-0">error_outline</mat-icon>
+        <span class="leading-relaxed font-medium">{{ errorMessage() }}</span>
+      </div>
+    }
+
+    <!-- Field 1: Material Product Select -->
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Material Component</mat-label>
+      <mat-select formControlName="materialProductId" placeholder="Select a material component...">
+        @for (m of materialsList(); track m.id) {
+          <mat-option [value]="m.id">
+            <div class="flex items-center justify-between w-full py-1">
+              <span class="font-semibold text-text-primary">{{ m.name }}</span>
+              <span class="text-xs font-mono font-medium text-text-muted px-2 py-0.5 rounded bg-surface-elevated border border-border-light ml-3">
+                {{ m.code }}
+              </span>
+            </div>
+          </mat-option>
+        }
+      </mat-select>
+      <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">category</mat-icon>
+      @if (form.get('materialProductId')?.invalid && form.get('materialProductId')?.touched) {
+        <mat-error>Material component is required</mat-error>
+      }
+    </mat-form-field>
+
+    <!-- Quantity & Unit Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+      <!-- Quantity per Unit -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Quantity Per Unit</mat-label>
+        <input matInput type="number" formControlName="quantityPerUnit" min="0.0001" step="0.01" placeholder="1.0" />
+        <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">pin</mat-icon>
+        @if (form.get('quantityPerUnit')?.invalid && form.get('quantityPerUnit')?.touched) {
+          <mat-error>Quantity must be > 0</mat-error>
+        }
+      </mat-form-field>
+
+      <!-- Unit of Measure -->
+      <mat-form-field appearance="outline" class="w-full">
+        <mat-label>Unit of Measure</mat-label>
+        <input matInput formControlName="unit" placeholder="PCS, KG, M" />
+        <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">straighten</mat-icon>
+      </mat-form-field>
+    </div>
+
+    <!-- Scrap Rate -->
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Scrap Rate (%)</mat-label>
+      <input matInput type="number" formControlName="scrapRate" min="0" step="0.1" placeholder="0" />
+      <mat-icon matPrefix class="!w-5 !h-5 text-xl mr-2 text-text-muted">percent</mat-icon>
+      @if (form.get('scrapRate')?.invalid && form.get('scrapRate')?.touched) {
+        <mat-error>Scrap rate cannot be negative</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<!-- Dialog Footer Actions -->
+<mat-dialog-actions align="end" class="!py-4 !px-6 !m-0 !border-t !border-border-default !bg-surface-card">
+  <button
+    mat-button
+    type="button"
+    class="!text-text-secondary hover:!text-text-primary !px-4 !py-2 font-medium"
+    (click)="onCancel()"
+    [disabled]="loading()"
+  >
+    Cancel
+  </button>
+  <button
+    mat-flat-button
+    class="btn-primary font-semibold !px-5 !py-2 flex items-center gap-2 shadow-md"
+    type="submit"
+    form="addItemForm"
+    [disabled]="form.invalid || loading()"
+  >
+    @if (loading()) {
+      <mat-icon class="!w-5 !h-5 text-xl animate-spin">sync</mat-icon>
+    } @else {
+      <mat-icon class="!w-5 !h-5 text-xl">add</mat-icon>
+    }
+    {{ loading() ? 'Adding Component...' : 'Add Material Component' }}
+  </button>
+</mat-dialog-actions>

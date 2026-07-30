@@ -25,7 +25,6 @@ public class StockLot {
     UUID id;
     String lotNumber;
     UUID productId;
-    UUID lotTypeId;
     LotType lotType;
     LocalDate expiryDate;
     Instant createdAt;
@@ -37,13 +36,18 @@ public class StockLot {
         if (productId == null) {
             throw new DomainException("Product ID cannot be null");
         }
+        LotType lotType = lotTypeId != null ? LotType.builder().id(lotTypeId).build() : null;
         return StockLot.builder()
                 .id(UuidV7.generate())
                 .lotNumber(lotNumber.trim())
                 .productId(productId)
-                .lotTypeId(lotTypeId)
+                .lotType(lotType)
                 .expiryDate(expiryDate)
                 .createdAt(Instant.now())
                 .build();
+    }
+
+    public UUID getLotTypeId() {
+        return lotType != null ? lotType.getId() : null;
     }
 }

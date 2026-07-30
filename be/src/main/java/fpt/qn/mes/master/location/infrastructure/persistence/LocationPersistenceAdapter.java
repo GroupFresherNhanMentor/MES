@@ -32,6 +32,14 @@ public class LocationPersistenceAdapter extends BaseRepository<WarehouseLocation
     }
 
     @Override
+    public List<WarehouseLocation> findByIds(java.util.Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return List.of();
+        return ctx.selectFrom(WAREHOUSE_LOCATIONS)
+                .where(WAREHOUSE_LOCATIONS.ID.in(ids))
+                .fetch().map(mapper::toDomain);
+    }
+
+    @Override
     public List<WarehouseLocation> findByWarehouseId(UUID warehouseId) {
         return ctx.selectFrom(WAREHOUSE_LOCATIONS)
                 .where(WAREHOUSE_LOCATIONS.WAREHOUSE_ID.eq(warehouseId))

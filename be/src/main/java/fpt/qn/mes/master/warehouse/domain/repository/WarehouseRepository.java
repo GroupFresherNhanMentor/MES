@@ -1,13 +1,16 @@
 package fpt.qn.mes.master.warehouse.domain.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.master.warehouse.domain.entities.Warehouse;
 
 public interface WarehouseRepository {
     Optional<Warehouse> findById(UUID id);
+    List<Warehouse> findByIds(Collection<UUID> ids);
     Warehouse save(Warehouse warehouse);
     Warehouse update(Warehouse warehouse);
     void deleteById(UUID id);

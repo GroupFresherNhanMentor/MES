@@ -14,6 +14,8 @@ Before writing any code, read and internalize these rule files:
 - `docs/rules/backend-java-style.md` — Java code style (lambdas, etc.)
 - `docs/rules/backend-query-optimization.md` — N+1 prevention and jOOQ query patterns
 - `docs/rules/backend-testing.md` — unit test, controller slice, and integration test patterns
+- `docs/rules/frontend-tailwind.md` — Tailwind CSS & Angular Material conventions
+- `docs/rules/frontend-ui-theme.md` — UI theme color tokens, badges & styling guide
 
 ## Project Layout
 

@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, NgClass, SlicePipe } from '@angular/common';
+import { NgClass, SlicePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -10,20 +10,22 @@ import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
 import { ProductDto } from '../../../../core/models/product.model';
+import { ProductFormComponent } from '../product-form/product-form';
 
 interface LookupEntry { id: string; name: string; description: string; }
 
 @Component({
   selector: 'app-product-list',
   imports: [
-    DatePipe, SlicePipe, NgClass, FormsModule,
+    SlicePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatDialogModule,
-    MatSnackBarModule, MatCardModule,
+    MatSnackBarModule, MatCardModule, MatTooltipModule,
   ],
   templateUrl: './product-list.html',
 })
@@ -64,6 +66,14 @@ export class ProductListComponent {
     this.api.put(`/api/products/${p.id}/deactivate`, {}).subscribe(r => {
       if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
+  }
+
+  openCreate() {
+    this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
+  }
+
+  openEdit(p: ProductDto) {
+    this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: p }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   typeName(id: string) { return this.types().find(t => t.id === id)?.name ?? ''; }
