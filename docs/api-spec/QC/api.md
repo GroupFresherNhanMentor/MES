@@ -141,7 +141,7 @@
 > **Roles:** `ADMIN` · `QC_INSPECTOR`  
 > **QC status:** `PENDING_INSPECTION → PASSED`  
 > **Stock:** `QUALITY_INSPECTION → AVAILABLE` (số lượng = `passedQuantity`)  
-> **Movement:** `QC_PASS`
+> **Movement:** `QC_RELEASE`
 
 **Request body:**
 ```json

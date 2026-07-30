@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.WorkOrdersRecord;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
@@ -73,7 +73,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
         int total = dslCtx.fetchCount(dslCtx.selectFrom(WORK_ORDERS).where(condition));
         var items = records.stream().map(r -> mapper.toDomain(r)).toList();
 
-        return PaginationResult.of(items, total, page, size);
+        return PaginationResult.<WorkOrder>builder().total(total).items(items).build();
     }
 
     private org.jooq.Condition buildCondition(WorkOrderSearchCriteria criteria) {

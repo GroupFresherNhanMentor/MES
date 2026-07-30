@@ -3,7 +3,7 @@ package fpt.qn.mes.workorder.domain.repository;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;

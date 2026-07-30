@@ -23,6 +23,16 @@ __pycache__/
 .opencode/
 *.log
 
+# Frontend & Node
+**/node_modules/
+**/dist/
+**/.angular/
+**/coverage/
+**/out-tsc/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
 # OS Junk
 .DS_Store
 Thumbs.db

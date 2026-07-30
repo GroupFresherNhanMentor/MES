@@ -1,35 +1,26 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
-
+import { toSignal } from '@angular/core/rxjs-interop';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatMenuModule } from '@angular/material/menu';
-import { MatBadgeModule } from '@angular/material/badge';
+import { MatDividerModule } from '@angular/material/divider';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-
 import { AuthService } from '../../../core/services/auth';
 import { LoadingService } from '../../../core/services/loading';
 
-interface NavItem {
-  path: string;
-  label: string;
-  icon: string;
-  roles?: string[];
-}
+interface NavItem { path: string; label: string; icon: string; roles?: string[]; }
 
 @Component({
-  selector: 'app-app-shell',
+  selector: 'app-shell',
   imports: [
     RouterOutlet, RouterLink, RouterLinkActive,
     MatToolbarModule, MatSidenavModule, MatButtonModule, MatIconModule,
-    MatListModule, MatDividerModule, MatMenuModule, MatBadgeModule,
-    MatProgressBarModule,
+    MatListModule, MatMenuModule, MatDividerModule, MatProgressBarModule,
   ],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
@@ -41,9 +32,7 @@ export class AppShell {
   private readonly activatedRoute = inject(ActivatedRoute);
 
   readonly currentUser = this.authService.getCurrentUser();
-  readonly isAdmin = this.currentUser?.role === 'ADMIN';
   readonly isLoading = this.loadingService.isLoading;
-
   readonly sidenavOpened = signal(true);
 
   readonly pageTitle = toSignal(
@@ -63,7 +52,7 @@ export class AppShell {
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { path: '/products', label: 'Products', icon: 'inventory_2', roles: ['ADMIN'] },
     { path: '/warehouses', label: 'Warehouses', icon: 'warehouse', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
-    { path: '/production-lines', label: 'Production Lines', icon: 'precision_manufacturing', roles: ['ADMIN'] },
+    { path: '/production-lines', label: 'Lines', icon: 'precision_manufacturing', roles: ['ADMIN'] },
     { path: '/machines', label: 'Machines', icon: 'settings', roles: ['ADMIN', 'PRODUCTION_OPERATOR'] },
     { path: '/boms', label: 'BOM', icon: 'description', roles: ['ADMIN', 'PLANNER'] },
     { path: '/work-orders', label: 'Work Orders', icon: 'assignment', roles: ['ADMIN', 'PLANNER', 'PRODUCTION_OPERATOR'] },
@@ -78,11 +67,10 @@ export class AppShell {
     (item) => !item.roles || item.roles.includes(this.currentUser?.role ?? ''),
   );
 
-  toggleSidenav(): void {
-    this.sidenavOpened.update((v) => !v);
-  }
+  toggleSidenav() { this.sidenavOpened.update(v => !v); }
 
-  logout(): void {
-    this.authService.logout();
+  logout() {
+    localStorage.clear();
+    this.router.navigateByUrl('/login');
   }
 }
