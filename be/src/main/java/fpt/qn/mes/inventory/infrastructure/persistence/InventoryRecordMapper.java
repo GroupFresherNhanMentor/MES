@@ -4,9 +4,11 @@ import java.time.ZoneOffset;
 
 import org.springframework.stereotype.Component;
 import fpt.qn.mes.inventory.domain.entities.LotType;
+import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.entities.StockStatus;
 import fpt.qn.mes.jooq.tables.records.StockBalancesRecord;
 import fpt.qn.mes.jooq.tables.records.StockLotsRecord;
 import fpt.qn.mes.jooq.tables.records.StockMovementsRecord;
@@ -44,17 +46,17 @@ public class InventoryRecordMapper {
         if (r == null) return null;
         return StockMovement.builder()
                 .id(r.getId())
-                .movementType(r.getMovementTypeId() != null ? fpt.qn.mes.inventory.domain.entities.MovementType.builder().id(r.getMovementTypeId()).build() : null)
+                .movementType(r.getMovementTypeId() != null ? MovementType.builder().id(r.getMovementTypeId()).build() : null)
                 .productId(r.getProductId())
                 .workOrderId(r.getWorkOrderId())
-                .stockLot(r.getLotId() != null ? fpt.qn.mes.inventory.domain.entities.StockLot.builder().id(r.getLotId()).build() : null)
+                .stockLot(r.getLotId() != null ? StockLot.builder().id(r.getLotId()).build() : null)
                 .fromWarehouseId(r.getFromWarehouseId())
                 .fromLocationId(r.getFromLocationId())
                 .toWarehouseId(r.getToWarehouseId())
                 .toLocationId(r.getToLocationId())
                 .quantity(r.getQuantity())
-                .fromStatus(r.getFromStatusId() != null ? fpt.qn.mes.inventory.domain.entities.StockStatus.builder().id(r.getFromStatusId()).build() : null)
-                .toStatus(r.getToStatusId() != null ? fpt.qn.mes.inventory.domain.entities.StockStatus.builder().id(r.getToStatusId()).build() : null)
+                .fromStatus(r.getFromStatusId() != null ? StockStatus.builder().id(r.getFromStatusId()).build() : null)
+                .toStatus(r.getToStatusId() != null ? StockStatus.builder().id(r.getToStatusId()).build() : null)
                 .referenceNo(r.getReferenceNo())
                 .reason(r.getReason())
                 .createdBy(r.getCreatedBy())
