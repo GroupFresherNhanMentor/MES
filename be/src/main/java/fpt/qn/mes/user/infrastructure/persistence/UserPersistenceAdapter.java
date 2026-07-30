@@ -73,7 +73,13 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
                 .fetch()
                 .map(userMapper::toDomain);
 
-        return PaginationResult.of(items, totalElements, page, size);
+        return PaginationResult
+                    .<User>builder()
+                    .items(items)
+                    .total(totalElements)
+                    .build();
+
+
     }
 
     @Override
