@@ -97,7 +97,7 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED)).thenReturn(Optional.of(plannedStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").statusName("PLANNED").build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").workOrderStatusId(plannedStatusId).build());
 
         WorkOrderDto result = workOrderService.releaseMaterials(workOrderId);
 
@@ -127,7 +127,7 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED)).thenReturn(Optional.of(cancelledStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").statusName("CANCELLED").build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").workOrderStatusId(cancelledStatusId).build());
 
         WorkOrderDto result = workOrderService.cancelWorkOrder(workOrderId);
 
