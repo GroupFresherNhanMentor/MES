@@ -1,12 +1,14 @@
 package fpt.qn.mes.auth.application.port.out;
 
+import java.util.UUID;
+
+import fpt.qn.mes.auth.application.security.TokenClaims;
+
 public interface TokenPort {
 
-    String generateAccessToken(String username, String role);
+    String generateAccessToken(UUID userId, String username);
 
-    String generateRefreshToken(String username);
+    String generateRefreshToken(UUID userId, String username);
 
-    boolean isRefreshToken(String token);
-
-    String extractUsername(String token);
+    TokenClaims parseRefreshToken(String token);
 }

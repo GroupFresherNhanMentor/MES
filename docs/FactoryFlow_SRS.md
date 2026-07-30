@@ -136,14 +136,14 @@ Factory Manager xem báo cáo | Auditor xem audit log
 **Actor:** Mọi user (login), Admin (quản lý user/role).
 
 **FR-AUTH-001 — Login**
-- Input: `username, password`. Output: `accessToken, refreshToken (optional), user profile, roles, permissions`.
+- Input: `username, password`. Output: `userId, username, accessToken, refreshToken`.
 - Sai password → lỗi authentication failed. Đúng → JWT hợp lệ.
 
 **FR-AUTH-002 — Role-based access control**
 - API giới hạn theo role (VD: chỉ Admin tạo user, chỉ duy nhất Planner tạo Work Order). Sai quyền → HTTP 403.
-- **Quyết định triển khai:** Permission tính theo role qua map tĩnh trong code (`Map<Role, Set<Permission>>`) ở mức Must Have — không bắt buộc phải có UI quản lý permission động, dù bảng `permissions`/`role_permissions` đã có sẵn trong schema (kế thừa từ `diagram.puml`) cho hướng mở rộng sau này.
+- **Quyết định triển khai:** Spring Security chỉ nạp các authority dạng `ROLE_<ROLE_NAME>` từ `user_roles`; controller khai báo trực tiếp các role được phép truy cập.
 
-**Data model:** `users, roles, permissions, user_roles, role_permissions`
+**Data model:** `users, roles, user_roles, permissions, role_permissions` (`permissions` và `role_permissions` được giữ để tương thích dữ liệu nhưng không tham gia authorization runtime)
 
 ---
 
@@ -442,7 +442,7 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 ### 4.1. Tổng quan theo domain
 
 ```
-AUTH            → users, roles, permissions, user_roles, role_permissions
+AUTH            → users, roles, user_roles, permissions, role_permissions
 MASTER DATA     → products (+ types/statuses/UOM), warehouses (+ managers/locations),
                    production_lines, machines
 INVENTORY       → stock_lots (+ lot_types), stock_balances (+ statuses)
@@ -461,7 +461,8 @@ AUDIT           → audit_logs, idempotency_keys
 | Nhóm | Bảng | Vai trò |
 |---|---|---|
 | Auth | `users` | Tài khoản đăng nhập |
-| | `roles`, `permissions`, `user_roles`, `role_permissions` | RBAC (permission tables kế thừa diagram.puml, không có trong URS mục 9) |
+| | `roles`, `user_roles` | Gán nhiều role cho user và phân quyền API theo role |
+| | `permissions`, `role_permissions` | Giữ lại để tương thích dữ liệu; runtime không sử dụng |
 | Master Data | `products`, `product_types`, `product_statuses` | Sản phẩm/vật tư |
 | | `units_of_measure` | Đơn vị tính (bổ sung theo URS mục 9) |
 | | `warehouses`, `warehouse_statuses`, `warehouse_managers` (bổ sung) | Kho |

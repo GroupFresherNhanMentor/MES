@@ -33,8 +33,9 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             return;
         }
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         objectMapper.writeValue(response.getOutputStream(),
-            ApiResponse.error(ErrorCode.UNAUTHORIZED, ex.getMessage()));
+                ApiResponse.error(ErrorCode.UNAUTHORIZED, "Authentication required"));
     }
 }
