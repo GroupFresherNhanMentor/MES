@@ -1,17 +1,19 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
 import type { MachineDto } from '../../../../core/models/machine.model';
+import type { ProductionLineDto } from '../../../../core/models/production-line.model';
 
 @Component({
   selector: 'app-machine-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatSnackBarModule],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatDialogModule, MatSnackBarModule],
   template: `
   <h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} Machine</h2>
   <mat-dialog-content>
@@ -20,13 +22,19 @@ import type { MachineDto } from '../../../../core/models/machine.model';
         <mat-label>Code</mat-label>
         <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data">
       </mat-form-field>
+
       <mat-form-field appearance="outline">
         <mat-label>Name</mat-label>
         <input matInput [(ngModel)]="name" name="name" required>
       </mat-form-field>
+
       <mat-form-field appearance="outline">
-        <mat-label>Production Line ID</mat-label>
-        <input matInput [(ngModel)]="productionLineId" name="lineId" required>
+        <mat-label>Production Line</mat-label>
+        <mat-select [(ngModel)]="productionLineId" name="lineId" required>
+          @for (line of lines(); track line.id) {
+            <mat-option [value]="line.id">{{ line.name }} ({{ line.code }})</mat-option>
+          }
+        </mat-select>
       </mat-form-field>
     </div>
   </mat-dialog-content>
@@ -45,8 +53,13 @@ export class MachineFormComponent {
   code = '';
   name = '';
   productionLineId = '';
+  lines = signal<ProductionLineDto[]>([]);
 
   constructor() {
+    this.api.get<{ items: ProductionLineDto[] }>('/api/production-lines?page=0&size=100').subscribe(r => {
+      if (r.success) this.lines.set(r.data.items);
+    });
+
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name;

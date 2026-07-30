@@ -72,4 +72,5 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
      - Sidebar Menu (`.nav-item`): Mục menu dạng pill có icon rõ ràng, khi được kích hoạt (`.active`) có nền hiệu ứng màu cam mờ `rgba(234,88,12,0.15)` và chữ màu `#ea580c`.
    - Login Page Design: Trang đăng nhập sử dụng thiết kế **Glassmorphism Dark Mode** hiện đại với vòng sáng hiệu ứng Radial Glow, logo hiệu ứng 3D Gradient, ô nhập liệu có icon dẫn đường, và các Nút chọn quyền nhanh (Quick Demo Access Pills) để thử nghiệm phân quyền dễ dàng.
    - Table Headers (`.mat-mdc-header-cell`): Chữ màu `#ea580c` (Primary Orange), font-weight `bold`, size `17px`, uppercase, letter-spacing `0.5px`, viền dưới `#44403c`.
-   - Modals/Dialogs: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`.
+   - Modals/Dialogs Popup: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`. Thẻ Popup được bo góc 16px, có viền tối `#44403c`, tiêu đề phân cách rõ ràng và bóng đổ độ sâu lớn (`box-shadow: 0 20px 40px rgba(0,0,0,0.6)`).
+   - SnackBar Popup Notifications: Tất cả thông báo nổi (`MatSnackBar`) được cố định hiển thị ở **Góc trên cùng bên phải (Top-Right Toast)** với lề `24px`, nền gradient tối sang trọng `linear-gradient(135deg, #292524 -> #1c1917)`, viền màu cam chính `#ea580c`, bo góc 10px, hiệu ứng phát sáng nhẹ và chữ đậm độ tương phản cao.

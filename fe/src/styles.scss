@@ -245,10 +245,12 @@ mat-card,
 /* Action Icon Buttons */
 .ff-action-btn-edit {
   color: #38bdf8 !important;
+  /* Vivid Sky Blue */
   background: rgba(56, 189, 248, 0.1) !important;
   border-radius: 6px !important;
   transition: all 0.15s ease-in-out !important;
 }
+
 .ff-action-btn-edit:hover {
   background: rgba(56, 189, 248, 0.25) !important;
   color: #7dd3fc !important;
@@ -257,10 +259,12 @@ mat-card,
 
 .ff-action-btn-view {
   color: #a855f7 !important;
+  /* Vivid Purple / Violet */
   background: rgba(168, 85, 247, 0.1) !important;
   border-radius: 6px !important;
   transition: all 0.15s ease-in-out !important;
 }
+
 .ff-action-btn-view:hover {
   background: rgba(168, 85, 247, 0.25) !important;
   color: #c084fc !important;
@@ -269,10 +273,12 @@ mat-card,
 
 .ff-action-btn-delete {
   color: #f87171 !important;
+  /* Vibrant Red */
   background: rgba(248, 113, 113, 0.1) !important;
   border-radius: 6px !important;
   transition: all 0.15s ease-in-out !important;
 }
+
 .ff-action-btn-delete:hover {
   background: rgba(248, 113, 113, 0.25) !important;
   color: #fca5a5 !important;
@@ -288,28 +294,67 @@ mat-card,
 .ff-dialog-panel .mat-mdc-dialog-surface {
   background: #292524 !important;
   border: 1px solid #44403c !important;
-  border-radius: 16px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+}
+
+.mat-mdc-dialog-title {
+  color: #fafaf9 !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  padding: 20px 24px 12px !important;
+  border-bottom: 1px solid #44403c !important;
+}
+
+.mat-mdc-dialog-content {
+  color: #a8a29e !important;
+  padding: 20px 24px !important;
+}
+
+.mat-mdc-dialog-actions {
+  padding: 12px 24px 20px !important;
+  border-top: 1px solid #363230 !important;
+}
+
+.ff-dialog-panel .mat-mdc-dialog-surface {
   padding: 0 !important;
+  background-color: #292524 !important;
+  border: 1px solid #44403c !important;
+  border-radius: 16px !important;
   overflow: hidden !important;
 }
-<<<<<<< Updated upstream
+
+/* ── SnackBar Popup Notifications (Top-Right Floating Toast) ── */
+.cdk-global-overlay-wrapper:has(.mat-mdc-snack-bar-container) {
+  justify-content: flex-end !important;
+  align-items: flex-start !important;
+  padding: 24px 24px 0 0 !important;
+}
+
+.mat-mdc-snack-bar-container {
+  margin: 0 !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__surface {
+  background: linear-gradient(135deg, #292524 0%, #1c1917 100%) !important;
+  border: 1px solid #ea580c !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(234, 88, 12, 0.3), 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+.mat-mdc-snack-bar-container .mdc-snackbar__label {
+  color: #fafaf9 !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.3px !important;
+}
+
+.mat-mdc-snack-bar-container .mat-mdc-button {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+}
 
 .ff-dialog-panel .mat-mdc-dialog-container {
   padding: 0 !important;
-=======
-.ff-dialog-panel mat-form-field, .ff-dialog-panel .mat-mdc-form-field {
-  width: 100% !important;
-  display: block !important;
-  margin-bottom: 16px !important;
-}
-.dialog-header-box {
-  display: flex !important;
-  align-items: center !important;
-  gap: 16px !important;
-  background: #1c1917 !important;
-  border-bottom: 1px solid #44403c !important;
-  padding: 20px 24px !important;
->>>>>>> Stashed changes
 }
 
 /* ── Select/Option ── */
