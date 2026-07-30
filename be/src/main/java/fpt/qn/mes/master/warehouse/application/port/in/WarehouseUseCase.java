@@ -13,6 +13,7 @@ public interface WarehouseUseCase {
     PageResponse<WarehouseDto> getWarehouses(int page, int size);
     PageResponse<WarehouseDto> getWarehousesByStatus(int page, int size, UUID statusId);
     WarehouseDto getWarehouseById(UUID id);
+    WarehouseDto getWarehouseByCode(String code);
     Map<UUID, WarehouseDto> getWarehousesByIds(Collection<UUID> ids);
     WarehouseDto createWarehouse(CreateWarehouseRequest request, UUID currentUserId);
     WarehouseDto updateWarehouse(UUID id, UpdateWarehouseRequest request, UUID currentUserId);

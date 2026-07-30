@@ -30,13 +30,15 @@ import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
-import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
-import fpt.qn.mes.workorder.application.exception.InvalidInputException;
-import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderCodeExistsException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
+import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
+import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
@@ -52,6 +54,21 @@ class WorkOrderServiceTest {
 
     @Mock
     WorkOrderDtoMapper mapper;
+
+    @Mock
+    WorkOrderReservationPort reservationPort;
+
+    @Mock
+    WarehouseUseCase warehouseUseCase;
+
+    @Mock
+    MachineUseCase machineUseCase;
+
+    @Mock
+    CurrentUserPort currentUserPort;
+
+    @Mock
+    AuditLogPort auditLogPort;
 
     @InjectMocks
     WorkOrderService service;
@@ -428,6 +445,59 @@ class WorkOrderServiceTest {
         org.junit.jupiter.api.Assertions.assertThrows(
                 WorkOrderCodeExistsException.class,
                 () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("reserveMaterials with null request should throw InvalidWorkOrderReservationException")
+    void reserveMaterials_nullRequest_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderReservationException.class,
+                () -> service.reserveMaterials(id, null)
+        );
+    }
+
+    @Test
+    @DisplayName("reserveMaterials with invalid WO status should throw InvalidWorkOrderReservationException")
+    void reserveMaterials_invalidStatus_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        ReserveWorkOrderMaterialsRequest req = new ReserveWorkOrderMaterialsRequest();
+        req.setMachineId(UUID.randomUUID());
+
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderReservationException.class,
+                () -> service.reserveMaterials(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("reserveMaterials when machine is unavailable should throw MachineNotAvailableException")
+    void reserveMaterials_machineNotAvailable_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+        UUID machineId = UUID.randomUUID();
+        ReserveWorkOrderMaterialsRequest req = new ReserveWorkOrderMaterialsRequest();
+        req.setMachineId(machineId);
+
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("PLANNED"));
+        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
+                .thenReturn(fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto.builder().id(UUID.randomUUID()).build());
+        when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(false);
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                MachineNotAvailableException.class,
+                () -> service.reserveMaterials(id, req)
         );
     }
 }

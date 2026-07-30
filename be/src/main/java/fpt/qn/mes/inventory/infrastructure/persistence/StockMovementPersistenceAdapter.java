@@ -78,8 +78,9 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
                     sm.ID,
                     sm.MOVEMENT_TYPE_ID,
                     mt.NAME.as("movementTypeName"),
-                    sm.PRODUCT_ID,
-                    sm.LOT_ID,
+                     sm.PRODUCT_ID,
+                     sm.LOT_ID,
+                     sm.WORK_ORDER_ID,
                     sl.LOT_NUMBER.as("lotNumber"),
                     sm.FROM_WAREHOUSE_ID,
                     sm.FROM_LOCATION_ID,
@@ -149,6 +150,7 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
                 .id(r.get(STOCK_MOVEMENTS.ID))
                 .movementType(movementType)
                 .productId(r.get(STOCK_MOVEMENTS.PRODUCT_ID))
+                .workOrderId(r.get(STOCK_MOVEMENTS.WORK_ORDER_ID))
                 .stockLot(stockLot)
                 .fromWarehouseId(r.get(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID))
                 .fromLocationId(r.get(STOCK_MOVEMENTS.FROM_LOCATION_ID))

@@ -1,9 +1,14 @@
 package fpt.qn.mes.workorder.application.service;
 
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
@@ -15,21 +20,30 @@ import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
+import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
+import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
+import fpt.qn.mes.workorder.application.port.out.ReservationStock;
+import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
+import fpt.qn.mes.workorder.application.exception.ShortageDetail;
+import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
+import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
-import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
-import fpt.qn.mes.workorder.application.exception.InvalidInputException;
-import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderCodeExistsException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
@@ -43,6 +57,15 @@ public class WorkOrderService implements WorkOrderUseCase {
     WorkOrderRepository repository;
     BomRepository bomRepository;
     WorkOrderDtoMapper mapper;
+    WarehouseUseCase warehouseUseCase;
+    MachineUseCase machineUseCase;
+    WorkOrderReservationPort reservationPort;
+    AuditLogPort auditLogPort;
+    CurrentUserPort currentUserPort;
+
+    @NonFinal
+    @Value("${app.inventory.raw-material-warehouse-code:RAW_MATERIAL_WAREHOUSE}")
+    String rawMaterialWarehouseCode;
 
     @Override
     @Transactional(readOnly = true)
@@ -228,6 +251,145 @@ public class WorkOrderService implements WorkOrderUseCase {
         }
 
         return getWorkOrderById(saved.getId());
+    }
+
+    @Override
+    @Transactional(noRollbackFor = InsufficientMaterialException.class)
+    public ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId,
+            ReserveWorkOrderMaterialsRequest request) {
+        if (request == null || request.getMachineId() == null) {
+            throw new InvalidWorkOrderReservationException("machineId is required");
+        }
+
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (!WorkOrderStatusConstants.PLANNED.equals(currentStatus)
+                && !WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)) {
+            throw new InvalidWorkOrderReservationException(
+                    "Work Order must be PLANNED or MATERIAL_SHORTAGE to reserve materials");
+        }
+
+        String warehouseCode = rawMaterialWarehouseCode != null
+                ? rawMaterialWarehouseCode
+                : "RAW_MATERIAL_WAREHOUSE";
+        var warehouse = warehouseUseCase.getWarehouseByCode(warehouseCode);
+        if (!machineUseCase.isAvailableForReservation(request.getMachineId())) {
+            throw new MachineNotAvailableException(
+                    "Machine must be AVAILABLE before the Work Order can be reserved");
+        }
+
+        UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
+                "AVAILABLE stock status is not configured");
+        UUID reservedStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.RESERVED),
+                "RESERVED stock status is not configured");
+        UUID movementTypeId = requireReferenceId(reservationPort.findMovementTypeId(MovementTypeConstants.RESERVE),
+                "RESERVE movement type is not configured");
+
+        List<WorkOrderMaterial> materials = repository.findMaterialsByWorkOrderId(workOrderId);
+        List<UUID> productIds = materials.stream()
+                .map(WorkOrderMaterial::getMaterialProductId)
+                .distinct()
+                .toList();
+        List<ReservationStock> stock = reservationPort.findAvailableStock(
+                warehouse.getId(), productIds, availableStatusId);
+
+        Map<UUID, BigDecimal> remainingStockMap = new HashMap<>();
+        for (ReservationStock item : stock) {
+            remainingStockMap.put(item.balanceId(), item.quantity());
+        }
+
+        List<ReservationAllocation> allocations = new ArrayList<>();
+        Map<UUID, BigDecimal> reservedByProduct = new HashMap<>();
+        List<ShortageDetail> shortages = new ArrayList<>();
+        for (WorkOrderMaterial material : materials) {
+            BigDecimal required = material.getRequiredQuantity() == null
+                    ? BigDecimal.ZERO
+                    : material.getRequiredQuantity();
+            BigDecimal alreadyReserved = material.getReservedQuantity() == null
+                    ? BigDecimal.ZERO
+                    : material.getReservedQuantity();
+            BigDecimal remaining = required.subtract(alreadyReserved);
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            BigDecimal available = stock.stream()
+                    .filter(item -> item.productId().equals(material.getMaterialProductId()))
+                    .map(item -> remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (available.compareTo(remaining) < 0) {
+                shortages.add(new ShortageDetail(material.getMaterialProductId(), remaining, available,
+                        remaining.subtract(available)));
+                continue;
+            }
+
+            BigDecimal left = remaining;
+            for (ReservationStock item : stock) {
+                if (!item.productId().equals(material.getMaterialProductId())
+                        || left.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                BigDecimal availInItem = remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO);
+                if (availInItem.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+                BigDecimal amount = availInItem.min(left);
+                allocations.add(new ReservationAllocation(item.balanceId(), item.warehouseId(), item.locationId(),
+                        item.productId(), item.lotId(), amount));
+                remainingStockMap.put(item.balanceId(), availInItem.subtract(amount));
+                left = left.subtract(amount);
+            }
+            reservedByProduct.merge(material.getMaterialProductId(), remaining, BigDecimal::add);
+        }
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+        if (!shortages.isEmpty()) {
+            UUID shortageStatusId = requireReferenceId(
+                    repository.findStatusIdByName(WorkOrderStatusConstants.MATERIAL_SHORTAGE).orElse(null),
+                    "MATERIAL_SHORTAGE status is not configured");
+            updateStatus(workOrder, shortageStatusId);
+            auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                    WorkOrderStatusConstants.MATERIAL_SHORTAGE);
+            throw new InsufficientMaterialException(
+                    "Insufficient stock for one or more Work Order materials", shortages);
+        }
+
+        reservationPort.applyReservation(workOrderId, allocations, reservedByProduct, availableStatusId,
+                reservedStatusId, movementTypeId, actorId);
+        UUID readyStatusId = requireReferenceId(
+                repository.findStatusIdByName(WorkOrderStatusConstants.READY_TO_PRODUCE).orElse(null),
+                "READY_TO_PRODUCE status is not configured");
+        updateStatus(workOrder, readyStatusId);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                WorkOrderStatusConstants.READY_TO_PRODUCE);
+        return ReserveWorkOrderMaterialsResponse.builder()
+                .workOrderId(workOrderId)
+                .status(WorkOrderStatusConstants.READY_TO_PRODUCE)
+                .build();
+    }
+
+    private void updateStatus(WorkOrder workOrder, UUID statusId) {
+        repository.update(WorkOrder.builder()
+                .id(workOrder.getId())
+                .code(workOrder.getCode())
+                .finishedProductId(workOrder.getFinishedProductId())
+                .bomId(workOrder.getBomId())
+                .plannedQuantity(workOrder.getPlannedQuantity())
+                .plannedStartDate(workOrder.getPlannedStartDate())
+                .plannedEndDate(workOrder.getPlannedEndDate())
+                .priorityId(workOrder.getPriorityId())
+                .workOrderStatusId(statusId)
+                .createdBy(workOrder.getCreatedBy())
+                .createdAt(workOrder.getCreatedAt())
+                .build());
+    }
+
+    private UUID requireReferenceId(UUID id, String message) {
+        if (id == null) {
+            throw new InvalidWorkOrderReservationException(message);
+        }
+        return id;
     }
 
     @Override @Transactional

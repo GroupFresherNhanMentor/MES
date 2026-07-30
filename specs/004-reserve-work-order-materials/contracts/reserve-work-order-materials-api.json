@@ -1,0 +1,91 @@
+{
+  "endpoint": "POST /api/v1/work-orders/{id}/reserve-materials",
+  "description": "Reserve all required Work Order materials from the configured raw material warehouse and make the Work Order ready for production",
+  "authentication": "JWT Bearer Token",
+  "authorization": ["PLANNER"],
+  "pathParameters": {
+    "id": {
+      "type": "UUID",
+      "required": true,
+      "description": "Work Order ID"
+    }
+  },
+  "requestBody": {
+    "contentType": "application/json",
+    "schema": {
+      "machineId": {
+        "type": "UUID",
+        "required": true,
+        "description": "Machine designated for production; must be AVAILABLE"
+      }
+    },
+    "excludedFields": {
+      "sourceWarehouseId": "Not accepted from the client; resolved from configured warehouse code RAW_MATERIAL_WAREHOUSE"
+    }
+  },
+  "responses": {
+    "200": {
+      "description": "Materials reserved successfully",
+      "body": {
+        "success": true,
+        "message": "Materials reserved successfully. Work Order is now READY_TO_PRODUCE.",
+        "data": {
+          "workOrderId": "uuid",
+          "status": "READY_TO_PRODUCE"
+        }
+      }
+    },
+    "400": {
+      "description": "Invalid state, machine, input, or insufficient stock",
+      "errorCodes": ["INVALID_INPUT", "INSUFFICIENT_STOCK"],
+      "examples": [
+        {
+          "case": "Insufficient stock",
+          "errorCode": "INSUFFICIENT_STOCK",
+          "message": "Insufficient stock for one or more Work Order materials",
+          "details": [
+            {
+              "materialProductId": "uuid",
+              "requiredQuantity": 200.0,
+              "availableQuantity": 100.0,
+              "shortageQuantity": 100.0
+            }
+          ]
+        },
+        {
+          "case": "Machine unavailable",
+          "errorCode": "INVALID_INPUT",
+          "message": "Machine must be AVAILABLE before the Work Order can be reserved"
+        },
+        {
+          "case": "Work Order not reservable",
+          "errorCode": "INVALID_INPUT",
+          "message": "Work Order must be PLANNED or MATERIAL_SHORTAGE to reserve materials"
+        }
+      ]
+    },
+    "401": {
+      "description": "Missing or invalid JWT token"
+    },
+    "403": {
+      "description": "User does not have the PLANNER role"
+    },
+    "404": {
+      "description": "Work Order or machine not found",
+      "errorCode": "NOT_FOUND"
+    }
+  },
+  "businessRules": [
+    "Resolve the source warehouse using the configured code RAW_MATERIAL_WAREHOUSE; never accept sourceWarehouseId from the client",
+    "Consider only AVAILABLE stock balances within the resolved source warehouse",
+    "Select eligible lots in FIFO order by stock_lots.created_at",
+    "Allow reservation only from PLANNED or MATERIAL_SHORTAGE",
+    "Require the requested machine to have status AVAILABLE",
+    "Move to READY_TO_PRODUCE only when all materials and the machine condition are satisfied",
+    "Use pessimistic locking for the Work Order, machine decision, and eligible stock balances",
+    "Reserve all materials atomically; do not create partial reservations",
+    "Create one immutable RESERVE movement per selected lot linked to the Work Order",
+    "Write RESERVE_MATERIAL audit data for every important status transition",
+    "On shortage, set MATERIAL_SHORTAGE, preserve stock/material quantities, and return structured shortage details"
+  ]
+}

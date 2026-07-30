@@ -10,6 +10,7 @@ import fpt.qn.mes.master.warehouse.domain.entities.Warehouse;
 
 public interface WarehouseRepository {
     Optional<Warehouse> findById(UUID id);
+    Optional<Warehouse> findByCode(String code);
     List<Warehouse> findByIds(Collection<UUID> ids);
     Warehouse save(Warehouse warehouse);
     Warehouse update(Warehouse warehouse);

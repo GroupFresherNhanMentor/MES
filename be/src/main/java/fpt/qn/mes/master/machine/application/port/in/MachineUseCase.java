@@ -11,6 +11,7 @@ public interface MachineUseCase {
     PageResponse<MachineDto> getMachines(int page, int size);
     PageResponse<MachineDto> getMachinesByStatus(int page, int size, UUID statusId);
     MachineDto getMachineById(UUID id);
+    boolean isAvailableForReservation(UUID id);
     MachineDto createMachine(CreateMachineRequest request, UUID currentUserId);
     MachineDto updateMachine(UUID id, UpdateMachineRequest request, UUID currentUserId);
     void deleteMachine(UUID id);

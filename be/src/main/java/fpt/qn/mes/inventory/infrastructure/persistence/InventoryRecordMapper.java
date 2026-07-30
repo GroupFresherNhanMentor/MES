@@ -46,6 +46,7 @@ public class InventoryRecordMapper {
                 .id(r.getId())
                 .movementType(r.getMovementTypeId() != null ? fpt.qn.mes.inventory.domain.entities.MovementType.builder().id(r.getMovementTypeId()).build() : null)
                 .productId(r.getProductId())
+                .workOrderId(r.getWorkOrderId())
                 .stockLot(r.getLotId() != null ? fpt.qn.mes.inventory.domain.entities.StockLot.builder().id(r.getLotId()).build() : null)
                 .fromWarehouseId(r.getFromWarehouseId())
                 .fromLocationId(r.getFromLocationId())
@@ -68,6 +69,7 @@ public class InventoryRecordMapper {
         r.setMovementTypeId(m.getMovementTypeId());
         r.setProductId(m.getProductId());
         r.setLotId(m.getLotId());
+        r.setWorkOrderId(m.getWorkOrderId());
         r.setFromWarehouseId(m.getFromWarehouseId());
         r.setFromLocationId(m.getFromLocationId());
         r.setToWarehouseId(m.getToWarehouseId());

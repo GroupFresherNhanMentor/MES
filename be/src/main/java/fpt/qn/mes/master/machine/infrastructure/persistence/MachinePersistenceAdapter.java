@@ -1,6 +1,7 @@
 package fpt.qn.mes.master.machine.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.MACHINES;
+import static fpt.qn.mes.jooq.Tables.MACHINE_STATUSES;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,17 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
 
     @Override
     public Optional<Machine> findById(UUID id) { return fetchById(id).map(mapper::toDomain); }
+
+    @Override
+    public boolean isAvailableForUpdate(UUID id) {
+        return ctx.select(MACHINES.ID)
+                .from(MACHINES)
+                .join(MACHINE_STATUSES).on(MACHINE_STATUSES.ID.eq(MACHINES.MACHINE_STATUS_ID))
+                .where(MACHINES.ID.eq(id).and(MACHINE_STATUSES.NAME.eq("AVAILABLE")))
+                .forUpdate()
+                .fetchOptional()
+                .isPresent();
+    }
     @Override
     public Machine save(Machine m) { return mapper.toDomain(create(mapper.toRecord(m))); }
     @Override

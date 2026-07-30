@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,8 +34,13 @@ import lombok.experimental.FieldDefaults;
 
 import org.springframework.security.access.prepost.PreAuthorize;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+
 @RestController
-@RequestMapping("/api/work-orders")
+@RequestMapping("/api/v1/work-orders")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkOrderController {
@@ -62,7 +66,7 @@ public class WorkOrderController {
     @PostMapping
     public ResponseEntity<ApiResponse<WorkOrderDto>> create(
             @Valid @RequestBody CreateWorkOrderRequest req,
-            @AuthenticationPrincipal fpt.qn.mes.auth.application.security.AppUserPrincipal principal) {
+            @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : null;
         var result = workOrderUseCase.createWorkOrder(req, currentUserId);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
@@ -75,6 +79,16 @@ public class WorkOrderController {
             @PathVariable UUID id, @Valid @RequestBody UpdateWorkOrderRequest req) {
         var result = workOrderUseCase.updateWorkOrder(id, req);
         return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
+    }
+
+    @PreAuthorize("hasRole('PLANNER')")
+    @PostMapping("/{id}/reserve-materials")
+    public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReserveWorkOrderMaterialsRequest req) {
+        var result = workOrderUseCase.reserveMaterials(id, req);
+        return ResponseEntity.ok(ApiResponse.success(result,
+                "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
     }
 
     @DeleteMapping("/{id}")

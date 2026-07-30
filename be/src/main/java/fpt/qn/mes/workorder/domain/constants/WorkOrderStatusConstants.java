@@ -7,6 +7,7 @@ public final class WorkOrderStatusConstants {
 
     public static final String DRAFT = "DRAFT";
     public static final String PLANNED = "PLANNED";
+    public static final String MATERIAL_SHORTAGE = "MATERIAL_SHORTAGE";
     public static final String READY_TO_PRODUCE = "READY_TO_PRODUCE";
     public static final String IN_PROGRESS = "IN_PROGRESS";
     public static final String PAUSED = "PAUSED";

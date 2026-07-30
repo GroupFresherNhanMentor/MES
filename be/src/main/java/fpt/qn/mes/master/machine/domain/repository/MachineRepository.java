@@ -8,6 +8,7 @@ import fpt.qn.mes.master.machine.domain.entities.Machine;
 
 public interface MachineRepository {
     Optional<Machine> findById(UUID id);
+    boolean isAvailableForUpdate(UUID id);
     Machine save(Machine machine);
     Machine update(Machine machine);
     void deleteById(UUID id);

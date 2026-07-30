@@ -1,10 +1,11 @@
-package fpt.qn.mes.workorder.infrastructure.persistence;
+package fpt.qn.mes.workorder.infrastructure.persistence.adapter;
 
 import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
 
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.workorder.infrastructure.persistence.WorkOrderRecordMapper;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
@@ -37,6 +38,15 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .where(WORK_ORDERS.ID.eq(id))
                 .fetchOne())
                 .map(r -> mapper.toDomain(r));
+    }
+
+    @Override
+    public Optional<WorkOrder> findForUpdate(UUID id) {
+        return dslCtx.selectFrom(WORK_ORDERS)
+                .where(WORK_ORDERS.ID.eq(id))
+                .forUpdate()
+                .fetchOptional()
+                .map(mapper::toDomain);
     }
     @Override
     public WorkOrder save(WorkOrder w) {
@@ -140,6 +150,14 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .from(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES)
                 .where(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES.ID.eq(id))
                 .fetchOneInto(String.class));
+    }
+
+    @Override
+    public Optional<UUID> findStatusIdByName(String name) {
+        return dslCtx.select(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES.ID)
+                .from(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES)
+                .where(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES.NAME.eq(name))
+                .fetchOptionalInto(UUID.class);
     }
 
     @Override
