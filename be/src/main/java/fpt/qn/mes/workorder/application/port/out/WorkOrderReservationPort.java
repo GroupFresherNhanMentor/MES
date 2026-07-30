@@ -1,5 +1,6 @@
 package fpt.qn.mes.workorder.application.port.out;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +14,9 @@ public interface WorkOrderReservationPort {
     UUID findMovementTypeId(String movementTypeName);
 
     void applyReservation(UUID workOrderId, List<ReservationAllocation> allocations,
-            Map<UUID, java.math.BigDecimal> reservedByProduct,
+            Map<UUID, BigDecimal> reservedByProduct,
             UUID availableStatusId, UUID reservedStatusId, UUID reserveMovementTypeId, UUID actorId);
+
+    void releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
+            UUID releaseMovementTypeId, UUID actorId);
 }

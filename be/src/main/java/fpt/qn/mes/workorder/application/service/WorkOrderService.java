@@ -1,53 +1,51 @@
 package fpt.qn.mes.workorder.application.service;
 
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
 
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.bom.domain.entities.Bom;
+import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
+import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
+import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
+import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
 import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
 import fpt.qn.mes.workorder.application.port.out.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
-import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
-import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
-import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
-import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
-import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
-import fpt.qn.mes.workorder.application.exception.ShortageDetail;
-import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
-import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
+import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
+import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
+import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import fpt.qn.mes.bom.domain.entities.Bom;
-import fpt.qn.mes.bom.domain.repository.BomRepository;
-import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
-import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
-import fpt.qn.mes.workorder.domain.entities.WorkOrder;
-import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
-import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 
 @Service
 @RequiredArgsConstructor
@@ -390,6 +388,78 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderReservationException(message);
         }
         return id;
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderDto releaseMaterials(UUID workOrderId) {
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)
+                || WorkOrderStatusConstants.COMPLETED.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException(
+                    "Cannot release materials for work order in " + currentStatus + " status");
+        }
+
+        UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
+                "AVAILABLE stock status is not configured");
+        UUID reservedStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.RESERVED),
+                "RESERVED stock status is not configured");
+        UUID releaseMovementTypeId = requireReferenceId(
+                reservationPort.findMovementTypeId(MovementTypeConstants.RELEASE_RESERVATION),
+                "RELEASE_RESERVATION movement type is not configured");
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+
+        reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
+
+        if (WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
+            UUID plannedStatusId = requireReferenceId(
+                    repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED).orElse(null),
+                    "PLANNED status is not configured");
+            updateStatus(workOrder, plannedStatusId);
+            auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.PLANNED);
+        }
+
+        return getWorkOrderById(workOrderId);
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderDto cancelWorkOrder(UUID workOrderId) {
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)
+                || WorkOrderStatusConstants.COMPLETED.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException(
+                    "Cannot cancel work order in " + currentStatus + " status");
+        }
+
+        UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
+                "AVAILABLE stock status is not configured");
+        UUID reservedStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.RESERVED),
+                "RESERVED stock status is not configured");
+        UUID releaseMovementTypeId = requireReferenceId(
+                reservationPort.findMovementTypeId(MovementTypeConstants.RELEASE_RESERVATION),
+                "RELEASE_RESERVATION movement type is not configured");
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+
+        // Release any reserved materials
+        reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
+
+        // Transition status to CANCELLED
+        UUID cancelledStatusId = requireReferenceId(
+                repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED).orElse(null),
+                "CANCELLED status is not configured");
+        updateStatus(workOrder, cancelledStatusId);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.CANCELLED);
+
+        return getWorkOrderById(workOrderId);
     }
 
     @Override @Transactional

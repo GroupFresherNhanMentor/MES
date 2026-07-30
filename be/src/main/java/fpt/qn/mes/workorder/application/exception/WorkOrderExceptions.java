@@ -1,11 +1,20 @@
 package fpt.qn.mes.workorder.application.exception;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 
 import fpt.qn.mes.common.exception.AppException;
 import fpt.qn.mes.common.exception.ErrorCode;
 
 public class WorkOrderExceptions {
+
+    public record ShortageDetail(
+            UUID materialProductId,
+            BigDecimal requiredQuantity,
+            BigDecimal availableQuantity,
+            BigDecimal shortageQuantity) {
+    }
 
     public static class BomNotActiveException extends AppException {
         public BomNotActiveException(String message) {

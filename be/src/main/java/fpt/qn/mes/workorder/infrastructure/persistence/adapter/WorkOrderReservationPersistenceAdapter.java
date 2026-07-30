@@ -5,7 +5,9 @@ import static fpt.qn.mes.jooq.Tables.STOCK_BALANCES;
 import static fpt.qn.mes.jooq.Tables.STOCK_LOTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_STATUSES;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_MATERIALS;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -20,7 +22,6 @@ import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
 import fpt.qn.mes.workorder.application.port.out.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
-import static fpt.qn.mes.jooq.Tables.WORK_ORDER_MATERIALS;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,7 +53,7 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                 .where(STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId))
                 .and(STOCK_BALANCES.PRODUCT_ID.in(productIds))
                 .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(availableStatusId))
-                .and(STOCK_BALANCES.QUANTITY.gt(java.math.BigDecimal.ZERO))
+                .and(STOCK_BALANCES.QUANTITY.gt(BigDecimal.ZERO))
                 .orderBy(STOCK_BALANCES.PRODUCT_ID.asc(), STOCK_LOTS.CREATED_AT.asc(),
                         STOCK_LOTS.ID.asc(), STOCK_BALANCES.LOCATION_ID.asc())
                 .forUpdate()
@@ -88,7 +89,7 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
 
     @Override
     public void applyReservation(UUID workOrderId, List<ReservationAllocation> allocations,
-            Map<UUID, java.math.BigDecimal> reservedByProduct,
+            Map<UUID, BigDecimal> reservedByProduct,
             UUID availableStatusId, UUID reservedStatusId, UUID reserveMovementTypeId, UUID actorId) {
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
         for (ReservationAllocation allocation : allocations) {
@@ -142,5 +143,70 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                         .where(WORK_ORDER_MATERIALS.WORK_ORDER_ID.eq(workOrderId))
                         .and(WORK_ORDER_MATERIALS.MATERIAL_PRODUCT_ID.eq(productId))
                         .execute());
+    }
+
+    @Override
+    public void releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
+            UUID releaseMovementTypeId, UUID actorId) {
+        UUID reserveMovementTypeId = findMovementTypeId("RESERVE");
+        var reserveMovements = ctx.selectFrom(STOCK_MOVEMENTS)
+                .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))
+                .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(reserveMovementTypeId))
+                .fetch();
+
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+
+        for (var movement : reserveMovements) {
+            BigDecimal qty = movement.getQuantity();
+
+            // Reduce RESERVED balance
+            ctx.update(STOCK_BALANCES)
+                    .set(STOCK_BALANCES.QUANTITY, STOCK_BALANCES.QUANTITY.subtract(qty))
+                    .set(STOCK_BALANCES.VERSION, STOCK_BALANCES.VERSION.add(1L))
+                    .set(STOCK_BALANCES.UPDATED_AT, now)
+                    .where(STOCK_BALANCES.WAREHOUSE_ID.eq(movement.getFromWarehouseId()))
+                    .and(STOCK_BALANCES.LOCATION_ID.eq(movement.getFromLocationId()))
+                    .and(STOCK_BALANCES.PRODUCT_ID.eq(movement.getProductId()))
+                    .and(STOCK_BALANCES.LOT_ID.eq(movement.getLotId()))
+                    .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(reservedStatusId))
+                    .execute();
+
+            // Increase AVAILABLE balance
+            ctx.insertInto(STOCK_BALANCES)
+                    .columns(STOCK_BALANCES.ID, STOCK_BALANCES.WAREHOUSE_ID, STOCK_BALANCES.LOCATION_ID,
+                            STOCK_BALANCES.PRODUCT_ID, STOCK_BALANCES.LOT_ID, STOCK_BALANCES.STOCK_STATUS_ID,
+                            STOCK_BALANCES.QUANTITY, STOCK_BALANCES.VERSION, STOCK_BALANCES.CREATED_AT,
+                            STOCK_BALANCES.UPDATED_AT)
+                    .values(UuidV7.generate(), movement.getFromWarehouseId(), movement.getFromLocationId(),
+                            movement.getProductId(), movement.getLotId(), availableStatusId, qty,
+                            0L, now, now)
+                    .onConflict(STOCK_BALANCES.WAREHOUSE_ID, STOCK_BALANCES.LOCATION_ID,
+                            STOCK_BALANCES.PRODUCT_ID, STOCK_BALANCES.LOT_ID, STOCK_BALANCES.STOCK_STATUS_ID)
+                    .doUpdate()
+                    .set(STOCK_BALANCES.QUANTITY, STOCK_BALANCES.QUANTITY.add(qty))
+                    .set(STOCK_BALANCES.VERSION, STOCK_BALANCES.VERSION.add(1L))
+                    .set(STOCK_BALANCES.UPDATED_AT, now)
+                    .execute();
+
+            // Record RELEASE_RESERVATION stock movement
+            ctx.insertInto(STOCK_MOVEMENTS)
+                    .columns(STOCK_MOVEMENTS.ID, STOCK_MOVEMENTS.MOVEMENT_TYPE_ID, STOCK_MOVEMENTS.PRODUCT_ID,
+                            STOCK_MOVEMENTS.LOT_ID, STOCK_MOVEMENTS.WORK_ORDER_ID,
+                            STOCK_MOVEMENTS.FROM_WAREHOUSE_ID, STOCK_MOVEMENTS.FROM_LOCATION_ID,
+                            STOCK_MOVEMENTS.TO_WAREHOUSE_ID, STOCK_MOVEMENTS.TO_LOCATION_ID,
+                            STOCK_MOVEMENTS.QUANTITY, STOCK_MOVEMENTS.FROM_STATUS_ID, STOCK_MOVEMENTS.TO_STATUS_ID,
+                            STOCK_MOVEMENTS.REASON, STOCK_MOVEMENTS.CREATED_BY)
+                    .values(UuidV7.generate(), releaseMovementTypeId, movement.getProductId(), movement.getLotId(),
+                            workOrderId, movement.getFromWarehouseId(), movement.getFromLocationId(), movement.getFromWarehouseId(),
+                            movement.getFromLocationId(), qty, reservedStatusId, availableStatusId,
+                            "Work Order material release", actorId)
+                    .execute();
+        }
+
+        // Reset reserved_quantity to 0 for all materials of this work order
+        ctx.update(WORK_ORDER_MATERIALS)
+                .set(WORK_ORDER_MATERIALS.RESERVED_QUANTITY, BigDecimal.ZERO)
+                .where(WORK_ORDER_MATERIALS.WORK_ORDER_ID.eq(workOrderId))
+                .execute();
     }
 }
