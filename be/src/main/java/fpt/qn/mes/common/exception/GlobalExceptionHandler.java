@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,6 +40,13 @@ public class GlobalExceptionHandler {
         log.warn("{} at {}: {}", ex.getStatus(), request.getRequestURI(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus())
                 .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Void>> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+        log.warn("{} at {}: {}", ex.getStatusCode(), request.getRequestURI(), ex.getReason());
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND, ex.getReason() != null ? ex.getReason() : ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

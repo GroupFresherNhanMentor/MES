@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.ProductsRecord;
 import fpt.qn.mes.master.product.domain.entities.Product;
@@ -58,8 +58,8 @@ public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> im
                 .offset((long) page * size)
                 .fetch();
         int total = ctx.fetchCount(ctx.selectFrom(PRODUCTS));
-        var items = records.stream().map(mapper::toDomain).toList();
-        return PaginationResult.of(items, total, page, size);
+        var items = records.stream().map(r -> mapper.toDomain(r)).toList();
+        return PaginationResult.<Product>builder().total(total).items(items).build();
     }
 
     @Override
@@ -72,8 +72,8 @@ public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> im
                 .fetch();
         int total = ctx.fetchCount(ctx.selectFrom(PRODUCTS)
                 .where(PRODUCTS.PRODUCT_STATUS_ID.eq(statusId)));
-        var items = records.stream().map(mapper::toDomain).toList();
-        return PaginationResult.of(items, total, page, size);
+        var items = records.stream().map(r -> mapper.toDomain(r)).toList();
+        return PaginationResult.<Product>builder().total(total).items(items).build();
     }
 
     @Override

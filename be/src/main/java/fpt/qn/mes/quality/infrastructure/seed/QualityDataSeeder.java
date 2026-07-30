@@ -1,6 +1,7 @@
 package fpt.qn.mes.quality.infrastructure.seed;
 
 import static fpt.qn.mes.jooq.Tables.DEFECT_TYPES;
+import static fpt.qn.mes.jooq.Tables.QC_ACTIONS;
 import static fpt.qn.mes.jooq.Tables.QC_STATUSES;
 
 import java.io.InputStream;
@@ -34,6 +35,7 @@ public class QualityDataSeeder implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         seedQcStatuses();
+        seedQcActions();
         seedDefectTypes();
     }
 
@@ -47,6 +49,18 @@ public class QualityDataSeeder implements ApplicationRunner {
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded qc_statuses");
+    }
+
+    private void seedQcActions() {
+        List<Map<String, Object>> rows = loadJson("qc-actions.json");
+        if (rows.isEmpty()) return;
+
+        var step = ctx.insertInto(QC_ACTIONS, QC_ACTIONS.ID, QC_ACTIONS.NAME, QC_ACTIONS.DESCRIPTION);
+        for (Map<String, Object> row : rows) {
+            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+        }
+        step.onConflictDoNothing().execute();
+        log.info("Seeded qc_actions");
     }
 
     private void seedDefectTypes() {

@@ -1,6 +1,7 @@
 package fpt.qn.mes.common.dto.response;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -19,7 +20,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"success", "data", "errorCode", "message", "details", "timestamp"})
+@JsonPropertyOrder({ "success", "data", "errorCode", "message", "details", "timestamp" })
 public class ApiResponse<T> {
     boolean success;
     T data;
@@ -28,12 +29,19 @@ public class ApiResponse<T> {
     T details;
 
     @Builder.Default
-    LocalDateTime timestamp = LocalDateTime.now();
+    String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
 
     public static <T> ApiResponse<T> success(T data, String message) {
         return ApiResponse.<T>builder()
                 .success(true)
                 .data(data)
+                .message(message)
+                .build();
+    }
+
+    public static <T> ApiResponse<T> success(String message) {
+        return ApiResponse.<T>builder()
+                .success(true)
                 .message(message)
                 .build();
     }
