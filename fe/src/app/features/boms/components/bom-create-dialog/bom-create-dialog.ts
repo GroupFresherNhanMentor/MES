@@ -41,7 +41,7 @@ export class BomCreateDialog implements OnInit {
 
   form = this.fb.group({
     finishedProductId: ['', [Validators.required]],
-    version: [1, [Validators.required, Validators.min(1)]],
+    version: [{ value: 1, disabled: true }],
   });
 
   ngOnInit(): void {
@@ -74,7 +74,7 @@ export class BomCreateDialog implements OnInit {
     this.loading.set(true);
     const payload = {
       finishedProductId: this.form.value.finishedProductId!,
-      version: this.form.value.version ?? 1,
+      version: 1,
     };
 
     this.errorMessage.set(null);

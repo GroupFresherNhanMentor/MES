@@ -1,5 +1,4 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -21,7 +20,7 @@ import { WarehouseFormComponent } from '../warehouse-form/warehouse-form';
 @Component({
   selector: 'app-warehouse-list',
   imports: [
-    DatePipe, NgClass, FormsModule,
+    FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,

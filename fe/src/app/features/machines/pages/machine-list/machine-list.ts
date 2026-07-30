@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe, NgClass } from '@angular/common';
+import { NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { MachineFormComponent } from '../machine-form/machine-form';
 @Component({
   selector: 'app-machine-list',
   imports: [
-    DatePipe, NgClass, FormsModule,
+    NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,

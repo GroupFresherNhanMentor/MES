@@ -10,6 +10,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import type { BomDto, BomItemDto } from '../../../../core/models/bom.model';
 import { BomAddItemDialog } from '../../components/bom-add-item-dialog/bom-add-item-dialog';
