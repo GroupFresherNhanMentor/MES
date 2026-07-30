@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 
-public interface StockBalanceRepository {
+public interface StockBalanceRepository extends BaseDomainRepository<StockBalance, UUID> {
     Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
             UUID lotId);
 

@@ -3,7 +3,7 @@ package fpt.qn.mes.inventory.application.mapper;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-import fpt.qn.mes.inventory.application.dto.response.LocationSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.WarehouseLocationSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
@@ -46,7 +46,8 @@ public interface InventoryDtoMapper {
     ProductSummaryDto toSummary(Product entity);
     StockLotSummaryDto toSummary(StockLot entity);
     WarehouseSummaryDto toSummary(Warehouse entity);
-    LocationSummaryDto toSummary(WarehouseLocation entity);
+    WarehouseLocationSummaryDto toSummary(WarehouseLocation entity);
     StockStatusSummaryDto toSummary(StockStatus entity);
     UserSummaryDto toSummary(User entity);
+    
 }

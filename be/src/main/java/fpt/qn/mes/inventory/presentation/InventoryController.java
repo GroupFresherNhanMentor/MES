@@ -36,6 +36,12 @@ import io.swagger.v3.oas.annotations.Operation;
 
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 
+import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
 @RequiredArgsConstructor
@@ -95,6 +101,48 @@ public class InventoryController {
             @Valid StockBalanceSearchRequest request) {
         PageResponse<StockBalanceDto> result = inventoryUseCase.getStockBalances(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
+    }
+
+    @Operation(summary = "Submit a stock adjustment request")
+    @PostMapping("/api/stock-adjustments")
+    public ResponseEntity<ApiResponse<StockAdjustmentResponse>> adjustStock(
+            @Valid @RequestBody StockAdjustmentRequest request,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockAdjustmentResponse result = inventoryUseCase.adjustStock(request, currentUserId);
+        HttpStatus status = result.isRequiresApproval() ? HttpStatus.ACCEPTED : HttpStatus.OK;
+        return ResponseEntity.status(status).body(ApiResponse.success(result, result.getMessage()));
+    }
+
+    @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager)")
+    @GetMapping("/api/stock-adjustments/pending")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalDto>>> getPendingAdjustments(
+            @Valid StockAdjustmentApprovalSearchCriteria criteria) {
+        PageResponse<StockAdjustmentApprovalDto> result = inventoryUseCase.getPendingAdjustments(criteria);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
+    }
+
+    @Operation(summary = "Approve a pending stock adjustment (Factory Manager)")
+    @PostMapping("/api/stock-adjustments/{id}/approve")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<StockMovementDto>> approveAdjustment(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        StockMovementDto result = inventoryUseCase.approveAdjustment(id, currentUserId);
+        return ResponseEntity.ok(ApiResponse.success(result, "Adjustment approved and balance updated successfully"));
+    }
+
+    @Operation(summary = "Reject a pending stock adjustment (Factory Manager)")
+    @PostMapping("/api/stock-adjustments/{id}/reject")
+    // @PreAuthorize("hasRole('FACTORY_MANAGER')")
+    public ResponseEntity<ApiResponse<Void>> rejectAdjustment(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal AppUserPrincipal principal) {
+        UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
+        inventoryUseCase.rejectAdjustment(id, currentUserId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Adjustment rejected and request removed"));
     }
 
     @GetMapping("/api/lot-types")

@@ -11,7 +11,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class LocationSummaryDto {
+public class WarehouseLocationSummaryDto {
     UUID id;
     String code;
     String name;

@@ -30,6 +30,10 @@ import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
@@ -178,5 +182,78 @@ class InventoryControllerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData().getItems()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("adjustStock within threshold returns 200 OK")
+    void adjustStock_withinThreshold_returns200OK() {
+        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+                .stockBalanceId(UUID.randomUUID())
+                .quantityAdjustment(new BigDecimal("10.00"))
+                .reason("Count fix")
+                .build();
+        StockAdjustmentResponse serviceResponse = StockAdjustmentResponse.builder()
+                .requiresApproval(false)
+                .movement(StockMovementDto.builder().id(UUID.randomUUID()).build())
+                .message("Stock adjustment applied successfully")
+                .build();
+
+        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
+        when(inventoryUseCase.adjustStock(any(StockAdjustmentRequest.class), eq(userId))).thenReturn(serviceResponse);
+
+        ResponseEntity<ApiResponse<StockAdjustmentResponse>> response = controller.adjustStock(request, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData().isRequiresApproval()).isFalse();
+    }
+
+    @Test
+    @DisplayName("adjustStock exceeding threshold returns 202 Accepted")
+    void adjustStock_exceedingThreshold_returns202Accepted() {
+        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+                .stockBalanceId(UUID.randomUUID())
+                .quantityAdjustment(new BigDecimal("150.00"))
+                .reason("Large adjustment")
+                .build();
+        StockAdjustmentResponse serviceResponse = StockAdjustmentResponse.builder()
+                .requiresApproval(true)
+                .approvalId(UUID.randomUUID())
+                .message("Submitted for approval")
+                .build();
+
+        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
+        when(inventoryUseCase.adjustStock(any(StockAdjustmentRequest.class), eq(userId))).thenReturn(serviceResponse);
+
+        ResponseEntity<ApiResponse<StockAdjustmentResponse>> response = controller.adjustStock(request, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(response.getBody().getData().isRequiresApproval()).isTrue();
+    }
+
+    @Test
+    @DisplayName("approveAdjustment returns 200 OK")
+    void approveAdjustment_returns200OK() {
+        UUID approvalId = UUID.randomUUID();
+        StockMovementDto movementDto = StockMovementDto.builder().id(UUID.randomUUID()).build();
+        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("manager@mes.com").enabled(true).roles(List.of("ROLE_FACTORY_MANAGER")).build();
+
+        when(inventoryUseCase.approveAdjustment(eq(approvalId), eq(userId))).thenReturn(movementDto);
+
+        ResponseEntity<ApiResponse<StockMovementDto>> response = controller.approveAdjustment(approvalId, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("rejectAdjustment returns 200 OK")
+    void rejectAdjustment_returns200OK() {
+        UUID approvalId = UUID.randomUUID();
+        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("manager@mes.com").enabled(true).roles(List.of("ROLE_FACTORY_MANAGER")).build();
+
+        ResponseEntity<ApiResponse<Void>> response = controller.rejectAdjustment(approvalId, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(inventoryUseCase).rejectAdjustment(eq(approvalId), eq(userId));
     }
 }

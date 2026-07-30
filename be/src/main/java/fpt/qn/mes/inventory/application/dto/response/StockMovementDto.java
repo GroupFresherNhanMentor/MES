@@ -20,8 +20,8 @@ public class StockMovementDto {
     StockLotSummaryDto lot;
     WarehouseSummaryDto fromWarehouse;
     WarehouseSummaryDto toWarehouse;
-    LocationSummaryDto fromLocation;
-    LocationSummaryDto toLocation;
+    WarehouseLocationSummaryDto fromLocation;
+    WarehouseLocationSummaryDto toLocation;
     BigDecimal quantity;
     StockStatusSummaryDto fromStatus;
     StockStatusSummaryDto toStatus;

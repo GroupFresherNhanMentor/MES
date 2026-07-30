@@ -38,9 +38,20 @@ public class StockMovement {
     UUID createdBy;
     Instant createdAt;
 
-    public static StockMovement create(UUID movementTypeId, UUID productId, UUID lotId,
-            UUID warehouseId, UUID locationId, BigDecimal quantity, UUID fromStatusId,
-            UUID toStatusId, String referenceNo, String reason, UUID createdBy) {
+    public static StockMovement create(
+            UUID movementTypeId,
+            UUID productId,
+            UUID lotId,
+            UUID fromWarehouseId,
+            UUID fromLocationId,
+            UUID toWarehouseId,
+            UUID toLocationId,
+            BigDecimal quantity,
+            UUID fromStatusId,
+            UUID toStatusId,
+            String referenceNo,
+            String reason,
+            UUID createdBy) {
 
         if (quantity == null || quantity.compareTo(BigDecimal.ZERO) <= 0) {
             throw new DomainException("Movement quantity must be strictly positive");
@@ -48,8 +59,8 @@ public class StockMovement {
         if (productId == null) {
             throw new DomainException("Product ID cannot be null");
         }
-        if (warehouseId == null) {
-            throw new DomainException("Warehouse ID cannot be null");
+        if (toWarehouseId == null) {
+            throw new DomainException("At least one warehouse (fromWarehouseId or toWarehouseId) must be specified");
         }
         if (createdBy == null) {
             throw new DomainException("Created-by user ID cannot be null");
@@ -65,8 +76,10 @@ public class StockMovement {
                 .movementType(movementType)
                 .productId(productId)
                 .stockLot(stockLot)
-                .toWarehouseId(warehouseId)
-                .toLocationId(locationId)
+                .fromWarehouseId(fromWarehouseId)
+                .fromLocationId(fromLocationId)
+                .toWarehouseId(toWarehouseId)
+                .toLocationId(toLocationId)
                 .quantity(quantity)
                 .fromStatus(fromStatus)
                 .toStatus(toStatus)

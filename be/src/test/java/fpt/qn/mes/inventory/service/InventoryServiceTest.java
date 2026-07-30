@@ -83,6 +83,9 @@ class InventoryServiceTest {
     @Mock
     fpt.qn.mes.user.domain.repository.UserRepository userRepository;
 
+    @Mock
+    fpt.qn.mes.user.application.mapper.UserDtoMapper userDtoMapper;
+
     @InjectMocks
     InventoryService inventoryService;
 

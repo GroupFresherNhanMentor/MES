@@ -10,25 +10,28 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
 import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.LocationSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.WarehouseLocationSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
 import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
 import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
 import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
 import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
 import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
+import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
 import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.exception.StockLotConflictException;
@@ -37,24 +40,33 @@ import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
+import fpt.qn.mes.common.exception.AppException;
+import org.springframework.http.HttpStatus;
+import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
+import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
+import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
-import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
+import fpt.qn.mes.master.product.application.dto.response.ProductDto;
+import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
+import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.domain.entities.User;
 import fpt.qn.mes.user.domain.repository.UserRepository;
-
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -70,10 +82,15 @@ public class InventoryService implements InventoryUseCase {
     MovementTypeRepository movementTypeRepository;
     StockStatusRepository stockStatusRepository;
     UserRepository userRepository;
+    StockAdjustmentApprovalRepository approvalRepository;
     InventoryDtoMapper mapper;
+    StockAdjustmentApprovalDtoMapper approvalMapper;
+    UserDtoMapper userDtoMapper;
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
     LocationUseCase locationUseCase;
+
+    private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
 
     @Override
     @Transactional(readOnly = true)
@@ -149,28 +166,11 @@ public class InventoryService implements InventoryUseCase {
 
         Map<UUID, ProductSummaryDto> productMap = buildProductMap(items);
         Map<UUID, WarehouseSummaryDto> warehouseMap = buildWarehouseMap(items);
-        Map<UUID, LocationSummaryDto> locationMap = buildLocationMap(items);
+        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildLocationMap(items);
         Map<UUID, UserSummaryDto> userMap = buildUserMap(items);
 
         List<StockMovementDto> dtos = items.stream()
-                .map(m -> {
-                    StockMovementDto dto = mapper.toDto(m);
-                    if (dto != null) {
-                        if (m.getProductId() != null) {
-                            dto.setProduct(productMap.get(m.getProductId()));
-                        }
-                        if (m.getWarehouseId() != null) {
-                            dto.setToWarehouse(warehouseMap.get(m.getWarehouseId()));
-                        }
-                        if (m.getLocationId() != null) {
-                            dto.setToLocation(locationMap.get(m.getLocationId()));
-                        }
-                        if (m.getCreatedBy() != null) {
-                            dto.setCreatedBy(userMap.get(m.getCreatedBy()));
-                        }
-                    }
-                    return dto;
-                })
+                .map(m -> populateMovementSummaryFields(m, productMap, warehouseMap, locationMap, userMap))
                 .toList();
 
         return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
@@ -224,12 +224,19 @@ public class InventoryService implements InventoryUseCase {
 
         balanceRepository.save(balanceToSave);
 
+        UUID fromWh = request.getFromStatusId() != null ? request.getWarehouseId() : null;
+        UUID fromLoc = request.getFromStatusId() != null ? request.getLocationId() : null;
+        UUID toWh = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getWarehouseId() : null;
+        UUID toLoc = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getLocationId() : null;
+
         StockMovement movement = StockMovement.create(
                 request.getMovementTypeId(),
                 request.getProductId(),
                 request.getLotId(),
-                request.getWarehouseId(),
-                request.getLocationId(),
+                fromWh,
+                fromLoc,
+                toWh,
+                toLoc,
                 request.getQuantity(),
                 request.getFromStatusId(),
                 request.getToStatusId(),
@@ -328,6 +335,8 @@ public class InventoryService implements InventoryUseCase {
                 purchaseInTypeId,
                 request.getProductId(),
                 lot.getId(),
+                null,
+                null,
                 request.getWarehouseId(),
                 request.getLocationId(),
                 request.getQuantity(),
@@ -352,7 +361,10 @@ public class InventoryService implements InventoryUseCase {
     }
 
     private Map<UUID, WarehouseSummaryDto> buildWarehouseMap(List<StockMovement> items) {
-        Set<UUID> ids = items.stream().map(StockMovement::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<UUID> ids = items.stream()
+                .flatMap(m -> Stream.<UUID>of(m.getFromWarehouseId(), m.getToWarehouseId(), m.getWarehouseId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
         var res = warehouseUseCase.getWarehousesByIds(ids);
         if (res == null) return Map.of();
@@ -360,13 +372,16 @@ public class InventoryService implements InventoryUseCase {
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
     }
 
-    private Map<UUID, LocationSummaryDto> buildLocationMap(List<StockMovement> items) {
-        Set<UUID> ids = items.stream().map(StockMovement::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+    private Map<UUID, WarehouseLocationSummaryDto> buildLocationMap(List<StockMovement> items) {
+        Set<UUID> ids = items.stream()
+                .flatMap(m -> Stream.<UUID>of(m.getFromLocationId(), m.getToLocationId(), m.getLocationId()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
         var res = locationUseCase.getLocationsByIds(ids);
         if (res == null) return Map.of();
         return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> LocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseLocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
     }
 
     private Map<UUID, UserSummaryDto> buildUserMap(List<StockMovement> items) {
@@ -377,5 +392,306 @@ public class InventoryService implements InventoryUseCase {
                 .filter(Objects::nonNull)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toMap(User::getId, user -> UserSummaryDto.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
+    }
+
+    private StockMovementDto populateMovementSummaryFields(
+            StockMovement m,
+            Map<UUID, ProductSummaryDto> productMap,
+            Map<UUID, WarehouseSummaryDto> warehouseMap,
+            Map<UUID, WarehouseLocationSummaryDto> locationMap,
+            Map<UUID, UserSummaryDto> userMap) {
+        StockMovementDto dto = mapper.toDto(m);
+        if (dto != null && m != null) {
+            if (m.getProductId() != null) {
+                dto.setProduct(productMap.get(m.getProductId()));
+            }
+            if (m.getFromWarehouseId() != null) {
+                dto.setFromWarehouse(warehouseMap.get(m.getFromWarehouseId()));
+            }
+            if (m.getToWarehouseId() != null) {
+                dto.setToWarehouse(warehouseMap.get(m.getToWarehouseId()));
+            }
+            if (m.getFromLocationId() != null) {
+                dto.setFromLocation(locationMap.get(m.getFromLocationId()));
+            }
+            if (m.getToLocationId() != null) {
+                dto.setToLocation(locationMap.get(m.getToLocationId()));
+            }
+            if (m.getCreatedBy() != null) {
+                dto.setCreatedBy(userMap.get(m.getCreatedBy()));
+            }
+        }
+        return dto;
+    }
+
+    private StockMovementDto enrichMovementDto(StockMovement m) {
+        if (m == null) return null;
+        List<StockMovement> items = List.of(m);
+        Map<UUID, ProductSummaryDto> productMap = buildProductMap(items);
+        Map<UUID, WarehouseSummaryDto> warehouseMap = buildWarehouseMap(items);
+        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildLocationMap(items);
+        Map<UUID, UserSummaryDto> userMap = buildUserMap(items);
+        return populateMovementSummaryFields(m, productMap, warehouseMap, locationMap, userMap);
+    }
+
+    @Override
+    @Transactional
+    public StockAdjustmentResponse adjustStock(StockAdjustmentRequest request, UUID currentUserId) {
+        if (request == null) {
+            throw new InvalidStockAdjustmentException("Request body is required");
+        }
+        if (request.getReason() == null || request.getReason().isBlank()) {
+            throw new InvalidStockAdjustmentException("Reason is required for stock adjustment");
+        }
+        if (request.getStockBalanceId() == null) {
+            throw new InvalidStockAdjustmentException("Stock balance ID is required");
+        }
+        if (request.getQuantityAdjustment() == null) {
+            throw new InvalidStockAdjustmentException("Quantity adjustment is required");
+        }
+
+        StockBalance balance = balanceRepository.findById(request.getStockBalanceId())
+                .orElseThrow(() -> new InventoryNotFoundException("Stock balance not found with ID: " + request.getStockBalanceId()));
+
+        BigDecimal resultingQuantity = balance.getQuantity().add(request.getQuantityAdjustment());
+        if (resultingQuantity.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidStockAdjustmentException("Adjustment cannot result in negative stock balance");
+        }
+
+        BigDecimal adjustmentAbs = request.getQuantityAdjustment().abs();
+        boolean requiresApproval = adjustmentAbs.compareTo(ADJUSTMENT_THRESHOLD) > 0;
+
+        if (requiresApproval) {
+            StockAdjustmentApproval approval = StockAdjustmentApproval.create(
+                    balance.getProductId(),
+                    balance.getWarehouseId(),
+                    balance.getLocationId(),
+                    balance.getId(),
+                    request.getQuantityAdjustment(),
+                    request.getReason(),
+                    request.getReferenceNo(),
+                    currentUserId
+            );
+            StockAdjustmentApproval savedApproval = approvalRepository.save(approval);
+            return StockAdjustmentResponse.builder()
+                    .requiresApproval(true)
+                    .approvalId(savedApproval.getId())
+                    .message("Adjustment quantity exceeds threshold (" + ADJUSTMENT_THRESHOLD + "). Submitted for Factory Manager approval.")
+                    .build();
+        }
+
+        StockBalance updatedBalance = StockBalance.builder()
+                .id(balance.getId())
+                .warehouseId(balance.getWarehouseId())
+                .locationId(balance.getLocationId())
+                .productId(balance.getProductId())
+                .lotId(balance.getLotId())
+                .stockStatusId(balance.getStockStatusId())
+                .quantity(resultingQuantity)
+                .version(balance.getVersion() == null ? 1L : balance.getVersion() + 1)
+                .createdAt(balance.getCreatedAt())
+                .updatedAt(Instant.now())
+                .build();
+        balanceRepository.save(updatedBalance);
+
+        UUID adjustmentTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type ADJUSTMENT not found"));
+
+        StockMovement movement;
+        if (request.getQuantityAdjustment().compareTo(BigDecimal.ZERO) > 0) {
+            movement = StockMovement.create(
+                    adjustmentTypeId,
+                    balance.getProductId(),
+                    balance.getLotId(),
+                    null,
+                    null,
+                    balance.getWarehouseId(),
+                    balance.getLocationId(),
+                    adjustmentAbs,
+                    balance.getStockStatusId(),
+                    balance.getStockStatusId(),
+                    request.getReferenceNo(),
+                    request.getReason(),
+                    currentUserId
+            );
+        } else {
+            movement = StockMovement.create(
+                    adjustmentTypeId,
+                    balance.getProductId(),
+                    balance.getLotId(),
+                    balance.getWarehouseId(),
+                    balance.getLocationId(),
+                    null,
+                    null,
+                    adjustmentAbs,
+                    balance.getStockStatusId(),
+                    balance.getStockStatusId(),
+                    request.getReferenceNo(),
+                    request.getReason(),
+                    currentUserId
+            );
+        }
+
+         
+        StockMovement savedMovement = movementRepository.save(movement);
+        StockMovementDto movementDto = enrichMovementDto(savedMovement);
+
+        return StockAdjustmentResponse.builder()
+                .requiresApproval(false)
+                .movement(movementDto)
+                .message("Stock adjustment applied successfully")
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<StockAdjustmentApprovalDto> getPendingAdjustments(StockAdjustmentApprovalSearchCriteria criteria) {
+        if (criteria == null) {
+            criteria = StockAdjustmentApprovalSearchCriteria.builder().page(0).size(20).build();
+        }
+        long totalElements = approvalRepository.count(criteria);
+        List<StockAdjustmentApproval> pendingList = approvalRepository.search(criteria);
+
+        Map<UUID, ProductSummaryDto> productMap = buildApprovalProductMap(pendingList);
+        Map<UUID, WarehouseSummaryDto> warehouseMap = buildApprovalWarehouseMap(pendingList);
+        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildApprovalLocationMap(pendingList);
+        Map<UUID, UserSummaryDto> userMap = buildApprovalUserMap(pendingList);
+
+        List<StockAdjustmentApprovalDto> dtos = pendingList.stream()
+                .map(approval -> populateApprovalSummaryFields(approval, productMap, warehouseMap, locationMap, userMap))
+                .toList();
+
+        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
+    }
+
+    private Map<UUID, ProductSummaryDto> buildApprovalProductMap(List<StockAdjustmentApproval> items) {
+        Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = productUseCase.getProductsByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> ProductSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
+
+    private Map<UUID, WarehouseSummaryDto> buildApprovalWarehouseMap(List<StockAdjustmentApproval> items) {
+        Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = warehouseUseCase.getWarehousesByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
+
+    private Map<UUID, WarehouseLocationSummaryDto> buildApprovalLocationMap(List<StockAdjustmentApproval> items) {
+        Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        var res = locationUseCase.getLocationsByIds(ids);
+        if (res == null) return Map.of();
+        return res.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseLocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+    }
+
+    private Map<UUID, UserSummaryDto> buildApprovalUserMap(List<StockAdjustmentApproval> items) {
+        Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getCreatedBy).filter(Objects::nonNull).collect(Collectors.toSet());
+        if (ids.isEmpty()) return Map.of();
+        return ids.stream()
+                .map(userRepository::findById)
+                .filter(Objects::nonNull)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toMap(User::getId, user -> UserSummaryDto.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
+    }
+
+    private StockAdjustmentApprovalDto populateApprovalSummaryFields(
+            StockAdjustmentApproval approval,
+            Map<UUID, ProductSummaryDto> productMap,
+            Map<UUID, WarehouseSummaryDto> warehouseMap,
+            Map<UUID, WarehouseLocationSummaryDto> locationMap,
+            Map<UUID, UserSummaryDto> userMap) {
+        if (approval == null) {
+            return null;
+        }
+        StockAdjustmentApprovalDto dto = approvalMapper.toDto(approval);
+        if (dto != null) {
+            if (approval.getProductId() != null && productMap != null) {
+                dto.setProduct(productMap.get(approval.getProductId()));
+            }
+            if (approval.getWarehouseId() != null && warehouseMap != null) {
+                dto.setWarehouse(warehouseMap.get(approval.getWarehouseId()));
+            }
+            if (approval.getLocationId() != null && locationMap != null) {
+                dto.setLocation(locationMap.get(approval.getLocationId()));
+            }
+            if (approval.getCreatedBy() != null && userMap != null) {
+                dto.setCreator(userMap.get(approval.getCreatedBy()));
+            }
+        }
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StockMovementDto approveAdjustment(UUID approvalId, UUID currentUserId) {
+        StockAdjustmentApproval approval = approvalRepository.findById(approvalId)
+                .orElseThrow(() -> new InventoryNotFoundException("Pending adjustment request not found with ID: " + approvalId));
+
+        StockBalance balance = balanceRepository.findById(approval.getStockBalanceId())
+                .orElseThrow(() -> new InventoryNotFoundException("Stock balance not found with ID: " + approval.getStockBalanceId()));
+
+        BigDecimal resultingQuantity = balance.getQuantity().add(approval.getQuantityAdjustment());
+        if (resultingQuantity.compareTo(BigDecimal.ZERO) < 0) {
+            throw new InvalidStockAdjustmentException("Adjustment cannot result in negative stock balance");
+        }
+
+        StockBalance updatedBalance = StockBalance.builder()
+                .id(balance.getId())
+                .warehouseId(balance.getWarehouseId())
+                .locationId(balance.getLocationId())
+                .productId(balance.getProductId())
+                .lotId(balance.getLotId())
+                .stockStatusId(balance.getStockStatusId())
+                .quantity(resultingQuantity)
+                .version(balance.getVersion() == null ? 1L : balance.getVersion() + 1)
+                .createdAt(balance.getCreatedAt())
+                .updatedAt(Instant.now())
+                .build();
+        balanceRepository.save(updatedBalance);
+
+        UUID adjustmentTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type ADJUSTMENT not found"));
+
+        UUID fromWh = approval.getQuantityAdjustment().compareTo(BigDecimal.ZERO) < 0 ? balance.getWarehouseId() : null;
+        UUID fromLoc = approval.getQuantityAdjustment().compareTo(BigDecimal.ZERO) < 0 ? balance.getLocationId() : null;
+        UUID toWh = approval.getQuantityAdjustment().compareTo(BigDecimal.ZERO) > 0 ? balance.getWarehouseId() : null;
+        UUID toLoc = approval.getQuantityAdjustment().compareTo(BigDecimal.ZERO) > 0 ? balance.getLocationId() : null;
+
+        StockMovement movement = StockMovement.create(
+                adjustmentTypeId,
+                balance.getProductId(),
+                balance.getLotId(),
+                fromWh,
+                fromLoc,
+                toWh,
+                toLoc,
+                approval.getQuantityAdjustment().abs(),
+                balance.getStockStatusId(),
+                balance.getStockStatusId(),
+                approval.getReferenceNo(),
+                approval.getReason(),
+                currentUserId
+        );
+        StockMovement savedMovement = movementRepository.save(movement);
+
+        approvalRepository.deleteById(approvalId);
+
+        return enrichMovementDto(savedMovement);
+    }
+
+    @Override
+    @Transactional
+    public void rejectAdjustment(UUID approvalId, UUID currentUserId) {
+        StockAdjustmentApproval approval = approvalRepository.findById(approvalId)
+                .orElseThrow(() -> new InventoryNotFoundException("Pending adjustment request not found with ID: " + approvalId));
+
+        approvalRepository.deleteById(approvalId);
     }
 }

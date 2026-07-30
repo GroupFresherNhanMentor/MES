@@ -47,6 +47,14 @@ public class StockBalancePersistenceAdapter extends BaseRepository<StockBalances
     }
 
     @Override
+    public Optional<StockBalance> findById(UUID id) {
+        StockBalancesRecord record = ctx.selectFrom(STOCK_BALANCES)
+                .where(STOCK_BALANCES.ID.eq(id))
+                .fetchOne();
+        return Optional.ofNullable(mapper.toDomain(record));
+    }
+
+    @Override
     public Optional<StockBalance> findForUpdate(UUID warehouseId, UUID locationId, UUID productId,
             UUID lotId) {
         Condition condition = STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId)

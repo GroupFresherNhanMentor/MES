@@ -15,6 +15,11 @@ import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
 import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 
+import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
+import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
+
 public interface InventoryUseCase {
     PageResponse<StockLotDto> getStockLots(StockLotSearchRequest request);
     StockLotDto getStockLotById(UUID id);
@@ -23,4 +28,8 @@ public interface InventoryUseCase {
     StockMovementDto recordMovement(CreateMovementRequest request, UUID currentUserId);
     PageResponse<StockBalanceDto> getStockBalances(StockBalanceSearchRequest request);
     StockMovementDto recordStockIn(StockInRequest request, UUID currentUserId);
+    StockAdjustmentResponse adjustStock(StockAdjustmentRequest request, UUID currentUserId);
+    PageResponse<StockAdjustmentApprovalDto> getPendingAdjustments(StockAdjustmentApprovalSearchCriteria criteria);
+    StockMovementDto approveAdjustment(UUID approvalId, UUID currentUserId);
+    void rejectAdjustment(UUID approvalId, UUID currentUserId);
 }
