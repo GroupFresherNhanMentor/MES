@@ -60,7 +60,6 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
 4. **Reusability & Components**:
    - KPI Cards: Dùng class `.kpi-card`, `.kpi-label`, `.kpi-value`, `.kpi-trend`.
    - Cards/Tables: Dùng `mat-card` (đã được override background `#292524` & border `#44403c`) hoặc class `.ff-card`.
-<<<<<<< HEAD
    - Primary Action Button (`.ff-btn-primary`): Dùng class `.ff-btn-primary` cho các nút bấm hành động chính (như `+ Add Product`, `+ Add Warehouse`). Nút có hiệu ứng Gradient màu cam (`#ea580c` -> `#c2410c`), bóng đổ nổi `box-shadow` và animation hover mượt mà (`translateY(-1px)`).
    - Card Header Layout (`mat-card-header`): Đặt tiêu đề (`mat-card-title`), nút thao tác (`.ff-btn-primary`), các ô lọc/tìm kiếm (`Search`, `Status filter`) nằm gọn trong cùng một hàng của `<mat-card-header class="!flex !items-center !justify-between !pb-4">`.
    - Table Action Icon Buttons (`.ff-action-btn-*`): Tất cả nút icon thao tác trong bảng dữ liệu toàn bộ dự án phải dùng chuẩn class màu sinh động:
@@ -69,6 +68,4 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
      - Deactivate / Delete (`.ff-action-btn-delete`): Màu Đỏ Vibrant Red (`#f87171`), nền mờ 10% `rgba(248,113,113,0.1)`.
      - Tất cả có bo góc 6px, hiệu ứng hover đổi màu sáng hơn và zoom nhẹ `scale(1.08)`.
    - Table Headers (`.mat-mdc-header-cell`): Chữ màu `#ea580c` (Primary Orange), font-weight `bold`, size `17px`, uppercase, letter-spacing `0.5px`, viền dưới `#44403c`.
-=======
->>>>>>> 5b1999d (feat(master-data): simplify model interfaces and implement UI list pages for warehouses, production lines, and machines)
    - Modals/Dialogs: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`.
