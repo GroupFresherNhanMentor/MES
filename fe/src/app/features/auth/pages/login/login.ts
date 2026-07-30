@@ -27,46 +27,104 @@ const MOCK_USERS: MockUser[] = [
   standalone: true,
   imports: [FormsModule, MatCardModule, MatButtonModule, MatIconModule, MatFormFieldModule, MatInputModule],
   template: `
-  <div class="page">
+  <div class="page ff-fade-in">
+    <div class="glow-bg"></div>
     <div class="card">
-      <div class="logo">MES</div>
+      <div class="logo-box">
+        <div class="logo">MES</div>
+      </div>
       <h2>Manufacturing Execution System</h2>
+      <p class="sub-heading">Operations & Factory Management Platform</p>
+
       <form (ngSubmit)="login()" class="form">
         <mat-form-field appearance="outline" class="field">
           <mat-label>Username</mat-label>
-          <input matInput [(ngModel)]="username" name="username" placeholder="admin" required>
+          <input matInput [(ngModel)]="username" name="username" placeholder="Enter username" required>
+          <mat-icon matPrefix class="text-text-muted">person</mat-icon>
         </mat-form-field>
+
         <mat-form-field appearance="outline" class="field">
           <mat-label>Password</mat-label>
-          <input matInput type="password" [(ngModel)]="password" name="password" placeholder="admin" required>
+          <input matInput type="password" [(ngModel)]="password" name="password" placeholder="Enter password" required>
+          <mat-icon matPrefix class="text-text-muted">lock</mat-icon>
         </mat-form-field>
-        @if (error) { <div class="error">{{ error }}</div> }
-        <button mat-raised-button class="btn" type="submit">
-          <mat-icon>login</mat-icon>
-          Sign In
+
+        @if (error) {
+          <div class="error-msg">
+            <mat-icon class="!w-4 !h-4 !text-base">error_outline</mat-icon>
+            <span>{{ error }}</span>
+          </div>
+        }
+
+        <button mat-raised-button class="ff-btn-primary !w-full !h-11 !text-base" type="submit">
+          <mat-icon class="!w-5 !h-5 text-xl">login</mat-icon> Sign In
         </button>
       </form>
-      <div class="hint">Try: admin/admin, warehouse/warehouse, planner/planner, operator/operator, qc/qc, maintenance/maintenance, manager/manager, auditor/auditor</div>
+
+      <div class="quick-login">
+        <span class="quick-label">Quick Demo Access:</span>
+        <div class="role-pills">
+          @for (u of mockUsers; track u.username) {
+            <button type="button" class="role-pill" (click)="quickSelect(u.username)">
+              {{ u.fullName }}
+            </button>
+          }
+        </div>
+      </div>
     </div>
   </div>
   `,
   styles: [`
-    .page { height:100vh; display:flex; align-items:center; justify-content:center; background:#0c0a09; }
-    .card { text-align:center; padding:40px; background:#292524; border-radius:12px; border:1px solid #44403c; width:400px; }
-    .logo { width:64px; height:64px; margin:0 auto 16px; display:flex; align-items:center; justify-content:center; background:#ea580c; border-radius:12px; color:#fff; font-weight:800; font-size:28px; }
-    h2 { color:#fafaf9; font-size:18px; margin:0 0 24px; font-weight:500; }
-    .form { display:flex; flex-direction:column; gap:16px; }
-    .field { width:100%; }
-    .btn { padding:10px 32px!important; font-size:15px!important; width:100%; }
-    .error { color:#dc2626; font-size:13px; text-align:left; }
-    .hint { margin-top:16px; font-size:11px; color:#57534e; text-align:left; line-height:1.4; }
+    .page {
+      position: relative; height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: #0c0a09; overflow: hidden;
+    }
+    .glow-bg {
+      position: absolute; width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(234, 88, 12, 0.15) 0%, rgba(12, 10, 9, 0) 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+    }
+    .card {
+      position: relative; z-index: 10; width: 440px; padding: 40px; text-align: center;
+      background: rgba(41, 37, 36, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid #44403c; border-radius: 16px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .logo-box { display: flex; justify-content: center; margin-bottom: 16px; }
+    .logo {
+      width: 68px; height: 68px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+      border-radius: 16px; color: #fff; font-weight: 800; font-size: 28px; letter-spacing: 1px;
+      box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
+    }
+    h2 { color: #fafaf9; font-size: 20px; font-weight: 700; margin: 0 0 4px; letter-spacing: 0.3px; }
+    .sub-heading { color: #a8a29e; font-size: 13px; margin: 0 0 28px; }
+    .form { display: flex; flex-direction: column; gap: 14px; }
+    .field { width: 100%; }
+    .error-msg {
+      display: flex; align-items: center; gap: 6px; color: #f87171; background: rgba(248, 113, 113, 0.1);
+      padding: 8px 12px; border-radius: 6px; font-size: 13px; text-align: left;
+    }
+    .quick-login { margin-top: 24px; padding-top: 20px; border-top: 1px solid #44403c; text-align: left; }
+    .quick-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #78716c; letter-spacing: 0.5px; }
+    .role-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .role-pill {
+      background: #1c1917; border: 1px solid #44403c; color: #a8a29e; font-size: 11px;
+      padding: 4px 10px; border-radius: 12px; cursor: pointer; transition: all 0.15s ease;
+    }
+    .role-pill:hover { background: rgba(234, 88, 12, 0.2); border-color: #ea580c; color: #fafaf9; }
   `]
 })
 export class Login {
   private router = inject(Router);
-  username = '';
-  password = '';
+  username = 'admin';
+  password = 'admin';
   error = '';
+  mockUsers = MOCK_USERS;
+
+  quickSelect(usr: string) {
+    this.username = usr;
+    this.password = usr;
+  }
 
   login() {
     if (!this.username || !this.password) {

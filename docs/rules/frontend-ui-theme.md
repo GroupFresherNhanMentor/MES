@@ -67,5 +67,9 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
      - View Details (`.ff-action-btn-view`): Màu Tím Violet (`#a855f7`), nền mờ 10% `rgba(168,85,247,0.1)`.
      - Deactivate / Delete (`.ff-action-btn-delete`): Màu Đỏ Vibrant Red (`#f87171`), nền mờ 10% `rgba(248,113,113,0.1)`.
      - Tất cả có bo góc 6px, hiệu ứng hover đổi màu sáng hơn và zoom nhẹ `scale(1.08)`.
+   - App Shell Header & Navigation: 
+     - Top Toolbar Header: Chứa Logo Brand `FF` nền gradient cam bo góc, tên hệ thống `MES` nổi bật, tiêu đề trang hiện tại, và Menu tài khoản người dùng hình tròn đại diện cho Avatar.
+     - Sidebar Menu (`.nav-item`): Mục menu dạng pill có icon rõ ràng, khi được kích hoạt (`.active`) có nền hiệu ứng màu cam mờ `rgba(234,88,12,0.15)` và chữ màu `#ea580c`.
+   - Login Page Design: Trang đăng nhập sử dụng thiết kế **Glassmorphism Dark Mode** hiện đại với vòng sáng hiệu ứng Radial Glow, logo hiệu ứng 3D Gradient, ô nhập liệu có icon dẫn đường, và các Nút chọn quyền nhanh (Quick Demo Access Pills) để thử nghiệm phân quyền dễ dàng.
    - Table Headers (`.mat-mdc-header-cell`): Chữ màu `#ea580c` (Primary Orange), font-weight `bold`, size `17px`, uppercase, letter-spacing `0.5px`, viền dưới `#44403c`.
    - Modals/Dialogs: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`.
