@@ -31,12 +31,15 @@
         <ng-container matColumnDef="machineStatusName">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let m">
-            <span class="ff-badge"
-              [class.ff-badge--running]="m.machineStatusName === 'RUNNING'"
-              [class.ff-badge--idle]="m.machineStatusName === 'AVAILABLE'"
-              [class.ff-badge--onhold]="m.machineStatusName === 'UNDER_MAINTENANCE'"
-              [class.ff-badge--cancelled]="m.machineStatusName === 'RETIRED'">
-              {{ m.machineStatusName || 'N/A' }}
+            @let rawName = m.machineStatusName || m.status || '';
+            @let sName = rawName.toUpperCase();
+            <span class="ff-badge" [ngClass]="{
+              'ff-badge--active': sName === 'RUNNING' || sName === 'ACTIVE',
+              'ff-badge--idle': sName === 'IDLE' || sName === 'AVAILABLE',
+              'ff-badge--onhold': sName === 'UNDER_MAINTENANCE' || sName === 'MAINTENANCE',
+              'ff-badge--cancelled': sName === 'INACTIVE' || sName === 'RETIRED' || sName === 'BREAKDOWN' || sName === 'DEACTIVATED'
+            }">
+              {{ rawName || 'INACTIVE' }}
             </span>
           </td>
         </ng-container>

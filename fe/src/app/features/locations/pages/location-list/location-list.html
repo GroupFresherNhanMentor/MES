@@ -42,10 +42,10 @@
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let l">
             <span class="ff-badge"
-              [class.ff-badge--active]="l.locationStatusName === 'AVAILABLE'"
+              [class.ff-badge--active]="l.locationStatusName === 'AVAILABLE' || l.locationStatusName === 'ACTIVE'"
               [class.ff-badge--onhold]="l.locationStatusName === 'MAINTENANCE'"
               [class.ff-badge--cancelled]="l.locationStatusName === 'INACTIVE' || l.locationStatusName === 'OCCUPIED'">
-              {{ l.locationStatusName || 'N/A' }}
+              {{ l.locationStatusName || 'INACTIVE' }}
             </span>
           </td>
         </ng-container>

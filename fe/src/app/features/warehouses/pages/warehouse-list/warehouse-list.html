@@ -49,7 +49,7 @@
             <span class="ff-badge"
               [class.ff-badge--active]="w.warehouseStatusName === 'ACTIVE'"
               [class.ff-badge--cancelled]="w.warehouseStatusName !== 'ACTIVE'">
-              {{ w.warehouseStatusName || 'N/A' }}
+              {{ w.warehouseStatusName || 'INACTIVE' }}
             </span>
           </td>
         </ng-container>

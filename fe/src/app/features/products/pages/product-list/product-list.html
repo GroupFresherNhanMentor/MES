@@ -51,13 +51,14 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let p">
-            @let sName = p.productStatusName || statusName(p.productStatusId);
+            @let rawName = p.productStatusName || statusName(p.productStatusId) || '';
+            @let sName = rawName.toUpperCase();
             <span class="ff-badge" [ngClass]="{
               'ff-badge--active': sName === 'ACTIVE',
-              'ff-badge--pending': sName === 'DRAFT' || sName === 'INACTIVE',
-              'ff-badge--cancelled': sName === 'ARCHIVED' || sName === 'DEACTIVATED'
+              'ff-badge--pending': sName === 'DRAFT',
+              'ff-badge--cancelled': sName !== 'ACTIVE' && sName !== 'DRAFT'
             }">
-              {{ sName || 'N/A' }}
+              {{ rawName || 'INACTIVE' }}
             </span>
           </td>
         </ng-container>
