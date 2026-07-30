@@ -256,4 +256,58 @@ class InventoryControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         verify(inventoryUseCase).rejectAdjustment(eq(approvalId), eq(userId));
     }
+
+    @Test
+    @DisplayName("getLotTypes should return 200 OK with PageResponse of LotTypeSummaryDto")
+    void getLotTypes_shouldReturn200OK() {
+        fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest();
+        fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto.builder()
+                .id(UUID.randomUUID())
+                .name("RAW_MATERIAL")
+                .build();
+        PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
+
+        when(inventoryUseCase.getLotTypes(any())).thenReturn(pageResponse);
+
+        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto>>> response = controller.getLotTypes(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData().getItems()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getStockStatuses should return 200 OK with PageResponse of StockStatusSummaryDto")
+    void getStockStatuses_shouldReturn200OK() {
+        fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest();
+        fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto.builder()
+                .id(UUID.randomUUID())
+                .name("AVAILABLE")
+                .build();
+        PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
+
+        when(inventoryUseCase.getStockStatuses(any())).thenReturn(pageResponse);
+
+        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto>>> response = controller.getStockStatuses(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData().getItems()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getMovementTypes should return 200 OK with PageResponse of MovementTypeSummaryDto")
+    void getMovementTypes_shouldReturn200OK() {
+        fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest();
+        fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto.builder()
+                .id(UUID.randomUUID())
+                .name("PURCHASE_IN")
+                .build();
+        PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
+
+        when(inventoryUseCase.getMovementTypes(any())).thenReturn(pageResponse);
+
+        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto>>> response = controller.getMovementTypes(request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData().getItems()).hasSize(1);
+    }
 }

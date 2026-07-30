@@ -14,4 +14,5 @@ import lombok.experimental.FieldDefaults;
 public class MovementTypeSummaryDto {
     UUID id;
     String name;
+    String description;
 }

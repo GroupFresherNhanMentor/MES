@@ -1,11 +1,13 @@
 package fpt.qn.mes.inventory.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockStatus;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockStatusSearchCriteria;
 
 public interface StockStatusRepository extends BaseDomainRepository<StockStatus, UUID> {
 
@@ -20,4 +22,8 @@ public interface StockStatusRepository extends BaseDomainRepository<StockStatus,
      * @see StockStatusConstants
      */
     Optional<UUID> findIdByName(String name);
+
+    List<StockStatus> search(StockStatusSearchCriteria criteria);
+
+    long count(StockStatusSearchCriteria criteria);
 }

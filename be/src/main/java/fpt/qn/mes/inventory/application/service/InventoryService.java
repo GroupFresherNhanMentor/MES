@@ -71,12 +71,24 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
+import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
+import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
+import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockStatusSearchCriteria;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class InventoryService implements InventoryUseCase {
 
     StockLotRepository lotRepository;
+    LotTypeRepository lotTypeRepository;
     StockMovementRepository movementRepository;
     StockBalanceRepository balanceRepository;
     MovementTypeRepository movementTypeRepository;
@@ -693,5 +705,62 @@ public class InventoryService implements InventoryUseCase {
                 .orElseThrow(() -> new InventoryNotFoundException("Pending adjustment request not found with ID: " + approvalId));
 
         approvalRepository.deleteById(approvalId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<LotTypeSummaryDto> getLotTypes(LotTypeSearchRequest request) {
+        if (request == null) {
+            request = new LotTypeSearchRequest();
+        }
+        LotTypeSearchCriteria criteria = LotTypeSearchCriteria.builder()
+                .query(request.getQuery())
+                .name(request.getName())
+                .page(request.getPage())
+                .size(request.getSize())
+                .build();
+        long totalElements = lotTypeRepository.count(criteria);
+        List<LotTypeSummaryDto> dtos = lotTypeRepository.search(criteria).stream()
+                .map(mapper::toSummary)
+                .toList();
+        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<StockStatusSummaryDto> getStockStatuses(StockStatusSearchRequest request) {
+        if (request == null) {
+            request = new StockStatusSearchRequest();
+        }
+        StockStatusSearchCriteria criteria = StockStatusSearchCriteria.builder()
+                .query(request.getQuery())
+                .name(request.getName())
+                .page(request.getPage())
+                .size(request.getSize())
+                .build();
+        long totalElements = stockStatusRepository.count(criteria);
+        List<StockStatusSummaryDto> dtos = stockStatusRepository.search(criteria).stream()
+                .map(mapper::toSummary)
+                .toList();
+        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<MovementTypeSummaryDto> getMovementTypes(MovementTypeSearchRequest request) {
+        if (request == null) {
+            request = new MovementTypeSearchRequest();
+        }
+        MovementTypeSearchCriteria criteria = MovementTypeSearchCriteria.builder()
+                .query(request.getQuery())
+                .name(request.getName())
+                .page(request.getPage())
+                .size(request.getSize())
+                .build();
+        long totalElements = movementTypeRepository.count(criteria);
+        List<MovementTypeSummaryDto> dtos = movementTypeRepository.search(criteria).stream()
+                .map(mapper::toSummary)
+                .toList();
+        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
     }
 }

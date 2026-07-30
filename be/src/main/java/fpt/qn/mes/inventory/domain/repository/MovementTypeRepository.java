@@ -1,11 +1,13 @@
 package fpt.qn.mes.inventory.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import fpt.qn.mes.common.repository.BaseDomainRepository;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.entities.MovementType;
+import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
 
 public interface MovementTypeRepository extends BaseDomainRepository<MovementType, UUID> {
 
@@ -20,4 +22,8 @@ public interface MovementTypeRepository extends BaseDomainRepository<MovementTyp
      * @see MovementTypeConstants
      */
     Optional<UUID> findIdByName(String name);
+
+    List<MovementType> search(MovementTypeSearchCriteria criteria);
+
+    long count(MovementTypeSearchCriteria criteria);
 }

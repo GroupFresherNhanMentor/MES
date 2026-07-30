@@ -39,6 +39,7 @@ import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
@@ -55,6 +56,9 @@ class InventoryServiceTest {
 
     @Mock
     StockLotRepository lotRepository;
+
+    @Mock
+    LotTypeRepository lotTypeRepository;
 
     @Mock
     StockMovementRepository movementRepository;
@@ -418,5 +422,77 @@ class InventoryServiceTest {
         assertThatThrownBy(() -> inventoryService.createStockLot(request))
                 .isInstanceOf(fpt.qn.mes.inventory.application.exception.StockLotConflictException.class)
                 .hasMessageContaining("already exists");
+    }
+
+    @Test
+    @DisplayName("getLotTypes should return page response of lot type summary DTOs")
+    void getLotTypes_ReturnsPageResponse() {
+        fpt.qn.mes.inventory.domain.entities.LotType entity = fpt.qn.mes.inventory.domain.entities.LotType.builder()
+                .id(UUID.randomUUID())
+                .name("RAW_MATERIAL")
+                .description("Raw material lot")
+                .build();
+        fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto.builder()
+                .id(entity.getId())
+                .name("RAW_MATERIAL")
+                .description("Raw material lot")
+                .build();
+
+        when(lotTypeRepository.count(any())).thenReturn(1L);
+        when(lotTypeRepository.search(any())).thenReturn(List.of(entity));
+        when(mapper.toSummary(entity)).thenReturn(summary);
+
+        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto> page = inventoryService.getLotTypes(new fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest());
+
+        assertThat(page.getItems()).hasSize(1);
+        assertThat(page.getItems().get(0).getName()).isEqualTo("RAW_MATERIAL");
+    }
+
+    @Test
+    @DisplayName("getStockStatuses should return page response of stock status summary DTOs")
+    void getStockStatuses_ReturnsPageResponse() {
+        fpt.qn.mes.inventory.domain.entities.StockStatus entity = fpt.qn.mes.inventory.domain.entities.StockStatus.builder()
+                .id(UUID.randomUUID())
+                .name("AVAILABLE")
+                .description("Available stock")
+                .build();
+        fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto.builder()
+                .id(entity.getId())
+                .name("AVAILABLE")
+                .description("Available stock")
+                .build();
+
+        when(stockStatusRepository.count(any())).thenReturn(1L);
+        when(stockStatusRepository.search(any())).thenReturn(List.of(entity));
+        when(mapper.toSummary(entity)).thenReturn(summary);
+
+        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto> page = inventoryService.getStockStatuses(new fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest());
+
+        assertThat(page.getItems()).hasSize(1);
+        assertThat(page.getItems().get(0).getName()).isEqualTo("AVAILABLE");
+    }
+
+    @Test
+    @DisplayName("getMovementTypes should return page response of movement type summary DTOs")
+    void getMovementTypes_ReturnsPageResponse() {
+        fpt.qn.mes.inventory.domain.entities.MovementType entity = fpt.qn.mes.inventory.domain.entities.MovementType.builder()
+                .id(UUID.randomUUID())
+                .name("PURCHASE_IN")
+                .description("Purchase receipt")
+                .build();
+        fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto.builder()
+                .id(entity.getId())
+                .name("PURCHASE_IN")
+                .description("Purchase receipt")
+                .build();
+
+        when(movementTypeRepository.count(any())).thenReturn(1L);
+        when(movementTypeRepository.search(any())).thenReturn(List.of(entity));
+        when(mapper.toSummary(entity)).thenReturn(summary);
+
+        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto> page = inventoryService.getMovementTypes(new fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest());
+
+        assertThat(page.getItems()).hasSize(1);
+        assertThat(page.getItems().get(0).getName()).isEqualTo("PURCHASE_IN");
     }
 }

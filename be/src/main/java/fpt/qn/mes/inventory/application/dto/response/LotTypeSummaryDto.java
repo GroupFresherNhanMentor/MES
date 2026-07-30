@@ -2,7 +2,12 @@ package fpt.qn.mes.inventory.application.dto.response;
 
 import java.util.UUID;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
 @Getter
@@ -11,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class StockStatusSummaryDto {
+public class LotTypeSummaryDto {
     UUID id;
     String name;
     String description;

@@ -23,6 +23,9 @@ import fpt.qn.mes.master.product.domain.entities.Product;
 import fpt.qn.mes.master.warehouse.domain.entities.Warehouse;
 import fpt.qn.mes.user.domain.entities.User;
 
+import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
+import fpt.qn.mes.inventory.domain.entities.LotType;
+
 @Mapper(componentModel = "spring")
 public interface InventoryDtoMapper {
 
@@ -42,6 +45,7 @@ public interface InventoryDtoMapper {
 
     StockBalanceDto toDto(StockBalance stockBalance);
 
+    LotTypeSummaryDto toSummary(LotType entity);
     MovementTypeSummaryDto toSummary(MovementType entity);
     ProductSummaryDto toSummary(Product entity);
     StockLotSummaryDto toSummary(StockLot entity);

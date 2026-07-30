@@ -40,7 +40,12 @@ import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
 import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
-import org.springframework.security.access.prepost.PreAuthorize;
+import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
+import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
+import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
+import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
 
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
@@ -145,18 +150,24 @@ public class InventoryController {
         return ResponseEntity.ok(ApiResponse.success(null, "Adjustment rejected and request removed"));
     }
 
+    @Operation(summary = "Search lot types with pagination and criteria filtering")
     @GetMapping("/api/lot-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLotTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<LotTypeSummaryDto>>> getLotTypes(@Valid LotTypeSearchRequest request) {
+        PageResponse<LotTypeSummaryDto> result = inventoryUseCase.getLotTypes(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
+    @Operation(summary = "Search stock statuses with pagination and criteria filtering")
     @GetMapping("/api/stock-statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStockStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<StockStatusSummaryDto>>> getStockStatuses(@Valid StockStatusSearchRequest request) {
+        PageResponse<StockStatusSummaryDto> result = inventoryUseCase.getStockStatuses(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
+    @Operation(summary = "Search movement types with pagination and criteria filtering")
     @GetMapping("/api/movement-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMovementTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<PageResponse<MovementTypeSummaryDto>>> getMovementTypes(@Valid MovementTypeSearchRequest request) {
+        PageResponse<MovementTypeSummaryDto> result = inventoryUseCase.getMovementTypes(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 }
