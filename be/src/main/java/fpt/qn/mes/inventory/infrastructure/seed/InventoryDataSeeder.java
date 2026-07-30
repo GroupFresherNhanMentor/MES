@@ -7,7 +7,6 @@ import static fpt.qn.mes.jooq.Tables.STOCK_STATUSES;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
@@ -22,6 +21,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -45,7 +46,7 @@ public class InventoryDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(LOT_TYPES, LOT_TYPES.ID, LOT_TYPES.NAME, LOT_TYPES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(resolveId(row), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded lot_types");
@@ -57,7 +58,7 @@ public class InventoryDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(STOCK_STATUSES, STOCK_STATUSES.ID, STOCK_STATUSES.NAME, STOCK_STATUSES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(resolveId(row), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded stock_statuses");
@@ -69,10 +70,18 @@ public class InventoryDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(MOVEMENT_TYPES, MOVEMENT_TYPES.ID, MOVEMENT_TYPES.NAME, MOVEMENT_TYPES.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(resolveId(row), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded movement_types");
+    }
+
+    private UUID resolveId(Map<String, Object> row) {
+        Object rawId = row.get("id");
+        if (rawId != null && !rawId.toString().isBlank()) {
+            return UUID.fromString(rawId.toString());
+        }
+        return UuidV7.generate();
     }
 
     private List<Map<String, Object>> loadJson(String file) {

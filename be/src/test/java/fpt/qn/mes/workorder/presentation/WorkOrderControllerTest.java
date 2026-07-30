@@ -172,7 +172,6 @@ class WorkOrderControllerTest {
 
         verify(workOrderUseCase).updateWorkOrder(eq(id), any());
     }
-
     @Test
     @DisplayName("reserveMaterials should return 200 OK with ReserveWorkOrderMaterialsResponse")
     void reserveMaterials_shouldReturn200WithApiResponse() {

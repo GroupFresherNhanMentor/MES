@@ -310,4 +310,34 @@ class InventoryControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData().getItems()).hasSize(1);
     }
+
+    @Test
+    @DisplayName("transferStock should return 200 OK with StockTransferResponse")
+    void transferStock_shouldReturn200OK() {
+        fpt.qn.mes.inventory.application.dto.request.StockTransferRequest request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+                .fromWarehouseId(UUID.randomUUID())
+                .fromLocationId(UUID.randomUUID())
+                .toWarehouseId(UUID.randomUUID())
+                .toLocationId(UUID.randomUUID())
+                .productId(UUID.randomUUID())
+                .lotId(UUID.randomUUID())
+                .quantity(new BigDecimal("20.00"))
+                .build();
+
+        fpt.qn.mes.inventory.application.dto.response.StockTransferResponse serviceResponse = fpt.qn.mes.inventory.application.dto.response.StockTransferResponse.builder()
+                .transferOutMovement(StockMovementDto.builder().id(UUID.randomUUID()).build())
+                .transferInMovement(StockMovementDto.builder().id(UUID.randomUUID()).build())
+                .sourceBalance(StockBalanceDto.builder().quantity(new BigDecimal("30.00")).build())
+                .destinationBalance(StockBalanceDto.builder().quantity(new BigDecimal("20.00")).build())
+                .build();
+
+        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
+        when(inventoryUseCase.transferStock(any(fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.class), eq(userId))).thenReturn(serviceResponse);
+
+        ResponseEntity<ApiResponse<fpt.qn.mes.inventory.application.dto.response.StockTransferResponse>> response = controller.transferStock(request, principal);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getData()).isNotNull();
+        assertThat(response.getBody().getData().getSourceBalance().getQuantity()).isEqualByComparingTo(new BigDecimal("30.00"));
+    }
 }

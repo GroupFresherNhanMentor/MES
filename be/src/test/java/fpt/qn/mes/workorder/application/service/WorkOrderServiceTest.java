@@ -447,7 +447,6 @@ class WorkOrderServiceTest {
                 () -> service.updateWorkOrder(id, req)
         );
     }
-
     @Test
     @DisplayName("reserveMaterials with null request should throw InvalidWorkOrderReservationException")
     void reserveMaterials_nullRequest_shouldThrowException() {
