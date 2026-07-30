@@ -48,10 +48,14 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
         record.store();
         return mapper.toDomain(record);
     }
-    @Override public WorkOrder update(WorkOrder w) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public void deleteById(UUID id) {}
-
     @Override
+    public WorkOrder update(WorkOrder w) {
+        WorkOrdersRecord record = mapper.toRecord(w);
+        dslCtx.attach(record);
+        record.update();
+        return mapper.toDomain(record);
+    }
+    @Override public void deleteById(UUID id) {}
     public PaginationResult<WorkOrder> findAll(WorkOrderSearchCriteria criteria) {
         var condition = buildCondition(criteria);
         int page = criteria.getPage();
@@ -120,5 +124,29 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .stream()
                 .map(r -> mapper.toDomain(r))
                 .toList();
+    }
+    @Override
+    public WorkOrderMaterial updateMaterial(WorkOrderMaterial m) {
+        var record = mapper.toRecord(m);
+        dslCtx.attach(record);
+        record.update();
+        return mapper.toDomain(record);
+    }
+
+    @Override
+    public Optional<String> findStatusNameById(UUID id) {
+        if (id == null) return Optional.empty();
+        return Optional.ofNullable(dslCtx.select(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES.NAME)
+                .from(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES)
+                .where(fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES.ID.eq(id))
+                .fetchOneInto(String.class));
+    }
+
+    @Override
+    public boolean existsByCodeAndIdNot(String code, UUID excludeId) {
+        if (code == null) return false;
+        return dslCtx.fetchExists(dslCtx.selectFrom(WORK_ORDERS)
+                .where(WORK_ORDERS.CODE.eq(code))
+                .and(WORK_ORDERS.ID.ne(excludeId)));
     }
 }

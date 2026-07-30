@@ -705,11 +705,20 @@ deduplicated; any missing ID rejects the complete mutation.
 **Request body:**
 ```json
 {
-  "code": "string", "plannedQuantity": 100.0,
-  "plannedStartDate": "instant", "plannedEndDate": "instant",
-  "priorityId": "uuid", "workOrderStatusId": "uuid"
+  "code": "string", 
+  "plannedQuantity": 100.0,
+  "plannedStartDate": "instant", 
+  "plannedEndDate": "instant",
+  "priorityId": "uuid", 
+  "workOrderStatusId": "uuid"
 }
 ```
+**Constraints:**
+* `plannedQuantity` must be > 0.
+* `plannedStartDate` must be before `plannedEndDate`.
+* If `workOrderStatusId` is provided, it only allows simple planning transitions `DRAFT ⇄ PLANNED`. Other states (like `IN_PROGRESS`, `CANCELLED`, etc.) passed via PUT will be rejected (HTTP 400).
+* Requires the client to use dedicated Action Endpoints (`/reserve-materials`, `/start`, `/pause`, `/resume`, `/complete`, `/cancel`) for operational status transitions.
+
 **Response `200`:** `WorkOrderDto`
 
 ---

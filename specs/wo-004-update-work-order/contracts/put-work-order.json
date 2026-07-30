@@ -1,0 +1,91 @@
+{
+  "endpoint": "PUT /api/work-orders/{id}",
+  "description": "Update planning fields and simple status transitions (DRAFT ⇄ PLANNED) for an existing Work Order",
+  "authentication": "JWT Bearer Token",
+  "authorization": ["ADMIN", "PLANNER"],
+  "pathParameters": {
+    "id": {
+      "type": "UUID",
+      "required": true,
+      "description": "Work Order ID"
+    }
+  },
+  "requestBody": {
+    "contentType": "application/json",
+    "schema": {
+      "code": { "type": "string", "maxLength": 100, "nullable": true, "description": "New work order code (must be unique)" },
+      "plannedQuantity": { "type": "number (BigDecimal)", "nullable": true, "description": "Must be > 0 when provided" },
+      "plannedStartDate": { "type": "string (ISO-8601 instant)", "nullable": true, "description": "Must be before plannedEndDate" },
+      "plannedEndDate": { "type": "string (ISO-8601 instant)", "nullable": true, "description": "Must be after plannedStartDate" },
+      "priorityId": { "type": "UUID", "nullable": true, "description": "Reference to work_order_priorities table" },
+      "workOrderStatusId": { "type": "UUID", "nullable": true, "description": "Only DRAFT or PLANNED status IDs accepted" }
+    }
+  },
+  "responses": {
+    "200": {
+      "description": "Work Order updated successfully",
+      "body": {
+        "success": true,
+        "message": "Work Order updated successfully",
+        "data": {
+          "id": "uuid",
+          "code": "string",
+          "finishedProductId": "uuid",
+          "bomId": "uuid",
+          "plannedQuantity": "number",
+          "plannedStartDate": "instant",
+          "plannedEndDate": "instant",
+          "priorityId": "uuid",
+          "workOrderStatusId": "uuid",
+          "createdBy": "uuid",
+          "createdAt": "instant",
+          "materials": [
+            {
+              "id": "uuid",
+              "workOrderId": "uuid",
+              "materialProductId": "uuid",
+              "requiredQuantity": "number",
+              "reservedQuantity": "number",
+              "consumedQuantity": "number"
+            }
+          ],
+          "events": [
+            {
+              "id": "uuid",
+              "workOrderId": "uuid",
+              "eventTypeId": "uuid",
+              "operatorId": "uuid",
+              "eventTimestamp": "instant",
+              "note": "string"
+            }
+          ]
+        }
+      }
+    },
+    "400": {
+      "description": "Validation error or invalid state transition",
+      "errorCodes": ["INVALID_INPUT", "BAD_REQUEST", "WORK_ORDER_CODE_EXISTS"],
+      "examples": [
+        { "case": "Negative quantity", "errorCode": "INVALID_INPUT", "message": "Planned quantity must be greater than 0" },
+        { "case": "Invalid date range", "errorCode": "INVALID_INPUT", "message": "Planned start date must be before planned end date" },
+        { "case": "Duplicate code", "errorCode": "WORK_ORDER_CODE_EXISTS", "message": "Work Order code 'WO-001' already exists" },
+        { "case": "Non-planning status in PUT", "errorCode": "BAD_REQUEST", "message": "PUT endpoint only supports DRAFT ⇄ PLANNED transitions. Use dedicated action endpoints for other state changes." },
+        { "case": "WO not in editable state", "errorCode": "BAD_REQUEST", "message": "Work Order cannot be modified in its current state. Only DRAFT and PLANNED Work Orders can be updated." }
+      ]
+    },
+    "401": { "description": "Missing or invalid JWT token" },
+    "403": { "description": "User does not have ADMIN or PLANNER role" },
+    "404": {
+      "description": "Work Order not found",
+      "errorCode": "NOT_FOUND",
+      "message": "Work Order not found with ID: {id}"
+    }
+  },
+  "businessRules": [
+    "Only Work Orders in DRAFT or PLANNED status can be modified via PUT",
+    "Status transitions via PUT are limited to DRAFT → PLANNED and PLANNED → DRAFT",
+    "When plannedQuantity changes, all associated materials are recalculated: requiredQuantity = plannedQuantity × quantityPerUnit × (1 + scrapRate)",
+    "Null fields in the request body are treated as 'keep existing value' (partial update)",
+    "Code uniqueness check excludes the current Work Order's own ID"
+  ]
+}
