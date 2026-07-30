@@ -97,16 +97,44 @@ const MOCK_MACHINES = [
 ];
 
 // ── Mock BOMs ──
-const MOCK_BOMS = [
-  { id: 'BOM-001', bomCode: 'BOM-WA-001', productId: 'P006', productName: 'Finished Widget A', productCode: 'WIDGET-A', version: 1, description: 'Standard BOM for Widget A', status: 'ACTIVE', quantity: 1, unitOfMeasure: 'PCS', totalCost: 25.50, items: [
-    { id: 'BMI-001', bomId: 'BOM-001', productId: 'P001', productName: 'Steel Plate', productCode: 'STEEL-PLATE', quantity: 2, unitOfMeasure: 'KG', scrapRate: 5, cost: 8.00, sequence: 1, notes: null },
-    { id: 'BMI-002', bomId: 'BOM-001', productId: 'P003', productName: 'Copper Wire', productCode: 'COPPER-WIRE', quantity: 5, unitOfMeasure: 'M', scrapRate: 3, cost: 5.50, sequence: 2, notes: null },
-    { id: 'BMI-003', bomId: 'BOM-001', productId: 'P004', productName: 'Circuit Board', productCode: 'CIRCUIT-BOARD', quantity: 1, unitOfMeasure: 'PCS', scrapRate: 2, cost: 12.00, sequence: 3, notes: null },
-  ], createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'BOM-002', bomCode: 'BOM-WB-001', productId: 'P007', productName: 'Finished Widget B', productCode: 'WIDGET-B', version: 1, description: 'Standard BOM for Widget B', status: 'DRAFT', quantity: 1, unitOfMeasure: 'PCS', totalCost: 35.00, items: [
-    { id: 'BMI-004', bomId: 'BOM-002', productId: 'P002', productName: 'Aluminum Sheet', productCode: 'ALUM-SHEET', quantity: 3, unitOfMeasure: 'KG', scrapRate: 5, cost: 15.00, sequence: 1, notes: null },
-    { id: 'BMI-005', bomId: 'BOM-002', productId: 'P005', productName: 'Engine Block', productCode: 'ENGINE-BLOCK', quantity: 1, unitOfMeasure: 'PCS', scrapRate: 0, cost: 20.00, sequence: 2, notes: null },
-  ], createdAt: '2025-03-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+const MOCK_BOM_STATUSES = [
+  { id: 'BS-DRAFT', name: 'DRAFT', description: 'Draft version' },
+  { id: 'BS-ACTIVE', name: 'ACTIVE', description: 'Active production BOM' },
+  { id: 'BS-INACTIVE', name: 'INACTIVE', description: 'Inactive version' },
+];
+
+const MOCK_BOMS: any[] = [
+  {
+    id: 'BOM-001',
+    finishedProductId: 'P006',
+    finishedProductName: 'Finished Widget A',
+    finishedProductCode: 'WIDGET-A',
+    version: 1,
+    bomStatusId: 'BS-ACTIVE',
+    bomStatusName: 'ACTIVE',
+    createdBy: 'admin',
+    createdAt: '2025-03-01T00:00:00Z',
+    items: [
+      { id: 'BMI-001', bomId: 'BOM-001', materialProductId: 'P001', materialProductName: 'Steel Plate', materialProductCode: 'STEEL-PLATE', quantityPerUnit: 2, unit: 'KG', scrapRate: 5 },
+      { id: 'BMI-002', bomId: 'BOM-001', materialProductId: 'P003', materialProductName: 'Copper Wire', materialProductCode: 'COPPER-WIRE', quantityPerUnit: 5, unit: 'M', scrapRate: 3 },
+      { id: 'BMI-003', bomId: 'BOM-001', materialProductId: 'P004', materialProductName: 'Circuit Board', materialProductCode: 'CIRCUIT-BOARD', quantityPerUnit: 1, unit: 'PCS', scrapRate: 2 },
+    ],
+  },
+  {
+    id: 'BOM-002',
+    finishedProductId: 'P007',
+    finishedProductName: 'Finished Widget B',
+    finishedProductCode: 'WIDGET-B',
+    version: 1,
+    bomStatusId: 'BS-DRAFT',
+    bomStatusName: 'DRAFT',
+    createdBy: 'admin',
+    createdAt: '2025-03-15T00:00:00Z',
+    items: [
+      { id: 'BMI-004', bomId: 'BOM-002', materialProductId: 'P002', materialProductName: 'Aluminum Sheet', materialProductCode: 'ALUM-SHEET', quantityPerUnit: 3, unit: 'KG', scrapRate: 5 },
+      { id: 'BMI-005', bomId: 'BOM-002', materialProductId: 'P005', materialProductName: 'Engine Block', materialProductCode: 'ENGINE-BLOCK', quantityPerUnit: 1, unit: 'PCS', scrapRate: 0 },
+    ],
+  },
 ];
 
 // ── Mock Work Orders ──
@@ -280,21 +308,139 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // ── BOMs ──
+  if (url === `${base}/boms/statuses` && method === 'GET') {
+    return respond(ok(MOCK_BOM_STATUSES));
+  }
+
+  // POST /api/boms
   if (url === `${base}/boms` && method === 'POST') {
     const body = req.body as any;
-    const newBom = { id: `BOM-${String(Date.now())}`, bomCode: `BOM-${String(Date.now())}`, ...body, version: 1, status: 'DRAFT', items: body.items || [], createdAt: ts(), updatedAt: ts() };
+    const prod = MOCK_PRODUCTS.find(p => p.id === body.finishedProductId);
+    const newBom = {
+      id: `BOM-${String(Date.now())}`,
+      finishedProductId: body.finishedProductId,
+      finishedProductName: prod?.name || 'Unknown Product',
+      finishedProductCode: prod?.code || 'P-UNKNOWN',
+      version: body.version || 1,
+      bomStatusId: 'BS-DRAFT',
+      bomStatusName: 'DRAFT',
+      createdBy: 'admin',
+      createdAt: ts(),
+      items: [],
+    };
     MOCK_BOMS.push(newBom);
     return respond(ok(newBom));
   }
-  if (matchUrl(url, `${base}/boms/:id/activate`) && method === 'PUT') {
-    return respond(ok({ activated: true }));
+
+  // POST /api/boms/:id/activate
+  if (matchUrl(url, `${base}/boms/:id/activate`) && (method === 'POST' || method === 'PUT')) {
+    const id = extractParam(url, `${base}/boms/:id/activate`);
+    const targetBom = MOCK_BOMS.find(b => b.id === id);
+    if (targetBom) {
+      MOCK_BOMS.forEach(b => {
+        if (b.finishedProductId === targetBom.finishedProductId && b.id !== id) {
+          b.bomStatusId = 'BS-INACTIVE';
+          b.bomStatusName = 'INACTIVE';
+        }
+      });
+      targetBom.bomStatusId = 'BS-ACTIVE';
+      targetBom.bomStatusName = 'ACTIVE';
+      return respond(ok({ ...targetBom, items: [...(targetBom.items || [])] }));
+    }
+    return respond(ok(null), 404);
   }
+
+  // POST /api/boms/:id/new-version
+  if (matchUrl(url, `${base}/boms/:id/new-version`) && method === 'POST') {
+    const id = extractParam(url, `${base}/boms/:id/new-version`);
+    const oldBom = MOCK_BOMS.find(b => b.id === id);
+    if (!oldBom) return respond(ok(null), 404);
+
+    const sameProductBoms = MOCK_BOMS.filter(b => b.finishedProductId === oldBom.finishedProductId);
+    const maxVersion = Math.max(...sameProductBoms.map(b => b.version || 1), 0);
+
+    const newBom = {
+      id: `BOM-${String(Date.now())}`,
+      finishedProductId: oldBom.finishedProductId,
+      finishedProductName: oldBom.finishedProductName,
+      finishedProductCode: oldBom.finishedProductCode,
+      version: maxVersion + 1,
+      bomStatusId: 'BS-DRAFT',
+      bomStatusName: 'DRAFT',
+      createdBy: 'admin',
+      createdAt: ts(),
+      items: (oldBom.items || []).map((it: any, idx: number) => ({
+        ...it,
+        id: `BMI-${String(Date.now())}-${idx}`,
+        bomId: `BOM-${String(Date.now())}`,
+      })),
+    };
+    MOCK_BOMS.push(newBom);
+    return respond(ok(newBom));
+  }
+
+  // POST /api/boms/:bomId/items
+  const bomAddItemMatch = matchUrl(url, `${base}/boms/:wId/items`);
+  if (bomAddItemMatch && method === 'POST') {
+    const bomId = bomAddItemMatch[1];
+    const targetBom = MOCK_BOMS.find(b => b.id === bomId);
+    if (targetBom) {
+      const body = req.body as any;
+      const matProd = MOCK_PRODUCTS.find(p => p.id === body.materialProductId);
+      const newItem = {
+        id: `BMI-${String(Date.now())}`,
+        bomId,
+        materialProductId: body.materialProductId,
+        materialProductName: matProd?.name || 'Unknown Material',
+        materialProductCode: matProd?.code || 'M-UNKNOWN',
+        quantityPerUnit: body.quantityPerUnit || 1,
+        unit: body.unit || matProd?.unitName || 'PCS',
+        scrapRate: body.scrapRate || 0,
+      };
+      if (!targetBom.items) targetBom.items = [];
+      targetBom.items.push(newItem);
+      return respond(ok(newItem));
+    }
+  }
+
+  // DELETE /api/boms/:bomId/items/:itemId
+  const bomDelItemMatch = matchUrl(url, `${base}/boms/:wId/items/:id`);
+  if (bomDelItemMatch && method === 'DELETE') {
+    const [, bomId, itemId] = bomDelItemMatch;
+    const targetBom = MOCK_BOMS.find(b => b.id === bomId);
+    if (targetBom && targetBom.items) {
+      targetBom.items = targetBom.items.filter((it: any) => it.id !== itemId);
+    }
+    return respond(ok({ success: true }));
+  }
+
+  // GET /api/boms/:id
   if (matchUrl(url, `${base}/boms/:id`) && method === 'GET') {
     const id = extractParam(url, `${base}/boms/:id`);
-    return respond(ok(MOCK_BOMS.find(b => b.id === id) || null));
+    const b = MOCK_BOMS.find(x => x.id === id);
+    if (b) {
+      return respond(ok({ ...b, items: [...(b.items || [])] }));
+    }
+    return respond(ok(null));
   }
+
+  // GET /api/boms
   if (url.startsWith(`${base}/boms`) && method === 'GET') {
-    return respond(okPage(MOCK_BOMS));
+    const params = new URLSearchParams(url.includes('?') ? url.split('?')[1] : '');
+    const page = parseInt(params.get('page') ?? '0');
+    const size = parseInt(params.get('size') ?? '20');
+    const finishedProductId = params.get('finishedProductId');
+    const bomStatusId = params.get('bomStatusId') || params.get('status');
+
+    let filtered = [...MOCK_BOMS];
+    if (finishedProductId) {
+      filtered = filtered.filter(b => b.finishedProductId === finishedProductId);
+    }
+    if (bomStatusId) {
+      filtered = filtered.filter(b => b.bomStatusId === bomStatusId || b.bomStatusName === bomStatusId);
+    }
+    const paged = filtered.slice(page * size, (page + 1) * size);
+    return respond(okPage(paged, filtered.length));
   }
 
   // ── Work Orders ──

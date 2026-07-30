@@ -1,0 +1,267 @@
+<!-- Loading indicator -->
+@if (loading() || actionLoading()) {
+  <mat-progress-bar mode="indeterminate" class="!fixed !top-0 !left-0 !z-[9999]"></mat-progress-bar>
+}
+
+<!-- Error banner -->
+@if (errorMessage()) {
+  <div class="mb-6 flex items-center justify-between p-4 rounded-xl bg-error/15 text-error border border-error/30 ff-fade-in">
+    <div class="flex items-center gap-3">
+      <mat-icon class="!w-5 !h-5 !text-xl">error_outline</mat-icon>
+      <span class="text-sm font-medium">{{ errorMessage() }}</span>
+    </div>
+    <button mat-button class="!text-error hover:underline text-xs" (click)="load()">Retry</button>
+  </div>
+}
+
+<!-- Top Header Navigation & Action Bar Box -->
+<div class="bom-detail-header-card">
+  <div class="flex items-center gap-3.5">
+    <button
+      mat-icon-button
+      class="!text-text-secondary hover:!text-text-primary hover:!bg-surface-elevated transition-colors"
+      (click)="onBack()"
+      matTooltip="Back to BOM List"
+    >
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-text-primary tracking-tight">
+          {{ bom()?.finishedProductName || 'BOM Details' }}
+        </h1>
+        @if (bom()) {
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+            v{{ bom()?.version }}
+          </span>
+        }
+      </div>
+      <p class="text-sm text-text-secondary mt-1 flex items-center gap-2">
+        <span>Product Code: </span>
+        <span class="font-mono font-semibold text-text-primary px-2.5 py-0.5 rounded bg-surface-elevated border border-border-default">
+          {{ bom()?.finishedProductCode || '-' }}
+        </span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Header Actions -->
+  <div class="flex items-center gap-3">
+    @if (canActivate()) {
+      <button
+        mat-flat-button
+        class="btn-success font-semibold !px-4 shadow-md transition-all flex items-center gap-1.5"
+        (click)="onActivate()"
+        [disabled]="actionLoading()"
+      >
+        <mat-icon class="!w-5 !h-5 text-xl">check_circle</mat-icon> Activate BOM
+      </button>
+    }
+
+    @if (canNewVersion()) {
+      <button
+        mat-flat-button
+        class="btn-primary font-semibold !px-4 shadow-md transition-all flex items-center gap-1.5"
+        (click)="onNewVersion()"
+        [disabled]="actionLoading()"
+      >
+        <mat-icon class="!w-5 !h-5 text-xl">content_copy</mat-icon> Create New Version
+      </button>
+    }
+  </div>
+</div>
+
+<!-- BOM Metadata Summary KPI Cards (Distinct, non-duplicated metrics) -->
+@if (bom()) {
+  <div class="dashboard-grid mb-6">
+    <!-- Card 1: Status -->
+    <div class="kpi-card">
+      <span class="kpi-label">BOM Status</span>
+      <div class="mt-1">
+        <span
+          class="ff-badge"
+          [class.ff-badge--active]="isActive()"
+          [class.ff-badge--pending]="isDraft()"
+          [class.ff-badge--cancelled]="isInactive()"
+        >
+          <span class="w-1.5 h-1.5 rounded-full mr-1"
+            [class.bg-success]="isActive()"
+            [class.bg-warning]="isDraft()"
+            [class.bg-error]="isInactive()"
+          ></span>
+          {{ bom()?.bomStatusName || bom()?.bomStatusId }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 2: Product Code -->
+    <div class="kpi-card">
+      <span class="kpi-label">Product Code</span>
+      <div class="mt-1">
+        <span class="inline-flex items-center gap-1.5 text-sm font-mono font-bold text-text-primary px-2.5 py-1 rounded bg-surface-elevated border border-border-light">
+          <mat-icon class="!w-4 !h-4 text-base text-primary">qr_code</mat-icon>
+          {{ bom()?.finishedProductCode || '-' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Card 3: Author & Date -->
+    <div class="kpi-card">
+      <span class="kpi-label">Created By</span>
+      <div>
+        <div class="text-sm font-medium text-text-primary flex items-center gap-1.5">
+          <mat-icon class="!w-4 !h-4 text-base text-text-muted">person</mat-icon>
+          <span>{{ bom()?.createdBy || 'system' }}</span>
+        </div>
+        <div class="text-xs text-text-muted font-mono mt-0.5">{{ bom()?.createdAt | date: 'mediumDate' }}</div>
+      </div>
+    </div>
+
+    <!-- Card 4: Metrics -->
+    <div class="kpi-card">
+      <span class="kpi-label">Structure Metrics</span>
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="text-xl font-extrabold text-text-primary">{{ itemsCount() }} <span class="text-xs font-normal text-text-secondary">items</span></span>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-text-muted">Avg Scrap: <span class="font-bold text-warning">{{ scrapRateAvg() }}%</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Component Items Table Card -->
+  <mat-card class="ff-card">
+    <mat-card-content class="!p-0">
+      <!-- Card Header Toolbar -->
+      <div class="card-header-toolbar">
+        <div>
+          <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
+            <mat-icon class="!w-5 !h-5 text-primary">account_tree</mat-icon>
+            Material Components
+          </h2>
+          <p class="text-xs text-text-secondary mt-0.5">Raw materials and assemblies required for 1 finished unit</p>
+        </div>
+
+        <!-- Add Item Action (DRAFT mode with existing items) -->
+        @if (canWrite() && isDraft() && itemsCount() > 0) {
+          <button
+            mat-flat-button
+            class="btn-primary font-semibold text-xs !px-4 !py-2 flex items-center gap-1.5 shadow-sm"
+            (click)="onAddItem()"
+            [disabled]="actionLoading()"
+          >
+            <mat-icon class="!w-4 !h-4 text-base">add</mat-icon> Add Component
+          </button>
+        }
+      </div>
+
+      <!-- Items Table -->
+      @if (itemsCount() > 0) {
+        <table mat-table [dataSource]="bom()?.items || []" class="w-full">
+          <!-- Material Product Code -->
+          <ng-container matColumnDef="materialProductCode">
+            <th mat-header-cell *matHeaderCellDef>Material Code</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-surface-elevated text-text-primary border border-border-light">
+                <mat-icon class="!w-3.5 !h-3.5 text-sm text-text-muted">category</mat-icon>
+                {{ item.materialProductCode || item.materialProductId }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Material Product Name -->
+          <ng-container matColumnDef="materialProductName">
+            <th mat-header-cell *matHeaderCellDef>Material Name</th>
+            <td mat-cell *matCellDef="let item" class="font-semibold text-text-primary">
+              {{ item.materialProductName || '-' }}
+            </td>
+          </ng-container>
+
+          <!-- Quantity Per Unit -->
+          <ng-container matColumnDef="quantityPerUnit">
+            <th mat-header-cell *matHeaderCellDef>Qty / Unit</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="font-bold text-text-primary text-base mr-1">{{ item.quantityPerUnit }}</span>
+            </td>
+          </ng-container>
+
+          <!-- Unit of Measure -->
+          <ng-container matColumnDef="unit">
+            <th mat-header-cell *matHeaderCellDef>Unit</th>
+            <td mat-cell *matCellDef="let item">
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-surface-elevated text-text-secondary border border-border-light">
+                {{ item.unit || 'PCS' }}
+              </span>
+            </td>
+          </ng-container>
+
+          <!-- Scrap Rate -->
+          <ng-container matColumnDef="scrapRate">
+            <th mat-header-cell *matHeaderCellDef>Scrap Rate (%)</th>
+            <td mat-cell *matCellDef="let item">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-text-secondary font-mono">{{ item.scrapRate || 0 }}%</span>
+                @if ((item.scrapRate || 0) > 0) {
+                  <div class="w-12 h-1.5 rounded-full bg-surface-elevated overflow-hidden border border-border-light">
+                    <div
+                      class="h-full bg-warning rounded-full"
+                      [style.width.%]="item.scrapRate > 100 ? 100 : item.scrapRate"
+                    ></div>
+                  </div>
+                }
+              </div>
+            </td>
+          </ng-container>
+
+          <!-- Actions Column (DRAFT only) -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef class="text-right">Actions</th>
+            <td mat-cell *matCellDef="let item" class="text-right">
+              @if (canWrite() && isDraft()) {
+                <button
+                  mat-icon-button
+                  class="!text-error hover:!bg-error/10 transition-colors"
+                  (click)="onRemoveItem(item)"
+                  matTooltip="Remove component"
+                  [disabled]="actionLoading()"
+                >
+                  <mat-icon class="!w-5 !h-5 text-xl">delete_outline</mat-icon>
+                </button>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()" class="hover:bg-surface-elevated/50 transition-colors"></tr>
+        </table>
+      } @else {
+        <!-- Empty Items State -->
+        <div class="flex flex-col items-center justify-center py-16 px-6 text-center">
+          <div class="flex items-center justify-center w-14 h-14 rounded-2xl bg-surface-elevated border border-border-default mb-3 text-text-muted shadow-inner">
+            <mat-icon class="!w-7 !h-7 !text-2xl">widgets</mat-icon>
+          </div>
+          <span class="text-base font-bold text-text-primary mb-1">No material components added</span>
+          <p class="text-xs text-text-muted max-w-[320px] leading-relaxed mb-5">
+            @if (isDraft()) {
+              Define the raw materials and sub-assemblies required to manufacture this product structure.
+            } @else {
+              This BOM version has no material components assigned.
+            }
+          </p>
+          @if (canWrite() && isDraft()) {
+            <button
+              mat-flat-button
+              class="btn-primary font-semibold !px-5 !py-2.5 flex items-center gap-1.5 shadow-md"
+              (click)="onAddItem()"
+              [disabled]="actionLoading()"
+            >
+              <mat-icon class="!w-5 !h-5 text-xl">add</mat-icon> Add First Component
+            </button>
+          }
+        </div>
+      }
+    </mat-card-content>
+  </mat-card>
+}

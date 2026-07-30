@@ -52,13 +52,18 @@ export class BomCreateDialog implements OnInit {
     const productTypeIds = ['PT-FIN', 'PT-SUB'];
     this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${productTypeIds.join(',')}`).subscribe((r) => {
       if (r.success && r.data?.items) {
-        const filtered = r.data.items.filter((p) =>
-          p.productTypeName === 'FINISHED_GOOD' ||
-          p.productTypeName === 'SEMI_FINISHED' ||
-          p.productTypeId === 'PT-FIN' ||
-          p.productTypeId === 'PT-SUB'
-        );
-        this.productsList.set(filtered.length > 0 ? filtered : r.data.items);
+        const filtered = r.data.items.filter((p) => {
+          const typeName = (p.productTypeName || '').trim().toUpperCase();
+          const typeId = (p.productTypeId || '').trim().toUpperCase();
+          return (
+            typeName === 'FINISHED_GOOD' ||
+            typeName === 'SEMI_FINISHED' ||
+            typeName === 'SUB_ASSEMBLY' ||
+            typeId === 'PT-FIN' ||
+            typeId === 'PT-SUB'
+          );
+        });
+        this.productsList.set(filtered);
       }
     });
   }
