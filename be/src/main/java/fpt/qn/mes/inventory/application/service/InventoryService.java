@@ -796,11 +796,6 @@ public class InventoryService implements InventoryUseCase {
             throw new IllegalArgumentException("Destination location does not belong to the specified destination warehouse");
         }
 
-        String fromCode = fromLoc != null ? fromLoc.getCode() : "SRC";
-        String toCode = toLoc != null ? toLoc.getCode() : "DST";
-        String dateStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String referenceNumber = "TRF-" + dateStr + "-" + fromCode + "->" + toCode;
-
         UUID availableStatusId = stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)
                 .orElseThrow(() -> new InventoryNotFoundException("Stock status AVAILABLE not found"));
 
@@ -842,7 +837,6 @@ public class InventoryService implements InventoryUseCase {
                 .build());
 
         destBalance.addQuantity(request.getQuantity());
-        log.info("PASS");
         StockBalance updatedDestBalance = balanceRepository.save(destBalance);
 
         StockMovement outMovement = StockMovement.create(
@@ -856,7 +850,7 @@ public class InventoryService implements InventoryUseCase {
                 request.getQuantity(),
                 availableStatusId,
                 availableStatusId,
-                referenceNumber,
+                null,
                 "Stock Transfer Out",
                 currentUserId
         );
@@ -873,7 +867,7 @@ public class InventoryService implements InventoryUseCase {
                 request.getQuantity(),
                 availableStatusId,
                 availableStatusId,
-                referenceNumber,
+                null,
                 "Stock Transfer In",
                 currentUserId
         );
