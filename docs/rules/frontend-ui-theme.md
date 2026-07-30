@@ -39,10 +39,10 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
 ```
 
 ### Quy tắc Màu Trạng thái (Status Colors):
-- `active` / `success`: Chữ `#65a30d`, Nền `rgba(101,163,13,0.15)`, Border `#65a30d` (Green)
-- `completed` / `running`: Chữ `#ea580c`, Nền `rgba(234,88,12,0.15)`, Border `#ea580c` (Orange)
-- `onhold` / `warning`: Chữ `#d97706`, Nền `rgba(217,119,6,0.15)`, Border `#d97706` (Amber)
-- `cancelled` / `error`: Chữ `#dc2626`, Nền `rgba(220,38,38,0.15)`, Border `#dc2626` (Red)
+- `active` / `running` / `success`: Chữ `#65a30d`, Nền `rgba(101,163,13,0.15)`, Border `#65a30d` (Green)
+- `completed` / `orange`: Chữ `#ea580c`, Nền `rgba(234,88,12,0.15)`, Border `#ea580c` (Orange)
+- `onhold` / `warning` / `maintenance`: Chữ `#d97706`, Nền `rgba(217,119,6,0.15)`, Border `#d97706` (Amber)
+- `cancelled` / `error` / `inactive` / `retired`: Chữ `#f87171`, Nền `rgba(248,113,113,0.15)`, Border `#dc2626` (Vibrant Red)
 - `pending` / `paused` / `idle`: Chữ `#a8a29e` / `#78716c`, Nền `#292524`, Border `#44403c` (Stone)
 
 ---
@@ -67,6 +67,9 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
      - View Details (`.ff-action-btn-view`): Màu Tím Violet (`#a855f7`), nền mờ 10% `rgba(168,85,247,0.1)`.
      - Deactivate / Delete (`.ff-action-btn-delete`): Màu Đỏ Vibrant Red (`#f87171`), nền mờ 10% `rgba(248,113,113,0.1)`.
      - Tất cả có bo góc 6px, hiệu ứng hover đổi màu sáng hơn và zoom nhẹ `scale(1.08)`.
+   - Dynamic Status Badge Behavior: 
+     - Ánh xạ trạng thái linh hoạt không phân biệt hoa-thường (`.toUpperCase()`).
+     - Khi vô hiệu hóa (`Deactivate`) hoặc khi statusName không khả dụng, luôn có fallback chữ **`INACTIVE` đỏ nổi bật** (`.ff-badge--cancelled`) giúp người dùng nhận biết ngay lập tức.
    - App Shell Header & Navigation: 
      - Top Toolbar Header: Chứa Logo Brand `FF` nền gradient cam bo góc, tên hệ thống `MES` nổi bật, tiêu đề trang hiện tại, và Menu tài khoản người dùng hình tròn đại diện cho Avatar.
      - Sidebar Menu (`.nav-item`): Mục menu dạng pill có icon rõ ràng, khi được kích hoạt (`.active`) có nền hiệu ứng màu cam mờ `rgba(234,88,12,0.15)` và chữ màu `#ea580c`.
