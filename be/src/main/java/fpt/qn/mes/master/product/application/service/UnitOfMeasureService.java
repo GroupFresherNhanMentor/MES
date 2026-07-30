@@ -14,6 +14,7 @@ import fpt.qn.mes.master.product.application.dto.unitofmeasure.UnitOfMeasureResp
 import fpt.qn.mes.master.product.application.dto.unitofmeasure.create.CreateUnitOfMeasureRequest;
 import fpt.qn.mes.master.product.application.dto.unitofmeasure.search.UnitOfMeasureSearchRequest;
 import fpt.qn.mes.master.product.application.mapper.UnitOfMeasureDtoMapper;
+import fpt.qn.mes.master.product.application.exception.ProductConflictException;
 import fpt.qn.mes.master.product.application.port.in.UnitOfMeasureUseCase;
 import fpt.qn.mes.master.product.domain.entities.UnitOfMeasure;
 import fpt.qn.mes.master.product.domain.repository.UnitOfMeasureRepository;
@@ -49,14 +50,18 @@ public class UnitOfMeasureService implements UnitOfMeasureUseCase {
     @Override
     @Transactional
     public void createUnitOfMeasure(CreateUnitOfMeasureRequest request) {
+        if (unitOfMeasureRepository.existsByName(request.getName())) {
+            throw new ProductConflictException("Unit of measure name already exists: " + request.getName());
+        }
         UUID currentUserId = currentUserPort.getCurrentUserId();
+        UnitOfMeasure.UserRef userRef = UnitOfMeasure.UserRef.builder().id(currentUserId).build();
         Instant now = Instant.now();
         UnitOfMeasure unit = UnitOfMeasure.builder()
             .id(UuidV7.generate())
             .name(request.getName())
             .description(request.getDescription())
-            .createdBy(currentUserId)
-            .updatedBy(currentUserId)
+            .createdBy(userRef)
+            .updatedBy(userRef)
             .createdAt(now)
             .updatedAt(now)
             .build();

@@ -8,7 +8,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import fpt.qn.mes.inventory.application.dto.request.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
 import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
 
 class StockTransferIntegrationTest {

@@ -14,6 +14,7 @@ import fpt.qn.mes.master.product.application.dto.productstatus.ProductStatusResp
 import fpt.qn.mes.master.product.application.dto.productstatus.create.CreateProductStatusRequest;
 import fpt.qn.mes.master.product.application.dto.productstatus.search.ProductStatusSearchRequest;
 import fpt.qn.mes.master.product.application.mapper.ProductStatusDtoMapper;
+import fpt.qn.mes.master.product.application.exception.ProductConflictException;
 import fpt.qn.mes.master.product.application.port.in.ProductStatusUseCase;
 import fpt.qn.mes.master.product.domain.entities.ProductStatus;
 import fpt.qn.mes.master.product.domain.repository.ProductStatusRepository;
@@ -49,14 +50,18 @@ public class ProductStatusService implements ProductStatusUseCase {
     @Override
     @Transactional
     public void createProductStatus(CreateProductStatusRequest request) {
+        if (productStatusRepository.existsByName(request.getName())) {
+            throw new ProductConflictException("Product status name already exists: " + request.getName());
+        }
         UUID currentUserId = currentUserPort.getCurrentUserId();
+        ProductStatus.UserRef userRef = ProductStatus.UserRef.builder().id(currentUserId).build();
         Instant now = Instant.now();
         ProductStatus status = ProductStatus.builder()
             .id(UuidV7.generate())
             .name(request.getName())
             .description(request.getDescription())
-            .createdBy(currentUserId)
-            .updatedBy(currentUserId)
+            .createdBy(userRef)
+            .updatedBy(userRef)
             .createdAt(now)
             .updatedAt(now)
             .build();

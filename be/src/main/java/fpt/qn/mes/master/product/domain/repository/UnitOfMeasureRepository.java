@@ -10,6 +10,8 @@ import fpt.qn.mes.master.product.domain.repository.criteria.UnitOfMeasureSearchC
 
 public interface UnitOfMeasureRepository {
     Optional<UnitOfMeasure> findById(UUID id);
+    boolean existsById(UUID id);
+    boolean existsByName(String name);
     List<UnitOfMeasure> findAll();
     UnitOfMeasure save(UnitOfMeasure unit);
     PaginationResult<UnitOfMeasure> search(UnitOfMeasureSearchCriteria criteria);

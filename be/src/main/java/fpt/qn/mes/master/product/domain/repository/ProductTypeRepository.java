@@ -10,6 +10,8 @@ import fpt.qn.mes.master.product.domain.repository.criteria.ProductTypeSearchCri
 
 public interface ProductTypeRepository {
     Optional<ProductType> findById(UUID id);
+    boolean existsById(UUID id);
+    boolean existsByName(String name);
     List<ProductType> findAll();
     ProductType save(ProductType type);
     PaginationResult<ProductType> search(ProductTypeSearchCriteria criteria);

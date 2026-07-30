@@ -14,6 +14,7 @@ import fpt.qn.mes.master.product.application.dto.producttype.ProductTypeResponse
 import fpt.qn.mes.master.product.application.dto.producttype.create.CreateProductTypeRequest;
 import fpt.qn.mes.master.product.application.dto.producttype.search.ProductTypeSearchRequest;
 import fpt.qn.mes.master.product.application.mapper.ProductTypeDtoMapper;
+import fpt.qn.mes.master.product.application.exception.ProductConflictException;
 import fpt.qn.mes.master.product.application.port.in.ProductTypeUseCase;
 import fpt.qn.mes.master.product.domain.entities.ProductType;
 import fpt.qn.mes.master.product.domain.repository.ProductTypeRepository;
@@ -49,14 +50,18 @@ public class ProductTypeService implements ProductTypeUseCase {
     @Override
     @Transactional
     public void createProductType(CreateProductTypeRequest request) {
+        if (productTypeRepository.existsByName(request.getName())) {
+            throw new ProductConflictException("Product type name already exists: " + request.getName());
+        }
         UUID currentUserId = currentUserPort.getCurrentUserId();
+        ProductType.UserRef userRef = ProductType.UserRef.builder().id(currentUserId).build();
         Instant now = Instant.now();
         ProductType type = ProductType.builder()
             .id(UuidV7.generate())
             .name(request.getName())
             .description(request.getDescription())
-            .createdBy(currentUserId)
-            .updatedBy(currentUserId)
+            .createdBy(userRef)
+            .updatedBy(userRef)
             .createdAt(now)
             .updatedAt(now)
             .build();

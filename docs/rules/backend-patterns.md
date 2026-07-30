@@ -4,258 +4,441 @@ Canonical skeletons for each layer. Follow these exactly when creating new artif
 
 ## Domain Entity
 
+Every entity with audit fields uses a `UserRef` static inner class for `createdBy`/`updatedBy`.
+Factory methods accept raw UUIDs — never domain objects as parameters.
+
 ```java
-// domain/entities/Bom.java
+// domain/entities/Product.java
 @Getter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class Bom {
-    UUID id;
-    UUID finishedProductId;
-    Integer version;
-    UUID bomStatusId;
-    UUID createdBy;
-    Instant createdAt;
-    List<BomItem> items;
+public class Product {
 
-    public static Bom create(UUID finishedProductId, Integer version, UUID bomStatusId, UUID createdBy) {
-        return Bom.builder()
+    @Getter
+    @Builder
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserRef {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
+    UUID id;
+    String code;
+    String name;
+    String version;
+    ProductType productType;    // nested entity — holds full object when read from DB
+    Instant createdAt;
+    UserRef createdBy;
+    Instant updatedAt;
+    UserRef updatedBy;
+
+    public static Product create(String code, String name, String version, UUID productTypeId, UUID createdBy) {
+        return Product.builder()
             .id(UuidV7.generate())
-            .finishedProductId(finishedProductId)
+            .code(code)
+            .name(name)
             .version(version)
-            .bomStatusId(bomStatusId)
-            .createdBy(createdBy)
+            .productType(ProductType.builder().id(productTypeId).build())  // stub with id only
+            .createdBy(UserRef.builder().id(createdBy).build())            // stub with id only
             .createdAt(Instant.now())
-            .items(new ArrayList<>())
+            .updatedAt(Instant.now())
+            .build();
+    }
+
+    public static Product update(Product existing, String name, UUID updatedBy) {
+        return Product.builder()
+            .id(existing.id)
+            .code(existing.code)
+            .name(name != null ? name : existing.name)
+            .version(existing.version)
+            .productType(existing.productType)
+            .createdAt(existing.createdAt)
+            .createdBy(existing.createdBy)
+            .updatedAt(Instant.now())
+            .updatedBy(UserRef.builder().id(updatedBy).build())
             .build();
     }
 }
 ```
 
+**Rules:**
+- Factory methods (`create`, `update`, `changeStatus`) take **UUIDs**, never domain entity objects
+- Nested FK entities are stubs on write: `ProductType.builder().id(productTypeId).build()`
+- `createdBy` is a `UserRef` stub on create (only `id` known at write time; full data comes back on read)
+- `updatedBy` starts `null` on create — the DB column must be nullable
+
 ## Domain Repository Interface
 
 ```java
-// domain/repository/BomRepository.java
-public interface BomRepository {
-    Optional<Bom> findById(UUID id);
-    Bom save(Bom bom);
-    void deleteById(UUID id);
-    PaginationResult<Bom> findAll(int page, int size);
+// domain/repository/ProductRepository.java
+public interface ProductRepository {
+    Optional<Product> findById(UUID id);
+    Product save(Product product);
+    Product update(Product product);
+    PaginationResult<Product> search(ProductSearchCriteria criteria);
+    boolean existsByCode(String code);
+    boolean existsByVersion(String version);
+    boolean existsById(UUID id);
 }
 ```
+
+**Rules:**
+- Use `search(criteria)` — never `findAll(page, size)` with raw ints
+- Expose `existsById` / `existsByCode` / `existsByName` for validation — avoids loading a full entity just to confirm it exists
+- `findById` is only for when you need the entity itself (e.g. to run business logic on it)
+
+## Search Criteria & Request
+
+Both always extend the base classes — never declare `page`, `size`, or `sort` directly.
+
+```java
+// domain/repository/criteria/ProductSearchCriteria.java
+@Getter @Setter @SuperBuilder @NoArgsConstructor @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductSearchCriteria extends BaseSearchCriteria {
+    String code;
+    String name;
+    UUID productTypeId;
+}
+
+// application/dto/product/search/ProductSearchRequest.java
+@Getter @Setter @FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductSearchRequest extends BaseSearchRequest {
+    String code;
+    String name;
+    UUID productTypeId;
+}
+```
+
+`BaseSearchCriteria` provides `page`, `size`, `List<String> sort`.
+`BaseSearchRequest` provides `page`, `size`, `List<String> sort` with validation.
 
 ## Use Case Interface
 
 ```java
-// application/port/in/BomUseCase.java
-public interface BomUseCase {
-    PageResponse<BomDto> getBoms(int page, int size);
-    BomDto getBomById(UUID id);
-    BomDto createBom(CreateBomRequest request);  // service fetches current user itself
-    void deleteBom(UUID id);
+// application/port/in/ProductUseCase.java
+public interface ProductUseCase {
+    PageResponse<ProductResponse> getProducts(ProductSearchRequest request);
+    ProductResponse getProductById(UUID id);
+    void createProduct(CreateProductRequest request);
+    void updateProduct(UUID id, UpdateProductRequest request);
+    void activateProduct(UUID id);
+    void deactivateProduct(UUID id);
 }
 ```
-
-## Output Port (external dependency interface)
-
-```java
-// application/port/out/BomExternalPort.java  (example)
-public interface SomeExternalPort {
-    void doSomething(String param);
-}
-```
-
-For auth specifically, the pre-built ports are:
-- `CurrentUserPort` — `getCurrentUser()`, `getCurrentUserId()`, `getCurrentUsername()`
-- `PasswordPort` — `encode(raw)`, `matches(raw, encoded)`
-- `TokenPort` — `generateAccessToken(...)`, `generateRefreshToken(...)`
 
 ## Service
 
 ```java
-// application/service/BomService.java
+// application/service/ProductService.java
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class BomService implements BomUseCase {
+public class ProductService implements ProductUseCase {
 
-    BomRepository bomRepository;      // domain interface — never the adapter
-    BomDtoMapper mapper;
-    CurrentUserPort currentUserPort;  // auth output port — never SecurityUtil directly
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<BomDto> getBoms(int page, int size) {
-        PaginationResult<Bom> result = bomRepository.findAll(page, size);
-        return PageResponse.of(
-            result.items().stream().map(b -> mapper.toDto(b)).toList(),
-            result.total(), page, size);
-    }
+    ProductRepository productRepository;
+    ProductTypeRepository productTypeRepository;
+    ProductDtoMapper mapper;
+    CurrentUserPort currentUserPort;
 
     @Override
-    @Transactional(readOnly = true)
-    public BomDto getBomById(UUID id) {
-        return bomRepository.findById(id)
-            .map(b -> mapper.toDto(b))
-            .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
+    @Transactional
+    public void createProduct(CreateProductRequest request) {
+        // uniqueness checks first
+        if (productRepository.existsByCode(request.getCode())) {
+            throw new ProductConflictException("Product code already exists: " + request.getCode());
+        }
+        // FK reference validation via existsById — not findById
+        if (!productTypeRepository.existsById(request.getProductTypeId())) {
+            throw new ProductTypeNotFoundException("Product type not found: " + request.getProductTypeId());
+        }
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        productRepository.save(Product.create(request.getCode(), request.getName(),
+            request.getVersion(), request.getProductTypeId(), currentUserId));
     }
 
     @Override
     @Transactional
-    public BomDto createBom(CreateBomRequest request) {
-        UUID currentUserId = currentUserPort.getCurrentUserId();  // fetched here, not passed from controller
-        Bom bom = Bom.create(request.getFinishedProductId(), request.getVersion(),
-            request.getBomStatusId(), currentUserId);
-        return mapper.toDto(bomRepository.save(bom));
-    }
-
-    @Override
-    @Transactional
-    public void deleteBom(UUID id) {
-        if (bomRepository.findById(id).isEmpty()) throw new BomNotFoundException("BOM not found: " + id);
-        bomRepository.deleteById(id);
+    public void updateProduct(UUID id, UpdateProductRequest request) {
+        // findById only when you need the entity
+        var existing = productRepository.findById(id)
+            .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        productRepository.update(Product.update(existing, request.getName(), currentUserId));
     }
 }
 ```
 
+**Validation rules in service:**
+- Use `existsByCode` / `existsByName` / `existsByVersion` for uniqueness → throw `*ConflictException` (409)
+- Use `existsById` for FK reference checks → throw `*NotFoundException` (404)
+- Use `findById` only when you need the full entity to pass to a factory method or run business logic
+- Never call `findById` just to confirm existence
+
 ## Module Exception
 
 ```java
-// application/exception/BomNotFoundException.java
-public class BomNotFoundException extends AppException {
-    public BomNotFoundException(String message) {
+// application/exception/ProductNotFoundException.java
+public class ProductNotFoundException extends AppException {
+    public ProductNotFoundException(String message) {
         super(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, message);
     }
+}
+
+// application/exception/ProductConflictException.java
+public class ProductConflictException extends AppException {
+    public ProductConflictException(String message) {
+        super(HttpStatus.CONFLICT, ErrorCode.CONFLICT, message);
+    }
+}
+```
+
+## Response DTO with Audit User Info
+
+Response DTOs use a `UserInfo` static inner class that mirrors the domain `UserRef`.
+Never share a `UserInfo` class across modules — each module defines its own.
+
+```java
+// application/dto/product/ProductResponse.java
+@Getter @Builder @NoArgsConstructor @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductResponse {
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserInfo {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
+    UUID id;
+    String code;
+    String name;
+    Instant createdAt;
+    UserInfo createdBy;
+    Instant updatedAt;
+    UserInfo updatedBy;
 }
 ```
 
 ## DTO Mapper — MapStruct (application layer)
 
-```java
-// application/mapper/BomDtoMapper.java
-@Mapper(componentModel = "spring")
-public interface BomDtoMapper {
-    BomDto toDto(Bom bom);
+When the domain entity has a `UserRef`, add an explicit `toUserInfo` method so MapStruct can map it.
 
-    // field name differs between request and entity → use @Mapping
-    @Mapping(target = "bomStatusId", source = "statusId")
-    Bom toDomain(CreateBomRequest request);
+```java
+// application/mapper/ProductDtoMapper.java
+@Mapper(componentModel = "spring")
+public interface ProductDtoMapper {
+    ProductResponse toDto(Product product);
+    ProductResponse.UserInfo toUserInfo(Product.UserRef ref);  // explicit — MapStruct uses this for UserRef fields
 }
 ```
 
 ## Record Mapper — manual (infrastructure layer)
 
-```java
-// infrastructure/persistence/BomRecordMapper.java
-@Component
-public class BomRecordMapper {
+When the entity has audit user fields, the mapper accepts typed `UsersRecord` parameters from the JOIN.
 
-    public Bom toDomain(BomsRecord r) {
-        return Bom.builder()
+```java
+// infrastructure/persistence/product/ProductRecordMapper.java
+@Component
+public class ProductRecordMapper {
+
+    public Product toDomain(ProductsRecord r, UsersRecord creator, UsersRecord updater) {
+        return Product.builder()
             .id(r.getId())
-            .finishedProductId(r.getFinishedProductId())
-            .version(r.getVersion())
-            .createdAt(r.getCreatedAt().toInstant())
+            .code(r.getCode())
+            .createdAt(r.getCreatedAt().toInstant())           // NOT NULL column — no null check
+            .updatedAt(r.getUpdatedAt() != null ? r.getUpdatedAt().toInstant() : null)  // nullable
+            .createdBy(creator.getId() != null                 // LEFT JOIN: check .getId(), not object
+                ? Product.UserRef.builder()
+                    .id(creator.getId())
+                    .fullName(creator.getFullName())
+                    .username(creator.getUsername())
+                    .build()
+                : null)
+            .updatedBy(updater.getId() != null
+                ? Product.UserRef.builder()
+                    .id(updater.getId())
+                    .fullName(updater.getFullName())
+                    .username(updater.getUsername())
+                    .build()
+                : null)
             .build();
     }
 
-    public BomsRecord toRecord(Bom bom) {
-        BomsRecord r = new BomsRecord();
-        r.setId(bom.getId());
-        r.setFinishedProductId(bom.getFinishedProductId());
-        r.setVersion(bom.getVersion());
-        r.setCreatedAt(bom.getCreatedAt().atOffset(ZoneOffset.UTC));
+    public ProductsRecord toRecord(Product p) {
+        ProductsRecord r = new ProductsRecord();
+        r.setId(p.getId());
+        r.setCode(p.getCode());
+        r.setCreatedAt(OffsetDateTime.ofInstant(p.getCreatedAt(), ZoneOffset.UTC));  // always set
+        r.setUpdatedAt(p.getUpdatedAt() != null ? OffsetDateTime.ofInstant(p.getUpdatedAt(), ZoneOffset.UTC) : null);
+        r.setCreatedBy(p.getCreatedBy() != null ? p.getCreatedBy().getId() : null);  // UserRef may be null for seeded data
+        r.setUpdatedBy(p.getUpdatedBy() != null ? p.getUpdatedBy().getId() : null);
         return r;
     }
 }
 ```
 
+### Null check rules
+
+| Scenario | Rule |
+|---|---|
+| `r.into(TABLE)` result | Never Java null — never write `record != null`, only `record.getId() != null` |
+| LEFT JOIN field (from `r.into(ALIAS)`) | Check `record.getId() != null` to detect no-match row |
+| NOT NULL DB column (e.g. `created_at`) | No null guard in `toDomain` or `toRecord` |
+| Nullable DB column (e.g. `updated_at`) | Keep null guard in both directions |
+| Required domain field validated at controller | No null guard in `toRecord` (e.g. `p.getProductType().getId()`) |
+| `UserRef` / `updatedBy` fields | Always null-guard in `toRecord` — may be null on first create |
+
 ## Persistence Adapter
 
+One subfolder per entity: `infrastructure/persistence/{entity}/`.
+No helper methods (`baseSelect`, `mapRow`, `buildSort`) — write joins inline in each method.
+
 ```java
-// infrastructure/persistence/BomPersistenceAdapter.java
+// infrastructure/persistence/product/ProductPersistenceAdapter.java
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements BomRepository {
+public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> implements ProductRepository {
 
-    BomRecordMapper mapper;
-    DSLContext dslCtx;
+    private static final Users CREATOR = USERS.as("creator");
+    private static final Users UPDATER = USERS.as("updater");
 
-    public BomPersistenceAdapter(DSLContext ctx, BomRecordMapper mapper) {
-        super(ctx, BOMS);
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+        "name",       PRODUCTS.NAME,
+        "created_at", PRODUCTS.CREATED_AT
+    );
+    private static final Field<?> DEFAULT_SORT_FIELD = PRODUCTS.CREATED_AT;
+
+    ProductRecordMapper mapper;
+
+    public ProductPersistenceAdapter(DSLContext ctx, ProductRecordMapper mapper) {
+        super(ctx, PRODUCTS);     // BaseRepository stores ctx — use this.ctx, never redeclare dslCtx
         this.mapper = mapper;
-        this.dslCtx = ctx;
     }
 
     @Override
-    public Optional<Bom> findById(UUID id) {
-        return dslCtx.selectFrom(BOMS)
-            .where(BOMS.ID.eq(id))
-            .fetchOptional(r -> mapper.toDomain(r));
+    public Optional<Product> findById(UUID id) {
+        return ctx.select()
+            .from(PRODUCTS)
+            .leftJoin(CREATOR).on(PRODUCTS.CREATED_BY.eq(CREATOR.ID))
+            .leftJoin(UPDATER).on(PRODUCTS.UPDATED_BY.eq(UPDATER.ID))
+            .where(PRODUCTS.ID.eq(id))
+            .fetchOptional(r -> mapper.toDomain(r.into(PRODUCTS), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
-    public Bom save(Bom bom) {
-        BomsRecord record = mapper.toRecord(bom);
-        dslCtx.insertInto(BOMS).set(record)
-            .onConflict(BOMS.ID).doUpdate().set(record)
+    public boolean existsById(UUID id) {
+        return ctx.fetchExists(PRODUCTS, PRODUCTS.ID.eq(id));
+    }
+
+    @Override
+    public boolean existsByCode(String code) {
+        return ctx.fetchExists(PRODUCTS, PRODUCTS.CODE.eq(code));
+    }
+
+    @Override
+    public Product save(Product product) {
+        ProductsRecord r = mapper.toRecord(product);
+        ctx.insertInto(PRODUCTS).set(r)
+            .onConflict(PRODUCTS.ID).doUpdate().set(r)
             .execute();
-        return bom;
+        return product;   // return the passed entity — never re-fetch after save
     }
 
     @Override
-    public void deleteById(UUID id) {
-        dslCtx.deleteFrom(BOMS).where(BOMS.ID.eq(id)).execute();
+    public PaginationResult<Product> search(ProductSearchCriteria criteria) {
+        Condition condition = buildCondition(criteria);
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+        long total = ctx.fetchCount(PRODUCTS, condition);
+        List<Product> items = ctx.select()
+            .from(PRODUCTS)
+            .leftJoin(CREATOR).on(PRODUCTS.CREATED_BY.eq(CREATOR.ID))
+            .leftJoin(UPDATER).on(PRODUCTS.UPDATED_BY.eq(UPDATER.ID))
+            .where(condition)
+            .orderBy(orderBy)
+            .limit(criteria.getSize())
+            .offset((long) criteria.getPage() * criteria.getSize())
+            .fetch(r -> mapper.toDomain(r.into(PRODUCTS), r.into(CREATOR), r.into(UPDATER)));
+        return PaginationResult.<Product>builder().total(total).items(items).build();
     }
 
-    @Override
-    public PaginationResult<Bom> findAll(int page, int size) {
-        int offset = page * size;
-        List<Bom> items = dslCtx.selectFrom(BOMS)
-            .limit(size).offset(offset)
-            .fetch(r -> mapper.toDomain(r));
-        int total = dslCtx.fetchCount(BOMS);
-        return new PaginationResult<>(items, total);
+    private Condition buildCondition(ProductSearchCriteria criteria) {
+        Condition condition = DSL.noCondition();
+        if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
+            condition = condition.and(PRODUCTS.CODE.containsIgnoreCase(criteria.getCode()));
+        }
+        if (criteria.getName() != null && !criteria.getName().isBlank()) {
+            condition = condition.and(PRODUCTS.NAME.containsIgnoreCase(criteria.getName()));
+        }
+        return condition;
     }
 }
 ```
+
+**Rules:**
+- `USERS.as("creator")` / `USERS.as("updater")` as `private static final` class constants
+- Use `r.into(TABLE)` / `r.into(ALIAS)` to extract typed records from a multi-join result
+- `ctx` comes from `BaseRepository` — never assign it to a separate `dslCtx` field
+- `SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD)` for sorting
+- `DSL.noCondition()` + `.and()` chaining for condition building — no `List<Condition>` + reduce
+- `save()` returns the passed entity directly — no re-fetch
+- Count separately with `ctx.fetchCount(TABLE, condition)` — never `.fetch().size()`
 
 ## REST Controller
 
 ```java
-// presentation/BomController.java
+// presentation/ProductController.java
 @RestController
-@RequestMapping("/api/boms")
+@RequestMapping("/api/products")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class BomController {
+public class ProductController {
 
-    BomUseCase bomUseCase;   // interface — never BomService directly
+    ProductUseCase productUseCase;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<BomDto>>> getBoms(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBoms(page, size), "OK"));
+    public ResponseEntity<ApiResponse<PageResponse<ProductResponse>>> getProducts(
+            @ModelAttribute ProductSearchRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(productUseCase.getProducts(request), "OK"));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<BomDto>> getBomById(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBomById(id), "OK"));
+    public ResponseEntity<ApiResponse<ProductResponse>> getProductById(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(productUseCase.getProductById(id), "OK"));
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<BomDto>> createBom(
-            @Valid @RequestBody CreateBomRequest request) {
-        // do NOT extract userId here — the service fetches it from CurrentUserPort
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.success(bomUseCase.createBom(request), "Created"));
+    public ResponseEntity<ApiResponse<Void>> createProduct(@Valid @RequestBody CreateProductRequest request) {
+        productUseCase.createProduct(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteBom(@PathVariable UUID id) {
-        bomUseCase.deleteBom(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Deleted"));
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> updateProduct(
+            @PathVariable UUID id, @Valid @RequestBody UpdateProductRequest request) {
+        productUseCase.updateProduct(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Updated"));
+    }
+
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<ApiResponse<Void>> activateProduct(@PathVariable UUID id) {
+        productUseCase.activateProduct(id);
+        return ResponseEntity.ok(ApiResponse.success("Activated"));
+    }
+
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<ApiResponse<Void>> deactivateProduct(@PathVariable UUID id) {
+        productUseCase.deactivateProduct(id);
+        return ResponseEntity.ok(ApiResponse.success("Deactivated"));
     }
 }
 ```
+
+**Rules:**
+- Use `@ModelAttribute` for search/filter requests (GET with query params) — not `@RequestParam` per field
+- Use `@RequestBody` + `@Valid` for create/update (POST/PUT)
+- All void use-case methods return `ApiResponse.success("Message")` — never pass `null` as data
+- Status 201 for create, 200 for everything else

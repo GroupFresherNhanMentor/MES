@@ -1,5 +1,6 @@
 package fpt.qn.mes.master.product.application.dto.productstatus;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import lombok.AccessLevel;
@@ -15,7 +16,23 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductStatusResponse {
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserInfo {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
     UUID id;
     String name;
     String description;
+    UserInfo createdBy;
+    UserInfo updatedBy;
+    Instant createdAt;
+    Instant updatedAt;
 }

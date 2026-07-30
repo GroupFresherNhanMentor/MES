@@ -1,0 +1,21 @@
+package fpt.qn.mes.inventory.application.dto.stockstatus;
+
+import java.util.UUID;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class StockStatusResponse {
+    UUID id;
+    String name;
+    String description;
+}

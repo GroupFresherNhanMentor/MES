@@ -10,6 +10,9 @@ import fpt.qn.mes.master.product.domain.repository.criteria.ProductStatusSearchC
 
 public interface ProductStatusRepository {
     Optional<ProductStatus> findById(UUID id);
+    Optional<ProductStatus> findByName(String name);
+    boolean existsById(UUID id);
+    boolean existsByName(String name);
     List<ProductStatus> findAll();
     ProductStatus save(ProductStatus status);
     PaginationResult<ProductStatus> search(ProductStatusSearchCriteria criteria);

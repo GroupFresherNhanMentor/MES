@@ -12,12 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,24 +21,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 import org.springframework.http.HttpStatus;
-import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
 import io.swagger.v3.oas.annotations.Operation;
 
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 
-import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
-import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.search.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.StockLotResponse;
+
 
 @Tag(name = "Inventory", description = "Stock balances, lots, and movement management APIs")
 @RestController
@@ -57,83 +51,83 @@ public class InventoryController {
 
     @Operation(summary = "Search stock lots with pagination and criteria filtering")
     @GetMapping("/api/stock-lots")
-    public ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> getStockLots(@Valid StockLotSearchRequest request) {
-        PageResponse<StockLotDto> result = inventoryUseCase.getStockLots(request);
+    public ResponseEntity<ApiResponse<PageResponse<StockLotResponse>>> getStockLots(@Valid StockLotSearchRequest request) {
+        PageResponse<StockLotResponse> result = inventoryUseCase.getStockLots(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @GetMapping("/api/stock-lots/{id}")
-    public ResponseEntity<ApiResponse<StockLotDto>> getStockLotById(@PathVariable UUID id) {
-        StockLotDto result = inventoryUseCase.getStockLotById(id);
+    public ResponseEntity<ApiResponse<StockLotResponse>> getStockLotById(@PathVariable UUID id) {
+        StockLotResponse result = inventoryUseCase.getStockLotById(id);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @PostMapping("/api/stock-lots")
-    public ResponseEntity<ApiResponse<StockLotDto>> createStockLot(@Valid @RequestBody CreateStockLotRequest request) {
-        StockLotDto result = inventoryUseCase.createStockLot(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock lot created successfully"));
+    public ResponseEntity<ApiResponse<Void>> createStockLot(@Valid @RequestBody CreateStockLotRequest request) {
+        inventoryUseCase.createStockLot(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Stock lot created successfully"));
     }
 
     @Operation(summary = "Search stock movements with pagination and criteria filtering")
     @GetMapping("/api/stock-movements")
-    public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
+    public ResponseEntity<ApiResponse<PageResponse<StockMovementResponse>>> getMovements(
             @Valid StockMovementSearchRequest request) {
-        PageResponse<StockMovementDto> result = inventoryUseCase.getMovements(request);
+        PageResponse<StockMovementResponse> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @PostMapping("/api/stock-movements")
-    public ResponseEntity<ApiResponse<StockMovementDto>> recordMovement(
-            @Valid @RequestBody CreateMovementRequest request, @AuthenticationPrincipal AppUserPrincipal principal) {
+    public ResponseEntity<ApiResponse<Void>> recordMovement(
+            @Valid @RequestBody CreateStockMovementRequest request, @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
-        StockMovementDto result = inventoryUseCase.recordMovement(request, currentUserId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Movement recorded successfully"));
+        inventoryUseCase.recordMovement(request, currentUserId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Movement recorded successfully"));
     }
 
     @Operation(summary = "Record incoming stock physical receipt into warehouse")
     @PostMapping("/api/stock-in")
-    public ResponseEntity<ApiResponse<StockMovementDto>> recordStockIn(
+    public ResponseEntity<ApiResponse<Void>> recordStockIn(
             @Valid @RequestBody StockInRequest request, @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
-        StockMovementDto result = inventoryUseCase.recordStockIn(request, currentUserId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(result, "Stock received successfully"));
+        inventoryUseCase.recordStockIn(request, currentUserId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Stock received successfully"));
     }
 
     @GetMapping("/api/stock-balances")
-    public ResponseEntity<ApiResponse<PageResponse<StockBalanceDto>>> getStockBalances(
+    public ResponseEntity<ApiResponse<PageResponse<StockBalanceResponse>>> getStockBalances(
             @Valid StockBalanceSearchRequest request) {
-        PageResponse<StockBalanceDto> result = inventoryUseCase.getStockBalances(request);
+        PageResponse<StockBalanceResponse> result = inventoryUseCase.getStockBalances(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @Operation(summary = "Submit a stock adjustment request")
     @PostMapping("/api/stock-adjustments")
-    public ResponseEntity<ApiResponse<StockAdjustmentResponse>> adjustStock(
-            @Valid @RequestBody StockAdjustmentRequest request,
+    public ResponseEntity<ApiResponse<Void>> adjustStock(
+            @Valid @RequestBody CreateStockAdjustmentRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
-        StockAdjustmentResponse result = inventoryUseCase.adjustStock(request, currentUserId);
-        HttpStatus status = result.isRequiresApproval() ? HttpStatus.ACCEPTED : HttpStatus.OK;
-        return ResponseEntity.status(status).body(ApiResponse.success(result, result.getMessage()));
+        inventoryUseCase.adjustStock(request, currentUserId);
+        HttpStatus status = HttpStatus.OK;
+        return ResponseEntity.status(status).body(ApiResponse.success(null, "Stock adjustment processed"));
     }
 
     @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager)")
     @GetMapping("/api/stock-adjustments/pending")
     // @PreAuthorize("hasRole('FACTORY_MANAGER')")
-    public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalDto>>> getPendingAdjustments(
+    public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> getPendingAdjustments(
             @Valid StockAdjustmentApprovalSearchCriteria criteria) {
-        PageResponse<StockAdjustmentApprovalDto> result = inventoryUseCase.getPendingAdjustments(criteria);
+        PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(criteria);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
     @Operation(summary = "Approve a pending stock adjustment (Factory Manager)")
     @PostMapping("/api/stock-adjustments/{id}/approve")
     // @PreAuthorize("hasRole('FACTORY_MANAGER')")
-    public ResponseEntity<ApiResponse<StockMovementDto>> approveAdjustment(
+    public ResponseEntity<ApiResponse<StockMovementResponse>> approveAdjustment(
             @PathVariable UUID id,
             @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
-        StockMovementDto result = inventoryUseCase.approveAdjustment(id, currentUserId);
+        StockMovementResponse result = inventoryUseCase.approveAdjustment(id, currentUserId);
         return ResponseEntity.ok(ApiResponse.success(result, "Adjustment approved and balance updated successfully"));
     }
 
@@ -148,31 +142,13 @@ public class InventoryController {
         return ResponseEntity.ok(ApiResponse.success(null, "Adjustment rejected and request removed"));
     }
 
-    @Operation(summary = "Search lot types with pagination and criteria filtering")
-    @GetMapping("/api/lot-types")
-    public ResponseEntity<ApiResponse<PageResponse<LotTypeSummaryDto>>> getLotTypes(@Valid LotTypeSearchRequest request) {
-        PageResponse<LotTypeSummaryDto> result = inventoryUseCase.getLotTypes(request);
-        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
-    }
 
-    @Operation(summary = "Search stock statuses with pagination and criteria filtering")
-    @GetMapping("/api/stock-statuses")
-    public ResponseEntity<ApiResponse<PageResponse<StockStatusSummaryDto>>> getStockStatuses(@Valid StockStatusSearchRequest request) {
-        PageResponse<StockStatusSummaryDto> result = inventoryUseCase.getStockStatuses(request);
-        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
-    }
 
-    @Operation(summary = "Search movement types with pagination and criteria filtering")
-    @GetMapping("/api/movement-types")
-    public ResponseEntity<ApiResponse<PageResponse<MovementTypeSummaryDto>>> getMovementTypes(@Valid MovementTypeSearchRequest request) {
-        PageResponse<MovementTypeSummaryDto> result = inventoryUseCase.getMovementTypes(request);
-        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
-    }
 
     @Operation(summary = "Transfer available inventory between warehouse locations")
     @PostMapping("/api/stock-transfers")
     public ResponseEntity<ApiResponse<StockTransferResponse>> transferStock(
-            @Valid @RequestBody fpt.qn.mes.inventory.application.dto.request.StockTransferRequest request,
+            @Valid @RequestBody fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest request,
             @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : DEFAULT_USER_ID;
         StockTransferResponse result = inventoryUseCase.transferStock(request, currentUserId);
