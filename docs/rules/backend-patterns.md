@@ -20,7 +20,7 @@ public class Bom {
 
     public static Bom create(UUID finishedProductId, Integer version, UUID bomStatusId, UUID createdBy) {
         return Bom.builder()
-            .id(UUID.randomUUID())
+            .id(UuidV7.generate())
             .finishedProductId(finishedProductId)
             .version(version)
             .bomStatusId(bomStatusId)
