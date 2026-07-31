@@ -9,6 +9,14 @@ import lombok.experimental.FieldDefaults;
 
 @Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BomResponse {
-    UUID id; UUID finishedProductId; Integer version; UUID bomStatusId;
-    UUID createdBy; Instant createdAt; List<BomItemResponse> items;
+    UUID id;
+    UUID finishedProductId;
+    String finishedProductCode;
+    String finishedProductName;
+    Integer version;
+    UUID bomStatusId;
+    String bomStatusName;
+    UUID createdBy;
+    Instant createdAt;
+    List<BomItemResponse> items;
 }

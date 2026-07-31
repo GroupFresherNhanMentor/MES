@@ -9,8 +9,11 @@ export const API = {
   products: {
     base: `${BASE}/products`,
     byId: (id: string | number) => `${BASE}/products/${id}`,
-    types: `${BASE}/products/types`,
-    statuses: `${BASE}/products/statuses`,
+    types: `${BASE}/product-types`,
+    statuses: `${BASE}/product-statuses`,
+    unitsOfMeasure: `${BASE}/units-of-measure`,
+    productTypes: `${BASE}/product-types`,
+    productStatuses: `${BASE}/product-statuses`,
     deactivate: (id: string | number) => `${BASE}/products/${id}/deactivate`,
   },
   warehouses: {

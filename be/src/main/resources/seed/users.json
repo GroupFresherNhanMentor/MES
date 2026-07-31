@@ -1,0 +1,10 @@
+[
+  { "username": "admin",       "fullName": "System Administrator", "role": "ADMIN" },
+  { "username": "warehouse",   "fullName": "Warehouse Manager",    "role": "WAREHOUSE_MANAGER" },
+  { "username": "planner",     "fullName": "Production Planner",   "role": "PLANNER" },
+  { "username": "operator",    "fullName": "Production Operator",  "role": "OPERATOR" },
+  { "username": "qc",          "fullName": "QC Inspector",         "role": "QC_INSPECTOR" },
+  { "username": "maintenance", "fullName": "Maintenance Engineer", "role": "MAINTENANCE_ENGINEER" },
+  { "username": "manager",     "fullName": "Factory Manager",      "role": "FACTORY_MANAGER" },
+  { "username": "auditor",     "fullName": "Quality Auditor",      "role": "AUDITOR" }
+]

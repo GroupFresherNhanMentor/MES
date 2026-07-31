@@ -15,11 +15,14 @@ import { API } from '../../../../configs/api-endpoints';
 import type { BomDto, BomItemDto } from '../../../../core/models/bom.model';
 import { BomAddItemDialog } from '../../components/bom-add-item-dialog/bom-add-item-dialog';
 
+import { FormsModule } from '@angular/forms';
+
 @Component({
   selector: 'app-bom-detail',
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatTableModule,
     MatButtonModule,
     MatIconModule,
@@ -43,6 +46,11 @@ export class BomDetail implements OnInit {
   loading = signal(true);
   actionLoading = signal(false);
   errorMessage = signal<string | null>(null);
+
+  // Inline editing state for items table
+  editingItemId = signal<string | null>(null);
+  editQty = signal<number>(1);
+  editScrapRate = signal<number>(0);
 
   // Computed business rules & Role Matrix (FR-BOM-003, Role Matrix)
   currentUser = this.auth.getCurrentUser();
@@ -142,7 +150,7 @@ export class BomDetail implements OnInit {
       next: (r) => {
         this.actionLoading.set(false);
         if (r.data && r.data.id) {
-          this.bom.set({ ...r.data, bomStatusName: 'ACTIVE', bomStatusId: 'BS-ACTIVE', items: [...(r.data.items || [])] });
+          this.bom.set({ ...r.data, items: [...(r.data.items || [])] });
         } else {
           this.load();
         }
@@ -182,10 +190,14 @@ export class BomDetail implements OnInit {
     const id = this.bomId();
     if (!id || !this.canWrite() || !this.isDraft()) return;
 
+    const existingMaterialIds = (this.bom()?.items || [])
+      .map((i) => i.materialProductId)
+      .filter((mId): mId is string => !!mId);
+
     const dialogRef = this.dialog.open(BomAddItemDialog, {
       width: '560px',
       panelClass: 'ff-dialog-panel',
-      data: { bomId: id },
+      data: { bomId: id, existingMaterialIds },
     });
 
     dialogRef.afterClosed().subscribe((result: BomItemDto | null) => {
@@ -200,6 +212,63 @@ export class BomDetail implements OnInit {
         }
         this.load();
       }
+    });
+  }
+
+  onEditItem(item: BomItemDto): void {
+    if (!item.id || !this.canWrite() || !this.isDraft()) return;
+    this.editingItemId.set(item.id);
+    this.editQty.set(item.quantityPerUnit ?? 1);
+    this.editScrapRate.set(item.scrapRate ?? 0);
+  }
+
+  onCancelEdit(): void {
+    this.editingItemId.set(null);
+  }
+
+  onSaveEdit(item: BomItemDto): void {
+    const bomId = this.bomId();
+    if (!bomId || !item.id || !this.canWrite() || !this.isDraft()) return;
+
+    const newQty = Number(this.editQty());
+    const newScrap = Number(this.editScrapRate());
+
+    if (isNaN(newQty) || newQty <= 0) {
+      this.errorMessage.set('Quantity per unit must be greater than 0.');
+      return;
+    }
+    if (isNaN(newScrap) || newScrap < 0) {
+      this.errorMessage.set('Scrap rate cannot be negative.');
+      return;
+    }
+
+    this.actionLoading.set(true);
+    this.errorMessage.set(null);
+
+    const payload = {
+      quantityPerUnit: newQty,
+      scrapRate: newScrap,
+      unit: item.unit || 'PCS',
+    };
+
+    const url = `${API.boms.base}/${bomId}/items/${item.id}`;
+    this.api.put<BomItemDto>(url, payload).subscribe({
+      next: (r) => {
+        this.actionLoading.set(false);
+        this.editingItemId.set(null);
+        if (r.data) {
+          const current = this.bom();
+          if (current && current.items) {
+            const updatedItems = current.items.map((i) => (i.id === item.id ? r.data : i));
+            this.bom.set({ ...current, items: updatedItems });
+          }
+        }
+        this.load();
+      },
+      error: (err) => {
+        this.actionLoading.set(false);
+        this.errorMessage.set(err?.error?.message || 'Failed to update item.');
+      },
     });
   }
 
