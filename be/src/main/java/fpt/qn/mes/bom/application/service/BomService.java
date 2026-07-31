@@ -27,6 +27,9 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.common.service.LookupEntry;
 import fpt.qn.mes.common.service.LookupRepository;
 import java.util.List;
@@ -41,6 +44,7 @@ public class BomService implements BomUseCase {
     ProductUseCase productUseCase;
     CurrentUserPort currentUserPort;
     LookupRepository lookupRepository;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -140,6 +144,16 @@ public class BomService implements BomUseCase {
         // 6. Transition target BOM to ACTIVE
         bom.updateStatus(activeStatusId);
         Bom savedBom = bomRepository.save(bom);
+
+        if (eventPublisher != null) {
+            UUID currentUserId = null;
+            try {
+                currentUserId = currentUserPort.getCurrentUserId();
+            } catch (Exception ignored) {
+            }
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_BOM, "BOM", savedBom.getId(),
+                    "{\"status\":\"DRAFT\"}", "{\"status\":\"ACTIVE\"}", null));
+        }
 
         return mapper.toDto(savedBom);
     }

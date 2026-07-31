@@ -35,6 +35,10 @@ import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import org.springframework.context.ApplicationEventPublisher;
+
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -43,6 +47,7 @@ public class WorkOrderService implements WorkOrderUseCase {
     WorkOrderRepository repository;
     BomRepository bomRepository;
     WorkOrderDtoMapper mapper;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -133,6 +138,12 @@ public class WorkOrderService implements WorkOrderUseCase {
 
                 repository.saveMaterial(mat);
             }
+        }
+
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_WORK_ORDER, "WORK_ORDER", saved.getId(),
+                    null, "{\"code\":\"" + saved.getCode() + "\"}", null));
         }
 
         return mapper.toDto(saved);

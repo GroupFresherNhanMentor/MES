@@ -136,7 +136,7 @@ public class OpenApiConfig {
     ) {
         return GroupedOpenApi.builder()
                 .group("06. Quality Control")
-                .pathsToMatch("/api/quality/**")
+                .pathsToMatch("/api/quality-inspections/**")
                 .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();

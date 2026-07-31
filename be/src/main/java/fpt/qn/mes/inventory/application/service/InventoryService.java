@@ -10,12 +10,31 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
-import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
 import fpt.qn.mes.common.util.UuidV7;
+import fpt.qn.mes.inventory.application.dto.product.ProductResponse;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.StockLotResponse;
+import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.search.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.user.UserResponse;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseLocationResponse;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
@@ -52,24 +71,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
-import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
-import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.stocklot.search.StockLotSearchRequest;
-import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseResponse;
-import fpt.qn.mes.inventory.application.dto.product.ProductResponse;
-
-import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
-import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
-import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
-import fpt.qn.mes.inventory.application.dto.user.UserResponse;
-import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseLocationResponse;
-import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
-import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.stockadjustment.StockAdjustmentResponse;
-import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
-import fpt.qn.mes.inventory.application.dto.stocklot.StockLotResponse;
-
 
 @Service
 @RequiredArgsConstructor
@@ -90,6 +91,8 @@ public class InventoryService implements InventoryUseCase {
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
     WarehouseLocationUseCase warehouseLocationUseCase;
+    CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
 
     private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
 
@@ -560,6 +563,12 @@ public class InventoryService implements InventoryUseCase {
          
         StockMovement savedMovement = movementRepository.save(movement);
         StockMovementResponse movementDto = enrichMovementDto(savedMovement);
+
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ADJUST_STOCK, "STOCK_BALANCE", balance.getId(),
+                    "{\"quantity\":" + balance.getQuantity() + "}",
+                    "{\"quantity\":" + resultingQuantity + "}", null));
+        }
 
         return;
     }
