@@ -36,6 +36,7 @@ import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
@@ -490,7 +491,7 @@ class WorkOrderServiceTest {
         when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("PLANNED"));
         when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto.builder().id(UUID.randomUUID()).build());
+                .thenReturn(WarehouseResponse.builder().id(UUID.randomUUID()).build());
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(false);
 
         // Act & Assert
