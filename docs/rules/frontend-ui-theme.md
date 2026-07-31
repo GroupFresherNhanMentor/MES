@@ -77,3 +77,4 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
    - Table Headers (`.mat-mdc-header-cell`): Chữ màu `#ea580c` (Primary Orange), font-weight `bold`, size `17px`, uppercase, letter-spacing `0.5px`, viền dưới `#44403c`.
    - Modals/Dialogs Popup: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`. Thẻ Popup được bo góc 16px, có viền tối `#44403c`, tiêu đề phân cách rõ ràng và bóng đổ độ sâu lớn (`box-shadow: 0 20px 40px rgba(0,0,0,0.6)`).
    - SnackBar Popup Notifications: Tất cả thông báo nổi (`MatSnackBar`) được cố định hiển thị ở **Góc trên cùng bên phải (Top-Right Toast)** với lề `24px`, nền gradient tối sang trọng `linear-gradient(135deg, #292524 -> #1c1917)`, viền màu cam chính `#ea580c`, bo góc 10px, hiệu ứng phát sáng nhẹ và chữ đậm độ tương phản cao.
+   - Modals/Dialogs: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`.
