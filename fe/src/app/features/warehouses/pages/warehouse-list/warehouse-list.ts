@@ -42,7 +42,7 @@ export class WarehouseList {
   filterStatusId = signal('');
   statuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['code', 'name', 'address', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'address', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<{ items: LookupEntry[] }>('/api/warehouse-statuses?page=0&size=50').subscribe(r => {
@@ -53,7 +53,8 @@ export class WarehouseList {
 
   load() {
     let url = `/api/warehouses?page=${this.page()}&size=${this.size()}`;
-    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&warehouseStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: WarehouseDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -63,11 +64,11 @@ export class WarehouseList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(WarehouseFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(WarehouseFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(w: WarehouseDto) {
-    this.dialog.open(WarehouseFormComponent, { width: '500px', data: w }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(WarehouseFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: w }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(w: WarehouseDto) {

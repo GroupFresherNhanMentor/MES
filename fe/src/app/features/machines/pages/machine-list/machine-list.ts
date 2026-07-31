@@ -44,7 +44,7 @@ export class MachineList {
   retiredId = '';
   availableId = '';
 
-  displayedColumns = ['code', 'name', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'productionLine', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<{ items: LookupEntry[] }>('/api/machine-statuses?page=0&size=50').subscribe(r => {
@@ -59,7 +59,8 @@ export class MachineList {
 
   load() {
     let url = `/api/machines?page=${this.page()}&size=${this.size()}`;
-    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&machineStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: MachineDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -69,15 +70,15 @@ export class MachineList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(MachineFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(MachineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(m: MachineDto) {
-    this.dialog.open(MachineFormComponent, { width: '500px', data: m }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(MachineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: m }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   isRetired(m: MachineDto): boolean {
-    return (m.machineStatus?.name || m.machineStatusName || '').toUpperCase() === 'RETIRED';
+    return ['RETIRED','INACTIVE'].includes((m.machineStatus?.name || m.machineStatusName || '').toUpperCase());
   }
 
   toggleStatus(m: MachineDto) {

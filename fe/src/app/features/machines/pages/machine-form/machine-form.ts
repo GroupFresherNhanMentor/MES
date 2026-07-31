@@ -33,19 +33,17 @@ interface Status { id: string; name: string; }
           @for (l of lines; track l.id) { <mat-option [value]="l.id">{{ l.code }} - {{ l.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
-      @if (!data) {
       <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
         <mat-select [(ngModel)]="statusId" name="status" required>
           @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
-      }
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name || !statusId || !productionLineId">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name || !statusId || !productionLineId">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -59,6 +57,7 @@ export class MachineFormComponent {
   name = '';
   productionLineId = '';
   statusId = '';
+  originalStatusId = '';
   statuses: Status[] = [];
   lines: { id: string; code: string; name: string }[] = [];
 
@@ -78,19 +77,33 @@ export class MachineFormComponent {
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name;
-      this.productionLineId = this.data.productionLineId || '';
-      this.statusId = this.data.machineStatusId;
+      const line = (this.data as any).productionLine;
+      this.productionLineId = line?.id || this.data.productionLineId || '';
+      this.statusId = (this.data as any).machineStatus?.id || this.data.machineStatusId || '';
+      this.originalStatusId = this.statusId;
     }
   }
 
   save() {
-    const body = { code: this.code, name: this.name, productionLineId: this.productionLineId };
+    const body = { code: this.code, name: this.name, productionLineId: this.productionLineId, machineStatusId: this.statusId };
     const req = this.data
       ? this.api.put(`/api/machines/${this.data.id}`, { name: this.name, productionLineId: this.productionLineId })
       : this.api.post('/api/machines', body);
     req.subscribe({
-        next: r => { if (r.success) { this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },
-        error: e => this.snackBar.open(e?.error?.message || 'Error saving Machine', 'OK', { duration: 4000 })
-      });
+      next: (r: any) => {
+        if (r.success) {
+          if (this.data && this.statusId !== this.originalStatusId) {
+            this.api.patch(`/api/machines/${this.data.id}/status`, { statusId: this.statusId }).subscribe({
+              next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
+              error: (e: any) => this.snackBar.open(e?.error?.message || 'Error updating status', 'OK', { duration: 4000 })
+            });
+          } else {
+            this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 });
+            this.dialogRef.close(true);
+          }
+        }
+      },
+      error: (e: any) => this.snackBar.open(e?.error?.message || 'Error saving Machine', 'OK', { duration: 4000 })
+    });
   }
 }

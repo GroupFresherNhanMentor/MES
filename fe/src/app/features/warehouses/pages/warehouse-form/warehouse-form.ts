@@ -41,7 +41,7 @@ interface Status { id: string; name: string; }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name || !address || !statusId">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name || !address || !statusId">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -69,7 +69,7 @@ export class WarehouseFormComponent {
       this.code = this.data.code;
       this.name = this.data.name;
       this.address = this.data.address || '';
-      this.statusId = this.data.warehouseStatusId;
+      this.statusId = (this.data as any).warehouseStatus?.id || this.data.warehouseStatusId || '';
       this.originalStatusId = this.statusId;
     }
   }

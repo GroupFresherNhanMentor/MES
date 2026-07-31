@@ -2,6 +2,7 @@ export interface MachineDto {
   id: string;
   productionLineId: string;
   productionLineName?: string;
+  productionLine?: { id: string; code: string; name: string } | null;
   code: string;
   name: string;
   machineStatusId: string;

@@ -45,7 +45,7 @@ export class LocationList {
   filterStatusId = signal('');
   statuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['code', 'name', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'warehouse', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.warehouseId = this.route.snapshot.paramMap.get('warehouseId') || '';
@@ -57,7 +57,8 @@ export class LocationList {
 
   load() {
     let url = `/api/warehouses/${this.warehouseId}/locations?page=${this.page()}&size=${this.size()}`;
-    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&locationStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: LocationDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -67,11 +68,11 @@ export class LocationList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(LocationFormComponent, { width: '500px', data: { warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(LocationFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: { warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(l: LocationDto) {
-    this.dialog.open(LocationFormComponent, { width: '500px', data: { ...l, warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(LocationFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: { ...l, warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(l: LocationDto) {

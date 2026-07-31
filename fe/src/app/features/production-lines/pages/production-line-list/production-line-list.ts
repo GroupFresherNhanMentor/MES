@@ -42,7 +42,7 @@ export class ProductionLineList {
   filterStatusId = signal('');
   statuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['code', 'name', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<{ items: LookupEntry[] }>('/api/line-statuses?page=0&size=50').subscribe(r => {
@@ -53,7 +53,8 @@ export class ProductionLineList {
 
   load() {
     let url = `/api/lines?page=${this.page()}&size=${this.size()}`;
-    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&lineStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: ProductionLineDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -63,11 +64,11 @@ export class ProductionLineList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(l: ProductionLineDto) {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(l: ProductionLineDto) {

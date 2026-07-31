@@ -37,7 +37,7 @@ interface Status { id: string; name: string; }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name || !statusId">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name || !statusId">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -63,7 +63,7 @@ export class ProductionLineFormComponent {
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name;
-      this.statusId = this.data.lineStatusId;
+      this.statusId = (this.data as any).lineStatus?.id || this.data.lineStatusId || '';
       this.originalStatusId = this.statusId;
     }
   }

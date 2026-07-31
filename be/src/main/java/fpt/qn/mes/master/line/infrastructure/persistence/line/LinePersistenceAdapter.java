@@ -108,11 +108,11 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
     private Condition buildCondition(LineSearchCriteria criteria) {
         Condition condition = DSL.noCondition();
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(PRODUCTION_LINES.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(PRODUCTION_LINES.CODE.containsIgnoreCase(criteria.getCode())
+        .or(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getLineStatusId() != null) {
             condition = condition.and(PRODUCTION_LINES.LINE_STATUS_ID.eq(criteria.getLineStatusId()));
         }

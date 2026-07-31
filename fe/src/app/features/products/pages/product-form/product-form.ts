@@ -49,7 +49,7 @@ interface LookupEntry { id: string; name: string; }
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!isValid()">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!isValid()">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -84,11 +84,12 @@ export class ProductFormComponent {
       }
     });
     if (this.data) {
+      const d = this.data as any;
       this.code = this.data.code;
       this.name = this.data.name;
-      this.productTypeId = this.data.productTypeId || '';
-      this.unitId = this.data.unitId || '';
-      this.productStatusId = this.data.productStatusId || '';
+      this.productTypeId = d.productType?.id || this.data.productTypeId || '';
+      this.unitId = d.unit?.id || this.data.unitId || '';
+      this.productStatusId = d.productStatus?.id || this.data.productStatusId || '';
       this.originalStatusId = this.productStatusId;
     }
   }

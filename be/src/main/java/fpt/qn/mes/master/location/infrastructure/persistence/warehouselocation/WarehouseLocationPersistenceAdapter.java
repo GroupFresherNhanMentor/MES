@@ -127,11 +127,11 @@ public class WarehouseLocationPersistenceAdapter extends BaseRepository<Warehous
             condition = condition.and(WAREHOUSE_LOCATIONS.WAREHOUSE_ID.eq(criteria.getWarehouseId()));
         }
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(WAREHOUSE_LOCATIONS.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(WAREHOUSE_LOCATIONS.CODE.containsIgnoreCase(criteria.getCode())
+        .or(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getLocationStatusId() != null) {
             condition = condition.and(WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID.eq(criteria.getLocationStatusId()));
         }

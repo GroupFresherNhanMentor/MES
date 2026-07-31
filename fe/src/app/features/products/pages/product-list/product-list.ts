@@ -44,7 +44,7 @@ export class ProductListComponent {
 
   types = signal<LookupEntry[]>([]);
   statuses = signal<LookupEntry[]>([]);
-  displayedColumns = ['code', 'name', 'type', 'unit', 'status', 'createdAt', 'actions'];
+  displayedColumns = ['code', 'name', 'type', 'unit', 'version', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<any>(API.products.productTypes + '?size=100').subscribe(r => {
@@ -64,6 +64,7 @@ export class ProductListComponent {
 
   load() {
     let url = `${API.products.base}?page=${this.page()}&size=${this.size()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
     if (this.filterStatusId()) url += `&productStatusId=${encodeURIComponent(this.filterStatusId())}`;
     this.api.get<{ items: ProductDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success && r.data) {
