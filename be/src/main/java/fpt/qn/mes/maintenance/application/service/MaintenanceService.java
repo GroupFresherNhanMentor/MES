@@ -4,22 +4,25 @@ import java.time.Instant;
 import java.util.UUID;
 
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
+import fpt.qn.mes.maintenance.application.dto.request.StartMaintenanceTicketRequest;
+import fpt.qn.mes.maintenance.application.dto.request.CloseMaintenanceTicketRequest;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
 import fpt.qn.mes.maintenance.application.exception.BusinessException;
 import fpt.qn.mes.maintenance.application.exception.MaintenanceTicketNotFoundException;
 import fpt.qn.mes.maintenance.application.exception.ResourceNotFoundException;
+import fpt.qn.mes.maintenance.application.mapper.MaintenanceDtoMapper;
+import fpt.qn.mes.maintenance.application.port.in.MaintenanceUseCase;
+import fpt.qn.mes.maintenance.domain.entities.MachineDowntime;
 import fpt.qn.mes.maintenance.domain.entities.MaintenanceTicket;
+import fpt.qn.mes.maintenance.domain.repository.MaintenanceRepository;
+import fpt.qn.mes.user.domain.repository.UserRepository;
+import fpt.qn.mes.master.machine.domain.repository.MachineRepository;
+import fpt.qn.mes.master.machine.domain.entities.Machine;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.maintenance.application.dto.request.CreateDowntimeRequest;
-import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
-import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeDto;
-import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketDto;
-import fpt.qn.mes.maintenance.application.dto.request.UpdateMaintenanceTicketRequest;
-import fpt.qn.mes.maintenance.application.mapper.MaintenanceDtoMapper;
-import fpt.qn.mes.maintenance.application.port.in.MaintenanceUseCase;
-import fpt.qn.mes.maintenance.domain.repository.MaintenanceRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -27,42 +30,33 @@ import lombok.experimental.FieldDefaults;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional
 public class MaintenanceService implements MaintenanceUseCase {
 
     MaintenanceRepository repository;
-    private final CurrentUserPort currentUserPort;
+    UserRepository userRepository;
+    MachineRepository machineRepository;
+    CurrentUserPort currentUserPort;
     MaintenanceDtoMapper mapper;
 
-    @Override @Transactional(readOnly = true)
-    public PageResponse<MaintenanceTicketDto> getTickets(int page, int size) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override @Transactional(readOnly = true)
-    public MaintenanceTicketDto getTicketById(UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @Override @Transactional
-    public MaintenanceTicketDto createTicket(CreateMaintenanceTicketRequest request) {
-        // 1. Lấy thông tin User hiện tại từ Port (Đang dùng Mock hoặc Real JWT)
+    @Override
+    @Transactional
+    public MaintenanceTicketResponse createTicket(CreateMaintenanceTicketRequest request) {
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
-        // 2. Lấy động Status ID "OPEN" cho Ticket
         UUID openStatusId = repository.findStatusIdByName("OPEN")
-                .orElseThrow(() -> new ResourceNotFoundException("Status OPEN không tồn tại trên hệ thống"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket status 'OPEN' does not exist in the system"));
 
-        // 3. Lấy động Status ID "DOWN" cho Machine
-        UUID downStatusId = repository.findStatusIdByName("DOWN")
-                .orElseThrow(() -> new ResourceNotFoundException("Status DOWN không tồn tại trên hệ thống"));
+        UUID downMachineStatusId = repository.findMachineStatusIdByName("DOWN")
+                .orElseThrow(() -> new ResourceNotFoundException("Machine status 'DOWN' does not exist in the system"));
 
-        // 4. Kiểm tra xem máy có tồn tại hay không trước khi xử lý
-        // (Giả định bạn có hàm check này hoặc hàm update bên dưới sẽ check)
+        Machine machine = machineRepository.findById(request.getMachineId())
+                .orElseThrow(() -> new BusinessException("Machine not found with ID: " + request.getMachineId()));
 
-        // 5. Cập nhật trạng thái Machine sang DOWN luôn
-        repository.updateMachineStatus(request.getMachineId(), downStatusId);
+        Machine updatedMachine = Machine.changeStatus(machine, downMachineStatusId, currentUserId);
 
-        // 6. Khởi tạo Domain Entity và Map data từ Request
+        machineRepository.update(updatedMachine);
+
         MaintenanceTicket ticket = MaintenanceTicket.builder()
                 .id(UUID.randomUUID())
                 .machineId(request.getMachineId())
@@ -74,48 +68,117 @@ public class MaintenanceService implements MaintenanceUseCase {
                 .createdAt(Instant.now())
                 .build();
 
-        // 7. Lưu Ticket mới vào DB
+        MachineDowntime downtime = MachineDowntime.create(ticket.getId(), ticket.getMachineId(), Instant.now());
         repository.save(ticket);
+        repository.saveDowntime(downtime);
 
-        // 8. Map Entity sang DTO để trả về cho Controller
         return mapper.toDto(ticket);
     }
 
-    @Override @Transactional
-    public MaintenanceTicketDto updateTicket(UUID id, UpdateMaintenanceTicketRequest req) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
+    @Override
+    public MaintenanceTicketResponse startTicket(UUID ticketId, StartMaintenanceTicketRequest request) {
+        UUID engineerId = request.getAssignedEngineerId();
 
-    @Override @Transactional
-    public void deleteTicket(UUID id) {}
+        if (engineerId == null) {
+            throw new BusinessException("Assigned engineer ID cannot be null");
+        }
 
-    @Override @Transactional(readOnly = true)
-    public PageResponse<MachineDowntimeDto> getDowntimes(UUID ticketId, int page, int size) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
+        userRepository.findById(engineerId)
+                .orElseThrow(() -> new BusinessException("The assigned maintenance engineer does not exist"));
 
-    @Override @Transactional
-    public MachineDowntimeDto addDowntime(UUID ticketId, CreateDowntimeRequest req) {
-        throw new UnsupportedOperationException("Not implemented");
+        if (!repository.userHasRole(engineerId, "MAINTENANCE_ENGINEER")) {
+            throw new BusinessException("The selected user does not have the maintenance engineer role (MAINTENANCE_ENGINEER)");
+        }
+
+        UUID openStatusId = repository.findStatusIdByName("OPEN")
+                .orElseThrow(() -> new ResourceNotFoundException("Status 'OPEN' does not exist in the system"));
+
+        UUID inProgressStatusId = repository.findStatusIdByName("IN_PROGRESS")
+                .orElseThrow(() -> new ResourceNotFoundException("Status 'IN_PROGRESS' does not exist in the system"));
+
+        UUID underMaintenanceStatusId = repository.findMachineStatusIdByName("UNDER_MAINTENANCE")
+                .orElseThrow(() -> new ResourceNotFoundException("Machine status 'UNDER_MAINTENANCE' does not exist in the system"));
+
+        MaintenanceTicket ticket = repository.findById(ticketId)
+                .orElseThrow(() -> new BusinessException("Maintenance ticket not found with ID: " + ticketId));
+
+        Machine machine = machineRepository.findById(ticket.getMachineId())
+                .orElseThrow(() -> new BusinessException("Machine associated with the ticket not found"));
+
+        Machine updatedMachine = Machine.changeStatus(machine, underMaintenanceStatusId, engineerId);
+
+        // Đã sửa: Truyền đúng thực thể updatedMachine vào hàm update
+        machineRepository.update(updatedMachine);
+
+        ticket.start(openStatusId, inProgressStatusId, engineerId);
+        repository.update(ticket);
+
+        return mapper.toDto(ticket);
     }
 
     @Override
-    @Transactional
-    public void cancelTicket(UUID ticketId) {
-        // 1. Lấy trạng thái hệ thống qua code
-        UUID openStatusId = repository.findStatusIdByName("OPEN")
-                .orElseThrow(() -> new BusinessException("Trạng thái OPEN không tồn tại"));
-        UUID cancelledStatusId = repository.findStatusIdByName("CANCELLED")
-                .orElseThrow(() -> new BusinessException("Trạng thái CANCELLED không tồn tại"));
+    public void resolveTicket(UUID ticketId) {
+        UUID inProgressStatusId = repository.findStatusIdByName("IN_PROGRESS")
+                .orElseThrow(() -> new ResourceNotFoundException("Status 'IN_PROGRESS' does not exist in the system"));
 
-        // 2. Tải toàn bộ Entity lên thay vì chỉ lấy ID trạng thái (Chuẩn DDD)
+        UUID resolvedStatusId = repository.findStatusIdByName("RESOLVED")
+                .orElseThrow(() -> new ResourceNotFoundException("Status 'RESOLVED' does not exist in the system"));
+
         MaintenanceTicket ticket = repository.findById(ticketId)
-                .orElseThrow(() -> new MaintenanceTicketNotFoundException("Không tìm thấy ticket"));
+                .orElseThrow(() -> new BusinessException("Maintenance ticket not found with ID: " + ticketId));
 
-        // 3. Ủy thác logic kiểm tra và thay đổi trạng thái cho Entity xử lý
+        ticket.resolve(inProgressStatusId, resolvedStatusId);
+        repository.update(ticket);
+    }
+
+    @Override
+    public void cancelTicket(UUID ticketId) {
+        UUID openStatusId = repository.findStatusIdByName("OPEN")
+                .orElseThrow(() -> new BusinessException("Status 'OPEN' does not exist"));
+        UUID cancelledStatusId = repository.findStatusIdByName("CANCELLED")
+                .orElseThrow(() -> new BusinessException("Status 'CANCELLED' does not exist"));
+
+        MaintenanceTicket ticket = repository.findById(ticketId)
+                .orElseThrow(() -> new MaintenanceTicketNotFoundException("Maintenance ticket not found"));
+
         ticket.cancel(openStatusId, cancelledStatusId);
+        repository.save(ticket);
+    }
 
-        // 4. Lưu lại Entity vào DB qua Persistence Adapter
-        repository.saveStatus(ticket.getId(), ticket.getTicketStatusId());
+    @Override
+    public void closeTicket(CloseMaintenanceTicketRequest request) {
+        if (request.getActionTaken() == null || request.getActionTaken().isBlank()) {
+            throw new BusinessException("Action taken is required to close the maintenance ticket");
+        }
+
+        UUID resolvedStatusId = repository.findStatusIdByName("RESOLVED")
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket status 'RESOLVED' does not exist in the system"));
+
+        UUID closedStatusId = repository.findStatusIdByName("CLOSED")
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket status 'CLOSED' does not exist in the system"));
+
+        MaintenanceTicket ticket = repository.findById(request.getTicketId())
+                .orElseThrow(() -> new BusinessException("Maintenance ticket not found with ID: " + request.getTicketId()));
+
+        ticket.close(resolvedStatusId, closedStatusId);
+        repository.update(ticket);
+
+        MachineDowntime downtime = repository.findActiveDowntimeByTicketId(ticket.getId())
+                .orElseThrow(() -> new BusinessException("No active downtime record found for this ticket"));
+
+        downtime.endDowntime(Instant.now(), request.getRootCause(), request.getActionTaken());
+        repository.updateDowntime(downtime);
+
+        String targetMachineStatus = "AVAILABLE".equalsIgnoreCase(request.getMachineResolutionStatus()) ? "AVAILABLE" : "DOWN";
+
+        UUID targetMachineStatusId = repository.findMachineStatusIdByName(targetMachineStatus)
+                .orElseThrow(() -> new ResourceNotFoundException("Machine status '" + targetMachineStatus + "' does not exist in the system"));
+
+        Machine machine = machineRepository.findById(ticket.getMachineId())
+                .orElseThrow(() -> new BusinessException("Machine associated with the ticket not found"));
+
+        Machine updatedMachine = Machine.changeStatus(machine, targetMachineStatusId, currentUserPort.getCurrentUserId());
+
+        machineRepository.update(updatedMachine);
     }
 }
