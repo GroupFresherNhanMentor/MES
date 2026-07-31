@@ -64,11 +64,11 @@ export class WarehouseList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(WarehouseFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(WarehouseFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(w: WarehouseDto) {
-    this.dialog.open(WarehouseFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: w }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(WarehouseFormComponent, { width: '500px', data: w }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(w: WarehouseDto) {
