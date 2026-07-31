@@ -38,6 +38,6 @@ public class QcActionController {
     public ResponseEntity<ApiResponse<Void>> createQcAction(
             @Valid @RequestBody CreateQcActionRequest request) {
         qcActionUseCase.createQcAction(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Created"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
     }
 }

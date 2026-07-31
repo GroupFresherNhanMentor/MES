@@ -1,0 +1,2 @@
+ALTER TABLE products
+    ALTER COLUMN version TYPE VARCHAR(50) USING version::VARCHAR;

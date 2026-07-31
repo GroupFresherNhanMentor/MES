@@ -14,8 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import fpt.qn.mes.master.machine.application.dto.request.UpdateMachineRequest;
-import fpt.qn.mes.master.machine.application.dto.response.MachineDto;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.master.machine.application.dto.machine.MachineResponse;
+import fpt.qn.mes.master.machine.application.dto.machine.update.UpdateMachineRequest;
 import fpt.qn.mes.master.machine.application.exception.MachineNotFoundException;
 import fpt.qn.mes.master.machine.application.mapper.MachineDtoMapper;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
@@ -26,6 +27,7 @@ class MachineServiceTest {
 
     @Mock MachineRepository machineRepository;
     @Mock MachineDtoMapper mapper;
+    @Mock CurrentUserPort currentUserPort;
     @InjectMocks MachineService machineService;
 
     UUID id = UUID.randomUUID();
@@ -33,12 +35,12 @@ class MachineServiceTest {
     UUID userId = UUID.randomUUID();
     UUID statusId = UUID.randomUUID();
     Machine machine;
-    MachineDto dto;
+    MachineResponse response;
 
     @BeforeEach
     void setUp() {
         machine = Machine.create(lineId, "MC-TEST", "Test MC", statusId, userId);
-        dto = MachineDto.builder().id(id).code("MC-TEST").build();
+        response = MachineResponse.builder().id(id).code("MC-TEST").build();
     }
 
     @Test
@@ -50,19 +52,19 @@ class MachineServiceTest {
     @Test
     void getMachineById_Success() {
         when(machineRepository.findById(id)).thenReturn(Optional.of(machine));
-        when(mapper.toDto(machine)).thenReturn(dto);
+        when(mapper.toDto(machine)).thenReturn(response);
         var result = machineService.getMachineById(id);
         assertNotNull(result);
     }
 
     @Test
     void updateMachine_Success() {
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(machineRepository.findById(id)).thenReturn(Optional.of(machine));
         when(machineRepository.update(any())).thenReturn(machine);
-        when(mapper.toDto(any())).thenReturn(dto);
         var req = new UpdateMachineRequest();
         req.setName("Updated");
-        var result = machineService.updateMachine(id, req, userId);
-        assertNotNull(result);
+        assertDoesNotThrow(() -> machineService.updateMachine(id, req));
+        verify(machineRepository).update(any());
     }
 }

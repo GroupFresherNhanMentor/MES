@@ -2,17 +2,21 @@ package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.LOT_TYPES;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.LotType;
 import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
@@ -24,27 +28,36 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LotTypePersistenceAdapter extends BaseRepository<LotTypesRecord> implements LotTypeRepository {
 
-    public LotTypePersistenceAdapter(DSLContext ctx) {
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "name", LOT_TYPES.NAME,
+            "created_at", LOT_TYPES.CREATED_AT
+    );
+    private static final Field<?> DEFAULT_SORT_FIELD = LOT_TYPES.CREATED_AT;
+
+    LotTypeRecordMapper mapper;
+
+    public LotTypePersistenceAdapter(DSLContext ctx, LotTypeRecordMapper mapper) {
         super(ctx, LOT_TYPES);
+        this.mapper = mapper;
     }
 
     @Override
     public Optional<LotType> findById(UUID id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        return fetchById(id).map(r -> LotType.builder()
-                .id(r.getId())
-                .name(r.getName())
-                .description(r.getDescription())
-                .build());
+        return ctx.selectFrom(LOT_TYPES)
+                .where(LOT_TYPES.ID.eq(id))
+                .fetchOptional(r -> mapper.toDomain(r));
+    }
+
+    @Override
+    public Optional<LotType> findByName(String name) {
+        return ctx.selectFrom(LOT_TYPES)
+                .where(LOT_TYPES.NAME.eq(name))
+                .fetchOptional(r -> mapper.toDomain(r));
     }
 
     @Override
     public Optional<UUID> findIdByName(String name) {
-        if (name == null || name.isBlank()) {
-            return Optional.empty();
-        }
+        if (name == null || name.isBlank()) return Optional.empty();
         return ctx.select(LOT_TYPES.ID)
                 .from(LOT_TYPES)
                 .where(LOT_TYPES.NAME.eq(name))
@@ -52,41 +65,48 @@ public class LotTypePersistenceAdapter extends BaseRepository<LotTypesRecord> im
     }
 
     @Override
-    public List<LotType> search(LotTypeSearchCriteria criteria) {
-        Condition condition = buildCondition(criteria);
-        int page = criteria != null ? criteria.getPage() : 0;
-        int size = criteria != null ? criteria.getSize() : 20;
-
-        return ctx.selectFrom(LOT_TYPES)
-                .where(condition)
-                .limit(size)
-                .offset(page * size)
-                .fetch(r -> LotType.builder()
-                        .id(r.getId())
-                        .name(r.getName())
-                        .description(r.getDescription())
-                        .build());
+    public boolean existsById(UUID id) {
+        return ctx.fetchExists(LOT_TYPES, LOT_TYPES.ID.eq(id));
     }
 
     @Override
-    public long count(LotTypeSearchCriteria criteria) {
+    public boolean existsByName(String name) {
+        return ctx.fetchExists(LOT_TYPES, LOT_TYPES.NAME.eq(name));
+    }
+
+    @Override
+    public LotType save(LotType lotType) {
+        LotTypesRecord r = mapper.toRecord(lotType);
+        ctx.insertInto(LOT_TYPES).set(r)
+                .onConflict(LOT_TYPES.ID).doUpdate().set(r)
+                .execute();
+        return lotType;
+    }
+
+    @Override
+    public PaginationResult<LotType> search(LotTypeSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
-        return ctx.fetchCount(ctx.selectFrom(LOT_TYPES).where(condition));
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+        long total = ctx.fetchCount(LOT_TYPES, condition);
+        List<LotType> items = ctx.selectFrom(LOT_TYPES)
+                .where(condition)
+                .orderBy(orderBy)
+                .limit(criteria.getSize())
+                .offset((long) criteria.getPage() * criteria.getSize())
+                .fetch(r -> mapper.toDomain(r));
+        return PaginationResult.<LotType>builder().total(total).items(items).build();
     }
 
     private Condition buildCondition(LotTypeSearchCriteria criteria) {
-        if (criteria == null) {
-            return DSL.noCondition();
-        }
-        List<Condition> conditions = new ArrayList<>();
+        Condition condition = DSL.noCondition();
         if (criteria.getQuery() != null && !criteria.getQuery().isBlank()) {
-            String pattern = "%" + criteria.getQuery().trim() + "%";
-            conditions.add(LOT_TYPES.NAME.likeIgnoreCase(pattern)
-                    .or(LOT_TYPES.DESCRIPTION.likeIgnoreCase(pattern)));
+            condition = condition.and(
+                    LOT_TYPES.NAME.containsIgnoreCase(criteria.getQuery())
+                            .or(LOT_TYPES.DESCRIPTION.containsIgnoreCase(criteria.getQuery())));
         }
         if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            conditions.add(LOT_TYPES.NAME.eq(criteria.getName().trim()));
+            condition = condition.and(LOT_TYPES.NAME.containsIgnoreCase(criteria.getName()));
         }
-        return conditions.stream().reduce(DSL.noCondition(), Condition::and);
+        return condition;
     }
 }

@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
@@ -82,7 +83,7 @@ public class QcStockAdapter implements QcStockPort {
                     STOCK_BALANCES.QUANTITY, STOCK_BALANCES.CREATED_AT, STOCK_BALANCES.UPDATED_AT
                 )
                 .values(
-                    UUID.randomUUID(),
+                    UuidV7.generate(),
                     sourceBalance != null ? sourceBalance.getWarehouseId() : null,
                     sourceBalance != null ? sourceBalance.getLocationId() : null,
                     productId, lotId, toStatusId,
@@ -93,7 +94,7 @@ public class QcStockAdapter implements QcStockPort {
 
         // Create stock movement record
         StockMovementsRecord movement = new StockMovementsRecord();
-        UUID movementId = UUID.randomUUID();
+        UUID movementId = UuidV7.generate();
         movement.setId(movementId);
         movement.setMovementTypeId(movementTypeId);
         movement.setProductId(productId);

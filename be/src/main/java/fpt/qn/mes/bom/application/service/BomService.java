@@ -1,5 +1,6 @@
 package fpt.qn.mes.bom.application.service;
 
+import fpt.qn.mes.common.util.PaginationUtils;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -8,8 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.dto.response.BomItemDto;
+import fpt.qn.mes.bom.application.dto.response.BomResponse;
+import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
 import fpt.qn.mes.bom.application.exception.BomAlreadyExistsException;
 import fpt.qn.mes.bom.application.exception.BomNotFoundException;
 import fpt.qn.mes.bom.application.exception.EmptyBomException;
@@ -49,10 +50,10 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<BomDto> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId) {
+    public PageResponse<BomResponse> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId) {
         PaginationResult<Bom> result = bomRepository.findAll(page, size, finishedProductId, bomStatusId);
-        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
-        return PageResponse.<BomDto>builder()
+        int totalPages = PaginationUtils.calculateTotalPages(result.getTotal(), size);
+        return PageResponse.<BomResponse>builder()
                 .items(result.getItems().stream().map(mapper::toDto).toList())
                 .totalElements(result.getTotal())
                 .totalPages(totalPages)
@@ -63,7 +64,7 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public BomDto getBomById(UUID id) {
+    public BomResponse getBomById(UUID id) {
         return bomRepository.findById(id)
                 .map(mapper::toDto)
                 .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
@@ -71,7 +72,7 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional
-    public BomDto createBom(CreateBomRequest request) {
+    public BomResponse createBom(CreateBomRequest request) {
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
         // 1. Verify product exists
@@ -105,7 +106,7 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional
-    public BomDto activateBom(UUID id) {
+    public BomResponse activateBom(UUID id) {
         // 1. Fetch target BOM
         Bom bom = bomRepository.findById(id)
                 .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
@@ -145,7 +146,7 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional
-    public BomDto createNewVersion(UUID id) {
+    public BomResponse createNewVersion(UUID id) {
         // 1. Fetch source BOM
         Bom sourceBom = bomRepository.findById(id)
                 .orElseThrow(() -> new BomNotFoundException("Source BOM not found: " + id));
@@ -190,7 +191,7 @@ public class BomService implements BomUseCase {
 
     @Override
     @Transactional
-    public BomItemDto addBomItem(UUID bomId, CreateBomItemRequest request) {
+    public BomItemResponse addBomItem(UUID bomId, CreateBomItemRequest request) {
         Bom bom = bomRepository.findById(bomId)
                 .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
 

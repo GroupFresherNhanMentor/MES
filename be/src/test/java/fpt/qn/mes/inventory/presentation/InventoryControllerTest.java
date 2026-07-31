@@ -24,19 +24,19 @@ import org.springframework.http.ResponseEntity;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.search.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
+
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stocklot.StockLotResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,21 +62,21 @@ class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("getMovements should return 200 OK with PageResponse of StockMovementDto")
+    @DisplayName("getMovements should return 200 OK with PageResponse of StockMovementResponse")
     void getMovements_shouldReturn200OK() {
         StockMovementSearchRequest request = new StockMovementSearchRequest();
         request.setPage(0);
         request.setSize(20);
         request.setReferenceNo("PO-2026-001");
 
-        StockMovementDto dto = StockMovementDto.builder()
+        StockMovementResponse dto = StockMovementResponse.builder()
                 .id(UUID.randomUUID())
                 .referenceNo("PO-2026-001")
                 .quantity(new BigDecimal("100.00"))
                 .createdAt(Instant.now())
                 .build();
 
-        PageResponse<StockMovementDto> pageResponse = PageResponse.<StockMovementDto>builder()
+        PageResponse<StockMovementResponse> pageResponse = PageResponse.<StockMovementResponse>builder()
                 .items(List.of(dto))
                 .totalElements(1)
                 .totalPages(1)
@@ -86,7 +86,7 @@ class InventoryControllerTest {
 
         when(inventoryUseCase.getMovements(any(StockMovementSearchRequest.class))).thenReturn(pageResponse);
 
-        ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> response = controller.getMovements(request);
+        ResponseEntity<ApiResponse<PageResponse<StockMovementResponse>>> response = controller.getMovements(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -101,27 +101,18 @@ class InventoryControllerTest {
     @Test
     @DisplayName("recordMovement should return 201 Created")
     void recordMovement_shouldReturn201Created() {
-        CreateMovementRequest request = new CreateMovementRequest();
+        CreateStockMovementRequest request = new CreateStockMovementRequest();
         request.setProductId(productId);
         request.setWarehouseId(warehouseId);
         request.setQuantity(new BigDecimal("50.00"));
 
-        StockMovementDto dto = StockMovementDto.builder()
-                .id(UUID.randomUUID())
-                .quantity(new BigDecimal("50.00"))
-                .build();
-
         AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
-        when(inventoryUseCase.recordMovement(any(CreateMovementRequest.class), eq(userId))).thenReturn(dto);
 
-        ResponseEntity<ApiResponse<StockMovementDto>> response = controller.recordMovement(request, principal);
+        ResponseEntity<ApiResponse<Void>> response = controller.recordMovement(request, principal);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getData().getQuantity()).isEqualTo(new BigDecimal("50.00"));
-
-        verify(inventoryUseCase).recordMovement(any(CreateMovementRequest.class), eq(userId));
+        verify(inventoryUseCase).recordMovement(any(CreateStockMovementRequest.class), eq(userId));
     }
 
     @Test
@@ -136,21 +127,12 @@ class InventoryControllerTest {
                 .referenceNo("PO-STOCK-IN")
                 .build();
 
-        StockMovementDto dto = StockMovementDto.builder()
-                .id(UUID.randomUUID())
-                .referenceNo("PO-STOCK-IN")
-                .quantity(new BigDecimal("100.00"))
-                .build();
-
         AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
-        when(inventoryUseCase.recordStockIn(any(StockInRequest.class), eq(userId))).thenReturn(dto);
 
-        ResponseEntity<ApiResponse<StockMovementDto>> response = controller.recordStockIn(request, principal);
+        ResponseEntity<ApiResponse<Void>> response = controller.recordStockIn(request, principal);
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody().getData().getReferenceNo()).isEqualTo("PO-STOCK-IN");
-
         verify(inventoryUseCase).recordStockIn(any(StockInRequest.class), eq(userId));
     }
 
@@ -158,12 +140,12 @@ class InventoryControllerTest {
     @DisplayName("getStockLots should return 200 OK")
     void getStockLots_shouldReturn200OK() {
         StockLotSearchRequest request = new StockLotSearchRequest();
-        StockLotDto dto = StockLotDto.builder().id(UUID.randomUUID()).lotNumber("LOT-001").build();
-        PageResponse<StockLotDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
+        StockLotResponse dto = StockLotResponse.builder().id(UUID.randomUUID()).lotNumber("LOT-001").build();
+        PageResponse<StockLotResponse> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
 
         when(inventoryUseCase.getStockLots(any(StockLotSearchRequest.class))).thenReturn(pageResponse);
 
-        ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> response = controller.getStockLots(request);
+        ResponseEntity<ApiResponse<PageResponse<StockLotResponse>>> response = controller.getStockLots(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData().getItems()).hasSize(1);
@@ -173,73 +155,44 @@ class InventoryControllerTest {
     @DisplayName("getStockBalances should return 200 OK")
     void getStockBalances_shouldReturn200OK() {
         StockBalanceSearchRequest request = new StockBalanceSearchRequest();
-        StockBalanceDto dto = StockBalanceDto.builder().id(UUID.randomUUID()).quantity(new BigDecimal("10.00")).build();
-        PageResponse<StockBalanceDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
+        StockBalanceResponse dto = StockBalanceResponse.builder().id(UUID.randomUUID()).quantity(new BigDecimal("10.00")).build();
+        PageResponse<StockBalanceResponse> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
 
         when(inventoryUseCase.getStockBalances(any(StockBalanceSearchRequest.class))).thenReturn(pageResponse);
 
-        ResponseEntity<ApiResponse<PageResponse<StockBalanceDto>>> response = controller.getStockBalances(request);
+        ResponseEntity<ApiResponse<PageResponse<StockBalanceResponse>>> response = controller.getStockBalances(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData().getItems()).hasSize(1);
     }
 
     @Test
-    @DisplayName("adjustStock within threshold returns 200 OK")
-    void adjustStock_withinThreshold_returns200OK() {
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+    @DisplayName("adjustStock returns 200 OK")
+    void adjustStock_returns200OK() {
+        CreateStockAdjustmentRequest request = CreateStockAdjustmentRequest.builder()
                 .stockBalanceId(UUID.randomUUID())
                 .quantityAdjustment(new BigDecimal("10.00"))
                 .reason("Count fix")
                 .build();
-        StockAdjustmentResponse serviceResponse = StockAdjustmentResponse.builder()
-                .requiresApproval(false)
-                .movement(StockMovementDto.builder().id(UUID.randomUUID()).build())
-                .message("Stock adjustment applied successfully")
-                .build();
 
         AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
-        when(inventoryUseCase.adjustStock(any(StockAdjustmentRequest.class), eq(userId))).thenReturn(serviceResponse);
 
-        ResponseEntity<ApiResponse<StockAdjustmentResponse>> response = controller.adjustStock(request, principal);
+        ResponseEntity<ApiResponse<Void>> response = controller.adjustStock(request, principal);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getData().isRequiresApproval()).isFalse();
-    }
-
-    @Test
-    @DisplayName("adjustStock exceeding threshold returns 202 Accepted")
-    void adjustStock_exceedingThreshold_returns202Accepted() {
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
-                .stockBalanceId(UUID.randomUUID())
-                .quantityAdjustment(new BigDecimal("150.00"))
-                .reason("Large adjustment")
-                .build();
-        StockAdjustmentResponse serviceResponse = StockAdjustmentResponse.builder()
-                .requiresApproval(true)
-                .approvalId(UUID.randomUUID())
-                .message("Submitted for approval")
-                .build();
-
-        AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
-        when(inventoryUseCase.adjustStock(any(StockAdjustmentRequest.class), eq(userId))).thenReturn(serviceResponse);
-
-        ResponseEntity<ApiResponse<StockAdjustmentResponse>> response = controller.adjustStock(request, principal);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
-        assertThat(response.getBody().getData().isRequiresApproval()).isTrue();
+        verify(inventoryUseCase).adjustStock(any(CreateStockAdjustmentRequest.class), eq(userId));
     }
 
     @Test
     @DisplayName("approveAdjustment returns 200 OK")
     void approveAdjustment_returns200OK() {
         UUID approvalId = UUID.randomUUID();
-        StockMovementDto movementDto = StockMovementDto.builder().id(UUID.randomUUID()).build();
+        StockMovementResponse movementDto = StockMovementResponse.builder().id(UUID.randomUUID()).build();
         AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("manager@mes.com").enabled(true).roles(List.of("ROLE_FACTORY_MANAGER")).build();
 
         when(inventoryUseCase.approveAdjustment(eq(approvalId), eq(userId))).thenReturn(movementDto);
 
-        ResponseEntity<ApiResponse<StockMovementDto>> response = controller.approveAdjustment(approvalId, principal);
+        ResponseEntity<ApiResponse<StockMovementResponse>> response = controller.approveAdjustment(approvalId, principal);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData()).isNotNull();
@@ -258,63 +211,9 @@ class InventoryControllerTest {
     }
 
     @Test
-    @DisplayName("getLotTypes should return 200 OK with PageResponse of LotTypeSummaryDto")
-    void getLotTypes_shouldReturn200OK() {
-        fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest();
-        fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto.builder()
-                .id(UUID.randomUUID())
-                .name("RAW_MATERIAL")
-                .build();
-        PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
-
-        when(inventoryUseCase.getLotTypes(any())).thenReturn(pageResponse);
-
-        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto>>> response = controller.getLotTypes(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getData().getItems()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("getStockStatuses should return 200 OK with PageResponse of StockStatusSummaryDto")
-    void getStockStatuses_shouldReturn200OK() {
-        fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest();
-        fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto.builder()
-                .id(UUID.randomUUID())
-                .name("AVAILABLE")
-                .build();
-        PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
-
-        when(inventoryUseCase.getStockStatuses(any())).thenReturn(pageResponse);
-
-        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto>>> response = controller.getStockStatuses(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getData().getItems()).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("getMovementTypes should return 200 OK with PageResponse of MovementTypeSummaryDto")
-    void getMovementTypes_shouldReturn200OK() {
-        fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest request = new fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest();
-        fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto dto = fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto.builder()
-                .id(UUID.randomUUID())
-                .name("PURCHASE_IN")
-                .build();
-        PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto> pageResponse = PageResponse.of(List.of(dto), 1, 0, 20);
-
-        when(inventoryUseCase.getMovementTypes(any())).thenReturn(pageResponse);
-
-        ResponseEntity<ApiResponse<PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto>>> response = controller.getMovementTypes(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().getData().getItems()).hasSize(1);
-    }
-
-    @Test
     @DisplayName("transferStock should return 200 OK with StockTransferResponse")
     void transferStock_shouldReturn200OK() {
-        fpt.qn.mes.inventory.application.dto.request.StockTransferRequest request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+        fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest request = fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest.builder()
                 .fromWarehouseId(UUID.randomUUID())
                 .fromLocationId(UUID.randomUUID())
                 .toWarehouseId(UUID.randomUUID())
@@ -325,14 +224,14 @@ class InventoryControllerTest {
                 .build();
 
         fpt.qn.mes.inventory.application.dto.response.StockTransferResponse serviceResponse = fpt.qn.mes.inventory.application.dto.response.StockTransferResponse.builder()
-                .transferOutMovement(StockMovementDto.builder().id(UUID.randomUUID()).build())
-                .transferInMovement(StockMovementDto.builder().id(UUID.randomUUID()).build())
-                .sourceBalance(StockBalanceDto.builder().quantity(new BigDecimal("30.00")).build())
-                .destinationBalance(StockBalanceDto.builder().quantity(new BigDecimal("20.00")).build())
+                .transferOutMovement(StockMovementResponse.builder().id(UUID.randomUUID()).build())
+                .transferInMovement(StockMovementResponse.builder().id(UUID.randomUUID()).build())
+                .sourceBalance(StockBalanceResponse.builder().quantity(new BigDecimal("30.00")).build())
+                .destinationBalance(StockBalanceResponse.builder().quantity(new BigDecimal("20.00")).build())
                 .build();
 
         AppUserPrincipal principal = AppUserPrincipal.builder().id(userId).username("user@mes.com").enabled(true).roles(List.of("ROLE_USER")).build();
-        when(inventoryUseCase.transferStock(any(fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.class), eq(userId))).thenReturn(serviceResponse);
+        when(inventoryUseCase.transferStock(any(fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest.class), eq(userId))).thenReturn(serviceResponse);
 
         ResponseEntity<ApiResponse<fpt.qn.mes.inventory.application.dto.response.StockTransferResponse>> response = controller.transferStock(request, principal);
 

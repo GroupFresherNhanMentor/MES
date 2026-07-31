@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.role.application.dto.request.AssignPermissionsRequest;
 import fpt.qn.mes.role.application.dto.request.CreateRoleRequest;
-import fpt.qn.mes.role.application.dto.response.RoleDto;
+import fpt.qn.mes.role.application.dto.response.RoleResponse;
 import fpt.qn.mes.role.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.role.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.role.application.port.in.RoleUseCase;
@@ -26,22 +26,22 @@ public class RoleService implements RoleUseCase {
     RoleDtoMapper mapper;
 
     @Override @Transactional(readOnly = true)
-    public List<RoleDto> getRoles() {
+    public List<RoleResponse> getRoles() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional(readOnly = true)
-    public RoleDto getRoleById(UUID id) {
+    public RoleResponse getRoleById(UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public RoleDto createRole(CreateRoleRequest request) {
+    public RoleResponse createRole(CreateRoleRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public RoleDto updateRole(UUID id, UpdateRoleRequest request) {
+    public RoleResponse updateRole(UUID id, UpdateRoleRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

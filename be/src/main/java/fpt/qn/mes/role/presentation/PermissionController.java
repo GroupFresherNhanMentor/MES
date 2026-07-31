@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.role.application.dto.request.CreatePermissionRequest;
-import fpt.qn.mes.role.application.dto.response.PermissionDto;
+import fpt.qn.mes.role.application.dto.response.PermissionResponse;
 import fpt.qn.mes.role.application.port.in.PermissionUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -30,17 +30,17 @@ public class PermissionController {
     PermissionUseCase permissionUseCase;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PermissionDto>>> getPermissions() {
+    public ResponseEntity<ApiResponse<List<PermissionResponse>>> getPermissions() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<PermissionDto>> getPermissionById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<PermissionResponse>> getPermissionById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<PermissionDto>> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
+    public ResponseEntity<ApiResponse<PermissionResponse>> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

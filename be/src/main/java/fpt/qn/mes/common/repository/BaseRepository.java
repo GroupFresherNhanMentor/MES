@@ -53,7 +53,7 @@ public abstract class BaseRepository<R extends UpdatableRecord<R>> {
                 .execute();
     }
 
-    protected boolean existsById(UUID id) {
+    public boolean existsById(UUID id) {
         return ctx.fetchExists(
                 ctx.selectFrom(table)
                         .where(table.field("id", UUID.class).eq(id))

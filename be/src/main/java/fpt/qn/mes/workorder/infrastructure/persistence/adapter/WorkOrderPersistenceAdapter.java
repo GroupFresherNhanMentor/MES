@@ -5,6 +5,7 @@ import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
 import java.util.Optional;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.workorder.infrastructure.persistence.WorkOrderRecordMapper;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
@@ -29,7 +30,9 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     DSLContext dslCtx;
 
     public WorkOrderPersistenceAdapter(DSLContext ctx, WorkOrderRecordMapper mapper) {
-        super(ctx, WORK_ORDERS); this.mapper = mapper; this.dslCtx = ctx;
+        super(ctx, WORK_ORDERS);
+        this.mapper = mapper;
+        this.dslCtx = ctx;
     }
 
     @Override
@@ -48,16 +51,18 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .fetchOptional()
                 .map(mapper::toDomain);
     }
+
     @Override
     public WorkOrder save(WorkOrder w) {
         WorkOrdersRecord record = mapper.toRecord(w);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();
         return mapper.toDomain(record);
     }
+
     @Override
     public WorkOrder update(WorkOrder w) {
         WorkOrdersRecord record = mapper.toRecord(w);
@@ -65,7 +70,10 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
         record.update();
         return mapper.toDomain(record);
     }
-    @Override public void deleteById(UUID id) {}
+
+    @Override
+    public void deleteById(UUID id) {}
+
     public PaginationResult<WorkOrder> findAll(WorkOrderSearchCriteria criteria) {
         var condition = buildCondition(criteria);
         int page = criteria.getPage();
@@ -102,14 +110,22 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) {
         var record = mapper.toRecord(m);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();
         return mapper.toDomain(record);
     }
-    @Override public Optional<WorkOrderMaterial> findMaterialById(UUID materialId) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public PaginationResult<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId, int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
+
+    @Override
+    public Optional<WorkOrderMaterial> findMaterialById(UUID materialId) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public PaginationResult<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId, int page, int size) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     @Override
     public java.util.List<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId) {
@@ -121,9 +137,18 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .toList();
     }
 
-    @Override public void deleteMaterialById(UUID materialId) {}
-    @Override public WorkOrderEvent saveEvent(WorkOrderEvent e) { throw new UnsupportedOperationException("Not implemented"); }
-    @Override public PaginationResult<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId, int page, int size) { throw new UnsupportedOperationException("Not implemented"); }
+    @Override
+    public void deleteMaterialById(UUID materialId) {}
+
+    @Override
+    public WorkOrderEvent saveEvent(WorkOrderEvent e) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public PaginationResult<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId, int page, int size) {
+        throw new UnsupportedOperationException("Not implemented");
+    }
 
     @Override
     public java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId) {
@@ -135,6 +160,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .map(r -> mapper.toDomain(r))
                 .toList();
     }
+
     @Override
     public WorkOrderMaterial updateMaterial(WorkOrderMaterial m) {
         var record = mapper.toRecord(m);

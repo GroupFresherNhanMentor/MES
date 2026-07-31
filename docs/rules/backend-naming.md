@@ -8,7 +8,7 @@
 | Domain repository | `{Entity}Repository` | `BomRepository` |
 | Use case interface | `{Entity}UseCase` | `BomUseCase` |
 | Service | `{Entity}Service` | `BomService` |
-| Response DTO | `{Entity}Dto` | `BomDto`, `BomItemDto` |
+| Response DTO | `{Entity}Response` | `BomResponse`, `BomItemResponse` |
 | Auth/token response | `{Action}Response` | `TokenResponse` |
 | Create request | `Create{Entity}Request` | `CreateBomRequest` |
 | Update request | `Update{Entity}Request` | `UpdateBomRequest` |
@@ -25,8 +25,10 @@ fpt.qn.mes.{module}.domain.entities
 fpt.qn.mes.{module}.domain.repository
 fpt.qn.mes.{module}.application.port.in
 fpt.qn.mes.{module}.application.service
-fpt.qn.mes.{module}.application.dto.request
-fpt.qn.mes.{module}.application.dto.response
+fpt.qn.mes.{module}.application.dto.{entity}
+fpt.qn.mes.{module}.application.dto.{entity}.create
+fpt.qn.mes.{module}.application.dto.{entity}.update
+fpt.qn.mes.{module}.application.dto.{entity}.search
 fpt.qn.mes.{module}.application.mapper
 fpt.qn.mes.{module}.application.exception
 fpt.qn.mes.{module}.infrastructure.persistence

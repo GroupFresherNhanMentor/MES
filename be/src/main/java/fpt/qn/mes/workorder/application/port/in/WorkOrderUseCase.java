@@ -9,17 +9,17 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 
 public interface WorkOrderUseCase {
-    PageResponse<WorkOrderDto> getWorkOrders(WorkOrderSearchRequest request);
-    WorkOrderDto getWorkOrderById(UUID id);
-    WorkOrderDto createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
-    WorkOrderDto updateWorkOrder(UUID id, UpdateWorkOrderRequest request);
+    PageResponse<WorkOrderResponse> getWorkOrders(WorkOrderSearchRequest request);
+    WorkOrderResponse getWorkOrderById(UUID id);
+    WorkOrderResponse createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
+    WorkOrderResponse updateWorkOrder(UUID id, UpdateWorkOrderRequest request);
     ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId, ReserveWorkOrderMaterialsRequest request);
     void deleteWorkOrder(UUID id);
 
-    PageResponse<WorkOrderMaterialDto> getMaterials(UUID workOrderId, int page, int size);
-    WorkOrderMaterialDto addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest request);
+    PageResponse<WorkOrderMaterialResponse> getMaterials(UUID workOrderId, int page, int size);
+    WorkOrderMaterialResponse addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest request);
     void deleteMaterial(UUID workOrderId, UUID materialId);
 
-    PageResponse<WorkOrderEventDto> getEvents(UUID workOrderId, int page, int size);
-    WorkOrderEventDto addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
+    PageResponse<WorkOrderEventResponse> getEvents(UUID workOrderId, int page, int size);
+    WorkOrderEventResponse addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
 }
