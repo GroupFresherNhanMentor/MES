@@ -441,6 +441,8 @@ class WorkOrderServiceTest {
                 WorkOrderCodeExistsException.class,
                 () -> service.updateWorkOrder(id, req)
         );
+    }
+
     @Test
     @DisplayName("reserveMaterials with invalid WO status should throw InvalidWorkOrderReservationException")
     void reserveMaterials_invalidStatus_shouldThrowException() {
