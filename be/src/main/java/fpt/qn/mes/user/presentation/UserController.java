@@ -18,7 +18,7 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -35,28 +35,28 @@ public class UserController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<PageResponse<UserDto>>> getUsers(
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(userUseCase.getUsers(page, size), "Users retrieved"));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(userUseCase.getUserById(id), "User retrieved"));
     }
 
     @PostMapping
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.success(userUseCase.createUser(request), "User created"));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<UserDto>> updateUser(
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateUserRequest request) {
         return ResponseEntity.ok(ApiResponse.success(userUseCase.updateUser(id, request), "User updated"));
@@ -76,4 +76,3 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(null, "User deactivated"));
     }
 }
-

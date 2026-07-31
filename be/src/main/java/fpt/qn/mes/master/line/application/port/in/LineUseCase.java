@@ -1,17 +1,17 @@
 package fpt.qn.mes.master.line.application.port.in;
 
 import java.util.UUID;
-
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.master.line.application.dto.request.CreateLineRequest;
-import fpt.qn.mes.master.line.application.dto.response.ProductionLineDto;
-import fpt.qn.mes.master.line.application.dto.request.UpdateLineRequest;
+import fpt.qn.mes.master.line.application.dto.line.LineResponse;
+import fpt.qn.mes.master.line.application.dto.line.create.CreateLineRequest;
+import fpt.qn.mes.master.line.application.dto.line.search.LineSearchRequest;
+import fpt.qn.mes.master.line.application.dto.line.update.UpdateLineRequest;
 
 public interface LineUseCase {
-    PageResponse<ProductionLineDto> getLines(int page, int size);
-    PageResponse<ProductionLineDto> getLinesByStatus(int page, int size, UUID statusId);
-    ProductionLineDto getLineById(UUID id);
-    ProductionLineDto createLine(CreateLineRequest request, UUID currentUserId);
-    ProductionLineDto updateLine(UUID id, UpdateLineRequest request, UUID currentUserId);
-    void deleteLine(UUID id);
+    PageResponse<LineResponse> getLines(LineSearchRequest request);
+    LineResponse getLineById(UUID id);
+    void createLine(CreateLineRequest request);
+    void updateLine(UUID id, UpdateLineRequest request);
+    void activateLine(UUID id);
+    void deactivateLine(UUID id);
 }

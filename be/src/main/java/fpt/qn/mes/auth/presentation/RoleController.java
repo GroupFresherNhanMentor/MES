@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.auth.application.port.in.RoleUseCase;
 import jakarta.validation.Valid;
@@ -34,27 +34,27 @@ public class RoleController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<RoleDto>>> getRoles() {
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getRoles() {
         return ResponseEntity.ok(ApiResponse.success(roleUseCase.getRoles(), "Roles retrieved"));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<RoleDto>> getRoleById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(roleUseCase.getRoleById(id), "Role retrieved"));
     }
 
     @PostMapping
     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<RoleDto>> createRole(@Valid @RequestBody CreateRoleRequest request) {
+    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody CreateRoleRequest request) {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.success(roleUseCase.createRole(request), "Role created"));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<RoleDto>> updateRole(
+    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(
             @PathVariable UUID id,
             @Valid @RequestBody UpdateRoleRequest request) {
         return ResponseEntity.ok(ApiResponse.success(roleUseCase.updateRole(id, request), "Role updated"));
@@ -67,4 +67,3 @@ public class RoleController {
         return ResponseEntity.ok(ApiResponse.success(null, "Role deleted"));
     }
 }
-

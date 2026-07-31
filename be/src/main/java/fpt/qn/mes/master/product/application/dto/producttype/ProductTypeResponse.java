@@ -1,0 +1,38 @@
+package fpt.qn.mes.master.product.application.dto.producttype;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductTypeResponse {
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserInfo {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
+    UUID id;
+    String name;
+    String description;
+    UserInfo createdBy;
+    UserInfo updatedBy;
+    Instant createdAt;
+    Instant updatedAt;
+}

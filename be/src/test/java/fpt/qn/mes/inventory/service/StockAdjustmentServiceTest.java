@@ -20,9 +20,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.common.exception.AppException;
-import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
 import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
@@ -35,7 +34,7 @@ import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
-import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
+import fpt.qn.mes.master.location.application.port.in.WarehouseLocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.user.application.mapper.UserDtoMapper;
@@ -61,7 +60,7 @@ class StockAdjustmentServiceTest {
     @Mock
     ProductUseCase productUseCase;
     @Mock
-    LocationUseCase locationUseCase;
+    WarehouseLocationUseCase warehouseLocationUseCase;
     @Mock
     UserRepository userRepository;
     @Mock
@@ -90,7 +89,7 @@ class StockAdjustmentServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+        CreateStockAdjustmentRequest request = CreateStockAdjustmentRequest.builder()
                 .stockBalanceId(balanceId)
                 .quantityAdjustment(new BigDecimal("10.00"))
                 .reason("Inventory audit correction")
@@ -100,12 +99,10 @@ class StockAdjustmentServiceTest {
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)).thenReturn(Optional.of(movementTypeId));
         when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementDto.builder().id(UUID.randomUUID()).build());
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementResponse.builder().id(UUID.randomUUID()).build());
 
-        StockAdjustmentResponse response = inventoryService.adjustStock(request, userId);
+        inventoryService.adjustStock(request, userId);
 
-        assertThat(response.isRequiresApproval()).isFalse();
-        assertThat(response.getMovement()).isNotNull();
         verify(balanceRepository).save(any(StockBalance.class));
         verify(movementRepository).save(any(StockMovement.class));
         verify(approvalRepository, never()).save(any());
@@ -124,7 +121,7 @@ class StockAdjustmentServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+        CreateStockAdjustmentRequest request = CreateStockAdjustmentRequest.builder()
                 .stockBalanceId(balanceId)
                 .quantityAdjustment(new BigDecimal("150.00"))
                 .reason("Damaged batch replacement")
@@ -136,10 +133,8 @@ class StockAdjustmentServiceTest {
         when(approvalRepository.save(any(StockAdjustmentApproval.class)))
                 .thenReturn(StockAdjustmentApproval.builder().id(approvalId).build());
 
-        StockAdjustmentResponse response = inventoryService.adjustStock(request, userId);
+        inventoryService.adjustStock(request, userId);
 
-        assertThat(response.isRequiresApproval()).isTrue();
-        assertThat(response.getApprovalId()).isEqualTo(approvalId);
         verify(approvalRepository).save(any(StockAdjustmentApproval.class));
         verify(movementRepository, never()).save(any());
     }
@@ -147,7 +142,7 @@ class StockAdjustmentServiceTest {
     @Test
     @DisplayName("adjustStock missing reason throws AppException 400 Bad Request")
     void adjustStock_missingReason_throwsException() {
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+        CreateStockAdjustmentRequest request = CreateStockAdjustmentRequest.builder()
                 .stockBalanceId(balanceId)
                 .quantityAdjustment(new BigDecimal("10.00"))
                 .reason("")
@@ -166,7 +161,7 @@ class StockAdjustmentServiceTest {
                 .quantity(new BigDecimal("20.00"))
                 .build();
 
-        StockAdjustmentRequest request = StockAdjustmentRequest.builder()
+        CreateStockAdjustmentRequest request = CreateStockAdjustmentRequest.builder()
                 .stockBalanceId(balanceId)
                 .quantityAdjustment(new BigDecimal("-30.00"))
                 .reason("Count reduction")
@@ -207,9 +202,9 @@ class StockAdjustmentServiceTest {
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)).thenReturn(Optional.of(movementTypeId));
         when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementDto.builder().id(UUID.randomUUID()).build());
+        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementResponse.builder().id(UUID.randomUUID()).build());
 
-        StockMovementDto result = inventoryService.approveAdjustment(approvalId, userId);
+        StockMovementResponse result = inventoryService.approveAdjustment(approvalId, userId);
 
         assertThat(result).isNotNull();
         verify(balanceRepository).save(any(StockBalance.class));

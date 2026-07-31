@@ -16,13 +16,32 @@
 Every endpoint returns `ResponseEntity<ApiResponse<T>>`. Use the static factory methods:
 
 ```java
-// Success
+// Service returns data → pass data + message (two-arg overload)
 ResponseEntity.ok(ApiResponse.success(data, "OK"))
 ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(data, "Created"))
-ResponseEntity.ok(ApiResponse.success(null, "Deleted"))
+
+// Service returns void → pass message only (one-arg overload); return type is ApiResponse<Void>
+ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"))
+ResponseEntity.ok(ApiResponse.success("Deleted"))
+ResponseEntity.ok(ApiResponse.success("OK"))
 
 // Error (thrown as exception, handled by GlobalExceptionHandler)
-throw new AppException(HttpStatus.NOT_FOUND, "BOM_NOT_FOUND", "BOM not found: " + id)
+throw new AppException(404, ErrorCode.NOT_FOUND, "BOM not found: " + id)
+```
+
+### Void-return controller rule
+
+When the use case method is `void`, the controller return type must be `ResponseEntity<ApiResponse<Void>>` and the body uses the **one-arg** `ApiResponse.success(String message)`. **Never pass `null` as the data argument.**
+
+```java
+// FORBIDDEN — passing null explicitly
+return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Created"));
+
+// REQUIRED — use the one-arg overload; return type is ApiResponse<Void>
+public ResponseEntity<ApiResponse<Void>> createFoo(@Valid @RequestBody CreateFooRequest request) {
+    fooUseCase.createFoo(request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
+}
 ```
 
 `ApiResponse<T>` shape:
@@ -145,14 +164,14 @@ HTTP-semantic categories — the specific context is carried in the `message` fi
 // Module-specific not-found exception
 public class BomNotFoundException extends AppException {
     public BomNotFoundException(String message) {
-        super(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, message);
+        super(404, ErrorCode.NOT_FOUND, message);
     }
 }
 
 // Conflict exception
 public class UsernameAlreadyExistsException extends AppException {
     public UsernameAlreadyExistsException(String message) {
-        super(HttpStatus.CONFLICT, ErrorCode.CONFLICT, message);
+        super(409, ErrorCode.CONFLICT, message);
     }
 }
 ```

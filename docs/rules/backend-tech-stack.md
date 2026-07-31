@@ -121,3 +121,4 @@ For tables with a `code` column, include it:
 | `@Autowired` field injection | Constructor injection via `@RequiredArgsConstructor` |
 | Raw `List<Object[]>` from queries | Typed jOOQ record mappers |
 | Importing infrastructure in application | Always depend on interfaces |
+| `UUID.randomUUID()` for entity IDs | `UuidV7.generate()` from `fpt.qn.mes.common.util.UuidV7` |

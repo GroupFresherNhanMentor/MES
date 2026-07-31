@@ -27,7 +27,7 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +39,7 @@ class WorkOrderControllerTest {
     @InjectMocks
     WorkOrderController controller;
 
-    WorkOrderDto sampleDto;
+    WorkOrderResponse sampleDto;
     UUID productId;
     UUID statusId;
 
@@ -47,7 +47,7 @@ class WorkOrderControllerTest {
     void setUp() {
         productId = UUID.randomUUID();
         statusId = UUID.randomUUID();
-        sampleDto = WorkOrderDto.builder()
+        sampleDto = WorkOrderResponse.builder()
                 .id(UUID.randomUUID())
                 .code("WO-2026-0001")
                 .finishedProductId(productId)
@@ -68,7 +68,7 @@ class WorkOrderControllerTest {
         request.setStatusId(statusId);
         request.setCode("WO-2026");
 
-        PageResponse<WorkOrderDto> pageResponse = PageResponse.<WorkOrderDto>builder()
+        PageResponse<WorkOrderResponse> pageResponse = PageResponse.<WorkOrderResponse>builder()
                 .items(List.of(sampleDto))
                 .totalElements(1)
                 .totalPages(1)
@@ -80,7 +80,7 @@ class WorkOrderControllerTest {
                 .thenReturn(pageResponse);
 
         // Act
-        ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> response =
+        ResponseEntity<ApiResponse<PageResponse<WorkOrderResponse>>> response =
                 controller.getAll(request);
 
         // Assert
@@ -96,7 +96,7 @@ class WorkOrderControllerTest {
     }
 
     @Test
-    @DisplayName("create should return 201 Created with created WorkOrderDto")
+    @DisplayName("create should return 201 Created with created WorkOrderResponse")
     void create_shouldReturn201WithApiResponse() {
         // Arrange
         CreateWorkOrderRequest req = new CreateWorkOrderRequest();
@@ -114,7 +114,7 @@ class WorkOrderControllerTest {
         when(workOrderUseCase.createWorkOrder(eq(req), eq(userId))).thenReturn(sampleDto);
 
         // Act
-        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.create(req, principal);
+        ResponseEntity<ApiResponse<WorkOrderResponse>> response = controller.create(req, principal);
 
         // Assert
         assertNotNull(response);
@@ -127,14 +127,14 @@ class WorkOrderControllerTest {
     }
 
     @Test
-    @DisplayName("getById should return 200 OK with WorkOrderDto details")
+    @DisplayName("getById should return 200 OK with WorkOrderResponse details")
     void getById_shouldReturn200WithApiResponse() {
         // Arrange
         UUID id = sampleDto.getId();
         when(workOrderUseCase.getWorkOrderById(id)).thenReturn(sampleDto);
 
         // Act
-        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.getById(id);
+        ResponseEntity<ApiResponse<WorkOrderResponse>> response = controller.getById(id);
 
         // Assert
         assertNotNull(response);
@@ -147,7 +147,7 @@ class WorkOrderControllerTest {
     }
 
     @Test
-    @DisplayName("update should return 200 OK with updated WorkOrderDto")
+    @DisplayName("update should return 200 OK with updated WorkOrderResponse")
     void update_shouldReturn200WithApiResponse() {
         // Arrange
         UUID id = sampleDto.getId();
@@ -159,7 +159,7 @@ class WorkOrderControllerTest {
         when(workOrderUseCase.updateWorkOrder(eq(id), any())).thenReturn(sampleDto);
 
         // Act
-        ResponseEntity<ApiResponse<WorkOrderDto>> response = controller.update(id, req);
+        ResponseEntity<ApiResponse<WorkOrderResponse>> response = controller.update(id, req);
 
         // Assert
         assertNotNull(response);

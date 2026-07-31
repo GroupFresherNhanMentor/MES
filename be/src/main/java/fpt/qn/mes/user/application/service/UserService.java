@@ -11,7 +11,7 @@ import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.application.port.in.UserUseCase;
 import fpt.qn.mes.user.application.exception.UserNotFoundException;
@@ -33,15 +33,15 @@ public class UserService implements UserUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<UserDto> getUsers(int page, int size) {
+    public PageResponse<UserResponse> getUsers(int page, int size) {
         int normalizedPage = Math.max(0, page);
         int normalizedSize = Math.min(100, Math.max(1, size));
         var result = userRepository.findAll(normalizedPage, normalizedSize);
-        java.util.List<UserDto> items = new java.util.ArrayList<>();
+        java.util.List<UserResponse> items = new java.util.ArrayList<>();
         for (User user : result.getItems()) {
             items.add(userDtoMapper.toDto(user));
         }
-        return PageResponse.<UserDto>builder()
+        return PageResponse.<UserResponse>builder()
                 .items(items)
                 .totalElements(result.getTotal())
                 .totalPages((int) Math.ceil((double) result.getTotal() / normalizedSize))
@@ -52,7 +52,7 @@ public class UserService implements UserUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDto getUserById(UUID id) {
+    public UserResponse getUserById(UUID id) {
         return userRepository.findById(id)
                 .map(user -> userDtoMapper.toDto(user))
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -60,7 +60,7 @@ public class UserService implements UserUseCase {
 
     @Override
     @Transactional
-    public UserDto createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new ConflictException("Username already exists");
         }
@@ -73,7 +73,7 @@ public class UserService implements UserUseCase {
 
     @Override
     @Transactional
-    public UserDto updateUser(UUID id, UpdateUserRequest request) {
+    public UserResponse updateUser(UUID id, UpdateUserRequest request) {
         administrativeAccessGuard.lock();
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));

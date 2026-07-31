@@ -13,23 +13,9 @@ import java.util.stream.Stream;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
 import fpt.qn.mes.common.util.UuidV7;
-import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockAdjustmentRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockLotSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.WarehouseLocationSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.ProductSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentApprovalDto;
-import fpt.qn.mes.inventory.application.dto.response.StockAdjustmentResponse;
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
-import fpt.qn.mes.inventory.application.dto.response.UserSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.WarehouseSummaryDto;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
@@ -37,54 +23,58 @@ import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.exception.StockLotConflictException;
 import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
+import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
-import fpt.qn.mes.common.exception.AppException;
-import org.springframework.http.HttpStatus;
 import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
-import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
-import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
+import fpt.qn.mes.master.location.application.port.in.WarehouseLocationUseCase;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto;
-import fpt.qn.mes.master.product.application.dto.response.ProductDto;
-import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
-import fpt.qn.mes.user.application.dto.response.UserDto;
-import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.domain.entities.User;
 import fpt.qn.mes.user.domain.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
-import fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto;
-import fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto;
-import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
-import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
-import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
-import fpt.qn.mes.inventory.domain.repository.criteria.StockStatusSearchCriteria;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
+import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
+import fpt.qn.mes.inventory.application.dto.stocklot.search.StockLotSearchRequest;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseResponse;
+import fpt.qn.mes.inventory.application.dto.product.ProductResponse;
+
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.user.UserResponse;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseLocationResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.StockAdjustmentResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.stocklot.StockLotResponse;
+
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class InventoryService implements InventoryUseCase {
 
     StockLotRepository lotRepository;
@@ -97,16 +87,15 @@ public class InventoryService implements InventoryUseCase {
     StockAdjustmentApprovalRepository approvalRepository;
     InventoryDtoMapper mapper;
     StockAdjustmentApprovalDtoMapper approvalMapper;
-    UserDtoMapper userDtoMapper;
     WarehouseUseCase warehouseUseCase;
     ProductUseCase productUseCase;
-    LocationUseCase locationUseCase;
+    WarehouseLocationUseCase warehouseLocationUseCase;
 
     private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockLotDto> getStockLots(StockLotSearchRequest request) {
+    public PageResponse<StockLotResponse> getStockLots(StockLotSearchRequest request) {
         StockLotSearchCriteria criteria = StockLotSearchCriteria.builder()
                 .productId(request != null ? request.getProductId() : null)
                 .lotTypeId(request != null ? request.getLotTypeId() : null)
@@ -118,13 +107,13 @@ public class InventoryService implements InventoryUseCase {
                 .build();
         long totalElements = lotRepository.count(criteria);
         List<StockLot> items = lotRepository.search(criteria);
-        List<StockLotDto> dtos = items.stream().map(mapper::toDto).toList();
+        List<StockLotResponse> dtos = items.stream().map(mapper::toDto).toList();
         return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public StockLotDto getStockLotById(UUID id) {
+    public StockLotResponse getStockLotById(UUID id) {
         StockLot lot = lotRepository.findById(id)
                 .orElseThrow(() -> new StockLotNotFoundException("Stock lot not found with ID: " + id));
         return mapper.toDto(lot);
@@ -132,7 +121,7 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional
-    public StockLotDto createStockLot(CreateStockLotRequest request) {
+    public void createStockLot(CreateStockLotRequest request) {
         Optional<StockLot> existingLot = lotRepository.findByLotNumber(request.getLotNumber());
         if (existingLot.isPresent()) {
             StockLot lot = existingLot.get();
@@ -150,13 +139,12 @@ public class InventoryService implements InventoryUseCase {
                 request.getLotTypeId(),
                 request.getExpiryDate()
         );
-        StockLot saved = lotRepository.save(lot);
-        return mapper.toDto(saved);
+        lotRepository.save(lot);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockMovementDto> getMovements(StockMovementSearchRequest request) {
+    public PageResponse<StockMovementResponse> getMovements(StockMovementSearchRequest request) {
         StockMovementSearchCriteria criteria = StockMovementSearchCriteria.builder()
                 .movementTypeId(request != null ? request.getMovementTypeId() : null)
                 .productId(request != null ? request.getProductId() : null)
@@ -176,12 +164,12 @@ public class InventoryService implements InventoryUseCase {
             return PageResponse.of(List.of(), totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
         }
 
-        Map<UUID, ProductSummaryDto> productMap = buildProductMap(items);
-        Map<UUID, WarehouseSummaryDto> warehouseMap = buildWarehouseMap(items);
-        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildLocationMap(items);
-        Map<UUID, UserSummaryDto> userMap = buildUserMap(items);
+        Map<UUID, ProductResponse> productMap = buildProductMap(items);
+        Map<UUID, WarehouseResponse> warehouseMap = buildWarehouseMap(items);
+        Map<UUID, WarehouseLocationResponse> locationMap = buildLocationMap(items);
+        Map<UUID, UserResponse> userMap = buildUserMap(items);
 
-        List<StockMovementDto> dtos = items.stream()
+        List<StockMovementResponse> dtos = items.stream()
                 .map(m -> populateMovementSummaryFields(m, productMap, warehouseMap, locationMap, userMap))
                 .toList();
 
@@ -190,7 +178,7 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional
-    public StockMovementDto recordMovement(CreateMovementRequest request, UUID currentUserId) {
+    public void recordMovement(CreateStockMovementRequest request, UUID currentUserId) {
         if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
             throw new InsufficientStockException("Movement quantity must be positive");
         }
@@ -199,47 +187,59 @@ public class InventoryService implements InventoryUseCase {
         warehouseUseCase.getWarehouseById(request.getWarehouseId());
         productUseCase.getProductById(request.getProductId());
         if (request.getLocationId() != null) {
-            locationUseCase.getLocationById(request.getLocationId());
+            warehouseLocationUseCase.getWarehouseLocationById(request.getLocationId());
         }
 
-        Optional<StockBalance> optBalance = balanceRepository.findForUpdate(
-                request.getWarehouseId(),
-                request.getLocationId(),
-                request.getProductId(),
-                request.getLotId()
-        );
+        // 1. Handle deduction from source status balance if fromStatusId is present
+        if (request.getFromStatusId() != null) {
+            StockBalance fromBalance = balanceRepository.findForUpdate(
+                    request.getWarehouseId(),
+                    request.getLocationId(),
+                    request.getProductId(),
+                    request.getLotId(),
+                    request.getFromStatusId()
+            ).orElseThrow(() -> new InsufficientStockException("Insufficient stock balance for this movement"));
 
-        BigDecimal currentOnHand = optBalance.map(StockBalance::getQuantity).orElse(BigDecimal.ZERO);
-        BigDecimal newQuantity;
+            fromBalance.deductQuantity(request.getQuantity());
+            balanceRepository.save(fromBalance);
+        }
 
-        if (request.getFromStatusId() != null && request.getToStatusId() == null) {
-            if (currentOnHand.compareTo(request.getQuantity()) < 0) {
-                throw new InsufficientStockException("Insufficient stock balance for this movement");
+        // 2. Handle addition to destination status balance if toStatusId is present
+        if (request.getToStatusId() != null) {
+            Optional<StockBalance> optToBalance = balanceRepository.findForUpdate(
+                    request.getWarehouseId(),
+                    request.getLocationId(),
+                    request.getProductId(),
+                    request.getLotId(),
+                    request.getToStatusId()
+            );
+
+            StockBalance toBalance;
+            if (optToBalance.isPresent()) {
+                toBalance = optToBalance.get();
+                toBalance.addQuantity(request.getQuantity());
+            } else {
+                toBalance = StockBalance.builder()
+                        .id(UuidV7.generate())
+                        .warehouseId(request.getWarehouseId())
+                        .locationId(request.getLocationId())
+                        .productId(request.getProductId())
+                        .lotId(request.getLotId())
+                        .stockStatusId(request.getToStatusId())
+                        .quantity(request.getQuantity())
+                        .version(1L)
+                        .createdAt(Instant.now())
+                        .updatedAt(Instant.now())
+                        .build();
             }
-            newQuantity = currentOnHand.subtract(request.getQuantity());
-        } else {
-            newQuantity = currentOnHand.add(request.getQuantity());
+            balanceRepository.save(toBalance);
         }
-
-        StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
-                .warehouseId(request.getWarehouseId())
-                .locationId(request.getLocationId())
-                .productId(request.getProductId())
-                .lotId(request.getLotId())
-                .stockStatusId(request.getToStatusId() != null ? request.getToStatusId() : request.getFromStatusId())
-                .quantity(newQuantity)
-                .version(optBalance.map(b -> b.getVersion() == null ? 1L : b.getVersion() + 1).orElse(1L))
-                .createdAt(optBalance.map(StockBalance::getCreatedAt).orElse(Instant.now()))
-                .updatedAt(Instant.now())
-                .build();
-
-        balanceRepository.save(balanceToSave);
 
         UUID fromWh = request.getFromStatusId() != null ? request.getWarehouseId() : null;
         UUID fromLoc = request.getFromStatusId() != null ? request.getLocationId() : null;
         UUID toWh = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getWarehouseId() : null;
         UUID toLoc = (request.getToStatusId() != null || request.getFromStatusId() == null) ? request.getLocationId() : null;
+
 
         StockMovement movement = StockMovement.create(
                 request.getMovementTypeId(),
@@ -257,13 +257,12 @@ public class InventoryService implements InventoryUseCase {
                 currentUserId
         );
 
-        StockMovement savedMovement = movementRepository.save(movement);
-        return movementRepository.search(StockMovementSearchCriteria.builder().referenceNo(savedMovement.getReferenceNo()).build()).stream().findFirst().map(mapper::toDto).orElseGet(() -> mapper.toDto(savedMovement));
+        movementRepository.save(movement);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockBalanceDto> getStockBalances(StockBalanceSearchRequest request) {
+    public PageResponse<StockBalanceResponse> getStockBalances(StockBalanceSearchRequest request) {
         StockBalanceSearchCriteria criteria = StockBalanceSearchCriteria.builder()
                 .warehouseId(request != null ? request.getWarehouseId() : null)
                 .locationId(request != null ? request.getLocationId() : null)
@@ -276,18 +275,18 @@ public class InventoryService implements InventoryUseCase {
                 .build();
         long totalElements = balanceRepository.count(criteria);
         List<StockBalance> balances = balanceRepository.search(criteria);
-        List<StockBalanceDto> dtos = balances.stream().map(mapper::toDto).toList();
+        List<StockBalanceResponse> dtos = balances.stream().map(mapper::toDto).toList();
         return PageResponse.of(dtos, totalElements, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
     }
 
     @Override
     @Transactional
-    public StockMovementDto recordStockIn(StockInRequest request, UUID currentUserId) {
+    public void recordStockIn(StockInRequest request, UUID currentUserId) {
 
         // Validate master data references
         productUseCase.getProductById(request.getProductId());
         warehouseUseCase.getWarehouseById(request.getWarehouseId());
-        locationUseCase.getLocationById(request.getLocationId());
+        warehouseLocationUseCase.getWarehouseLocationById(request.getLocationId());
 
         // Resolve or create StockLot with lotNumber uniqueness / product ownership validation
         StockLot lot;
@@ -321,14 +320,15 @@ public class InventoryService implements InventoryUseCase {
                 request.getWarehouseId(),
                 request.getLocationId(),
                 request.getProductId(),
-                lot.getId()
+                lot.getId(),
+                statusId
         );
 
         BigDecimal currentOnHand = optBalance.map(StockBalance::getQuantity).orElse(BigDecimal.ZERO);
         BigDecimal newQuantity = currentOnHand.add(request.getQuantity());
 
         StockBalance balanceToSave = StockBalance.builder()
-                .id(optBalance.map(StockBalance::getId).orElse(UuidV7.generate()))
+                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
                 .warehouseId(request.getWarehouseId())
                 .locationId(request.getLocationId())
                 .productId(request.getProductId())
@@ -359,60 +359,77 @@ public class InventoryService implements InventoryUseCase {
                 currentUserId
         );
 
-        StockMovement savedMovement = movementRepository.save(movement);
-        return movementRepository.search(StockMovementSearchCriteria.builder().referenceNo(savedMovement.getReferenceNo()).build()).stream().findFirst().map(mapper::toDto).orElseGet(() -> mapper.toDto(savedMovement));
+        movementRepository.save(movement);
     }
 
-    private Map<UUID, ProductSummaryDto> buildProductMap(List<StockMovement> items) {
+    private Map<UUID, ProductResponse> buildProductMap(List<StockMovement> items) {
         Set<UUID> ids = items.stream().map(StockMovement::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = productUseCase.getProductsByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> ProductSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, ProductResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.product.application.dto.product.ProductResponse m = productUseCase.getProductById(id);
+                map.put(id, ProductResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Product not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, WarehouseSummaryDto> buildWarehouseMap(List<StockMovement> items) {
+    private Map<UUID, WarehouseResponse> buildWarehouseMap(List<StockMovement> items) {
         Set<UUID> ids = items.stream()
                 .flatMap(m -> Stream.<UUID>of(m.getFromWarehouseId(), m.getToWarehouseId(), m.getWarehouseId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = warehouseUseCase.getWarehousesByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, WarehouseResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse m = warehouseUseCase.getWarehouseById(id);
+                map.put(id, WarehouseResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Warehouse not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, WarehouseLocationSummaryDto> buildLocationMap(List<StockMovement> items) {
+    private Map<UUID, WarehouseLocationResponse> buildLocationMap(List<StockMovement> items) {
         Set<UUID> ids = items.stream()
                 .flatMap(m -> Stream.<UUID>of(m.getFromLocationId(), m.getToLocationId(), m.getLocationId()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = locationUseCase.getLocationsByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseLocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, WarehouseLocationResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.location.application.dto.warehouselocation.WarehouseLocationResponse m = warehouseLocationUseCase.getWarehouseLocationById(id);
+                map.put(id, WarehouseLocationResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Location not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, UserSummaryDto> buildUserMap(List<StockMovement> items) {
+    private Map<UUID, UserResponse> buildUserMap(List<StockMovement> items) {
         Set<UUID> ids = items.stream().map(StockMovement::getCreatedBy).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
         return ids.stream()
                 .map(userRepository::findById)
                 .filter(Objects::nonNull)
                 .flatMap(Optional::stream)
-                .collect(Collectors.toMap(User::getId, user -> UserSummaryDto.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
+                .collect(Collectors.toMap(User::getId, user -> UserResponse.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
     }
 
-    private StockMovementDto populateMovementSummaryFields(
+    private StockMovementResponse populateMovementSummaryFields(
             StockMovement m,
-            Map<UUID, ProductSummaryDto> productMap,
-            Map<UUID, WarehouseSummaryDto> warehouseMap,
-            Map<UUID, WarehouseLocationSummaryDto> locationMap,
-            Map<UUID, UserSummaryDto> userMap) {
-        StockMovementDto dto = mapper.toDto(m);
+            Map<UUID, ProductResponse> productMap,
+            Map<UUID, WarehouseResponse> warehouseMap,
+            Map<UUID, WarehouseLocationResponse> locationMap,
+            Map<UUID, UserResponse> userMap) {
+        StockMovementResponse dto = mapper.toDto(m);
         if (dto != null && m != null) {
             if (m.getProductId() != null) {
                 dto.setProduct(productMap.get(m.getProductId()));
@@ -436,19 +453,19 @@ public class InventoryService implements InventoryUseCase {
         return dto;
     }
 
-    private StockMovementDto enrichMovementDto(StockMovement m) {
+    private StockMovementResponse enrichMovementDto(StockMovement m) {
         if (m == null) return null;
         List<StockMovement> items = List.of(m);
-        Map<UUID, ProductSummaryDto> productMap = buildProductMap(items);
-        Map<UUID, WarehouseSummaryDto> warehouseMap = buildWarehouseMap(items);
-        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildLocationMap(items);
-        Map<UUID, UserSummaryDto> userMap = buildUserMap(items);
+        Map<UUID, ProductResponse> productMap = buildProductMap(items);
+        Map<UUID, WarehouseResponse> warehouseMap = buildWarehouseMap(items);
+        Map<UUID, WarehouseLocationResponse> locationMap = buildLocationMap(items);
+        Map<UUID, UserResponse> userMap = buildUserMap(items);
         return populateMovementSummaryFields(m, productMap, warehouseMap, locationMap, userMap);
     }
 
     @Override
     @Transactional
-    public StockAdjustmentResponse adjustStock(StockAdjustmentRequest request, UUID currentUserId) {
+    public void adjustStock(CreateStockAdjustmentRequest request, UUID currentUserId) {
         if (request == null) {
             throw new InvalidStockAdjustmentException("Request body is required");
         }
@@ -485,11 +502,7 @@ public class InventoryService implements InventoryUseCase {
                     currentUserId
             );
             StockAdjustmentApproval savedApproval = approvalRepository.save(approval);
-            return StockAdjustmentResponse.builder()
-                    .requiresApproval(true)
-                    .approvalId(savedApproval.getId())
-                    .message("Adjustment quantity exceeds threshold (" + ADJUSTMENT_THRESHOLD + "). Submitted for Factory Manager approval.")
-                    .build();
+            return;
         }
 
         StockBalance updatedBalance = StockBalance.builder()
@@ -546,83 +559,97 @@ public class InventoryService implements InventoryUseCase {
 
          
         StockMovement savedMovement = movementRepository.save(movement);
-        StockMovementDto movementDto = enrichMovementDto(savedMovement);
+        StockMovementResponse movementDto = enrichMovementDto(savedMovement);
 
-        return StockAdjustmentResponse.builder()
-                .requiresApproval(false)
-                .movement(movementDto)
-                .message("Stock adjustment applied successfully")
-                .build();
+        return;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockAdjustmentApprovalDto> getPendingAdjustments(StockAdjustmentApprovalSearchCriteria criteria) {
+    public PageResponse<StockAdjustmentApprovalResponse> getPendingAdjustments(StockAdjustmentApprovalSearchCriteria criteria) {
         if (criteria == null) {
             criteria = StockAdjustmentApprovalSearchCriteria.builder().page(0).size(20).build();
         }
         long totalElements = approvalRepository.count(criteria);
         List<StockAdjustmentApproval> pendingList = approvalRepository.search(criteria);
 
-        Map<UUID, ProductSummaryDto> productMap = buildApprovalProductMap(pendingList);
-        Map<UUID, WarehouseSummaryDto> warehouseMap = buildApprovalWarehouseMap(pendingList);
-        Map<UUID, WarehouseLocationSummaryDto> locationMap = buildApprovalLocationMap(pendingList);
-        Map<UUID, UserSummaryDto> userMap = buildApprovalUserMap(pendingList);
+        Map<UUID, ProductResponse> productMap = buildApprovalProductMap(pendingList);
+        Map<UUID, WarehouseResponse> warehouseMap = buildApprovalWarehouseMap(pendingList);
+        Map<UUID, WarehouseLocationResponse> locationMap = buildApprovalLocationMap(pendingList);
+        Map<UUID, UserResponse> userMap = buildApprovalUserMap(pendingList);
 
-        List<StockAdjustmentApprovalDto> dtos = pendingList.stream()
+        List<StockAdjustmentApprovalResponse> dtos = pendingList.stream()
                 .map(approval -> populateApprovalSummaryFields(approval, productMap, warehouseMap, locationMap, userMap))
                 .toList();
 
         return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
     }
 
-    private Map<UUID, ProductSummaryDto> buildApprovalProductMap(List<StockAdjustmentApproval> items) {
+    private Map<UUID, ProductResponse> buildApprovalProductMap(List<StockAdjustmentApproval> items) {
         Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getProductId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = productUseCase.getProductsByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> ProductSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, ProductResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.product.application.dto.product.ProductResponse m = productUseCase.getProductById(id);
+                map.put(id, ProductResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Product not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, WarehouseSummaryDto> buildApprovalWarehouseMap(List<StockAdjustmentApproval> items) {
+    private Map<UUID, WarehouseResponse> buildApprovalWarehouseMap(List<StockAdjustmentApproval> items) {
         Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getWarehouseId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = warehouseUseCase.getWarehousesByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, WarehouseResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse m = warehouseUseCase.getWarehouseById(id);
+                map.put(id, WarehouseResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Warehouse not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, WarehouseLocationSummaryDto> buildApprovalLocationMap(List<StockAdjustmentApproval> items) {
+    private Map<UUID, WarehouseLocationResponse> buildApprovalLocationMap(List<StockAdjustmentApproval> items) {
         Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getLocationId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
-        var res = locationUseCase.getLocationsByIds(ids);
-        if (res == null) return Map.of();
-        return res.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> WarehouseLocationSummaryDto.builder().id(e.getValue().getId()).code(e.getValue().getCode()).name(e.getValue().getName()).build()));
+        java.util.Map<UUID, WarehouseLocationResponse> map = new java.util.HashMap<>();
+        for (UUID id : ids) {
+            try {
+                fpt.qn.mes.master.location.application.dto.warehouselocation.WarehouseLocationResponse m = warehouseLocationUseCase.getWarehouseLocationById(id);
+                map.put(id, WarehouseLocationResponse.builder().id(m.getId()).code(m.getCode()).name(m.getName()).build());
+            } catch (Exception e) {
+                log.warn("Location not found: " + id);
+            }
+        }
+        return map;
     }
 
-    private Map<UUID, UserSummaryDto> buildApprovalUserMap(List<StockAdjustmentApproval> items) {
+    private Map<UUID, UserResponse> buildApprovalUserMap(List<StockAdjustmentApproval> items) {
         Set<UUID> ids = items.stream().map(StockAdjustmentApproval::getCreatedBy).filter(Objects::nonNull).collect(Collectors.toSet());
         if (ids.isEmpty()) return Map.of();
         return ids.stream()
                 .map(userRepository::findById)
                 .filter(Objects::nonNull)
                 .flatMap(Optional::stream)
-                .collect(Collectors.toMap(User::getId, user -> UserSummaryDto.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
+                .collect(Collectors.toMap(User::getId, user -> UserResponse.builder().id(user.getId()).username(user.getUsername()).fullName(user.getFullName()).build(), (u1, u2) -> u1));
     }
 
-    private StockAdjustmentApprovalDto populateApprovalSummaryFields(
+    private StockAdjustmentApprovalResponse populateApprovalSummaryFields(
             StockAdjustmentApproval approval,
-            Map<UUID, ProductSummaryDto> productMap,
-            Map<UUID, WarehouseSummaryDto> warehouseMap,
-            Map<UUID, WarehouseLocationSummaryDto> locationMap,
-            Map<UUID, UserSummaryDto> userMap) {
+            Map<UUID, ProductResponse> productMap,
+            Map<UUID, WarehouseResponse> warehouseMap,
+            Map<UUID, WarehouseLocationResponse> locationMap,
+            Map<UUID, UserResponse> userMap) {
         if (approval == null) {
             return null;
         }
-        StockAdjustmentApprovalDto dto = approvalMapper.toDto(approval);
+        StockAdjustmentApprovalResponse dto = approvalMapper.toDto(approval);
         if (dto != null) {
             if (approval.getProductId() != null && productMap != null) {
                 dto.setProduct(productMap.get(approval.getProductId()));
@@ -642,7 +669,7 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional
-    public StockMovementDto approveAdjustment(UUID approvalId, UUID currentUserId) {
+    public StockMovementResponse approveAdjustment(UUID approvalId, UUID currentUserId) {
         StockAdjustmentApproval approval = approvalRepository.findById(approvalId)
                 .orElseThrow(() -> new InventoryNotFoundException("Pending adjustment request not found with ID: " + approvalId));
 
@@ -707,60 +734,119 @@ public class InventoryService implements InventoryUseCase {
         approvalRepository.deleteById(approvalId);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<LotTypeSummaryDto> getLotTypes(LotTypeSearchRequest request) {
-        if (request == null) {
-            request = new LotTypeSearchRequest();
-        }
-        LotTypeSearchCriteria criteria = LotTypeSearchCriteria.builder()
-                .query(request.getQuery())
-                .name(request.getName())
-                .page(request.getPage())
-                .size(request.getSize())
-                .build();
-        long totalElements = lotTypeRepository.count(criteria);
-        List<LotTypeSummaryDto> dtos = lotTypeRepository.search(criteria).stream()
-                .map(mapper::toSummary)
-                .toList();
-        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
-    }
+    
+
+    
+
+    
 
     @Override
-    @Transactional(readOnly = true)
-    public PageResponse<StockStatusSummaryDto> getStockStatuses(StockStatusSearchRequest request) {
+    @Transactional
+    public StockTransferResponse transferStock(
+            StockTransferRequest request, UUID currentUserId) {
         if (request == null) {
-            request = new StockStatusSearchRequest();
+            throw new IllegalArgumentException("Stock transfer request cannot be null");
         }
-        StockStatusSearchCriteria criteria = StockStatusSearchCriteria.builder()
-                .query(request.getQuery())
-                .name(request.getName())
-                .page(request.getPage())
-                .size(request.getSize())
-                .build();
-        long totalElements = stockStatusRepository.count(criteria);
-        List<StockStatusSummaryDto> dtos = stockStatusRepository.search(criteria).stream()
-                .map(mapper::toSummary)
-                .toList();
-        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
-    }
+        if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+        if (request.getFromLocationId() != null && request.getFromLocationId().equals(request.getToLocationId())) {
+            throw new IllegalArgumentException("Source and destination location cannot be the same");
+        }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<MovementTypeSummaryDto> getMovementTypes(MovementTypeSearchRequest request) {
-        if (request == null) {
-            request = new MovementTypeSearchRequest();
+        var fromLoc = warehouseLocationUseCase.getWarehouseLocationById(request.getFromLocationId());
+        var toLoc = warehouseLocationUseCase.getWarehouseLocationById(request.getToLocationId());
+
+        if (!Objects.equals(fromLoc.getWarehouse().getId(), request.getFromWarehouseId())) {
+            throw new IllegalArgumentException("Source location does not belong to the specified source warehouse");
         }
-        MovementTypeSearchCriteria criteria = MovementTypeSearchCriteria.builder()
-                .query(request.getQuery())
-                .name(request.getName())
-                .page(request.getPage())
-                .size(request.getSize())
+
+        if (!Objects.equals(toLoc.getWarehouse().getId(), request.getToWarehouseId())) {
+            throw new IllegalArgumentException("Destination location does not belong to the specified destination warehouse");
+        }
+
+        UUID availableStatusId = stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)
+                .orElseThrow(() -> new InventoryNotFoundException("Stock status AVAILABLE not found"));
+
+        UUID transferOutTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_OUT)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type TRANSFER_OUT not found"));
+
+        UUID transferInTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_IN)
+                .orElseThrow(() -> new InventoryNotFoundException("Movement type TRANSFER_IN not found"));
+
+
+        StockBalance sourceBalance = balanceRepository.findForUpdate(
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getProductId(),
+                request.getLotId(),
+                availableStatusId
+        ).orElseThrow(() -> new InsufficientStockException("Insufficient stock at source location"));
+
+        sourceBalance.deductQuantity(request.getQuantity());
+        StockBalance updatedSourceBalance = balanceRepository.save(sourceBalance);
+
+        StockBalance destBalance = balanceRepository.findForUpdate(
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getProductId(),
+                request.getLotId(),
+                availableStatusId
+        ).orElse(StockBalance.builder()
+                .id(UuidV7.generate())
+                .warehouseId(request.getToWarehouseId())
+                .locationId(request.getToLocationId())
+                .productId(request.getProductId())
+                .lotId(request.getLotId())
+                .stockStatusId(availableStatusId)
+                .quantity(BigDecimal.ZERO)
+                .version(1L)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build());
+
+        destBalance.addQuantity(request.getQuantity());
+        StockBalance updatedDestBalance = balanceRepository.save(destBalance);
+
+        StockMovement outMovement = StockMovement.create(
+                transferOutTypeId,
+                request.getProductId(),
+                request.getLotId(),
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getQuantity(),
+                availableStatusId,
+                availableStatusId,
+                null,
+                "Stock Transfer Out",
+                currentUserId
+        );
+        StockMovement savedOutMovement = movementRepository.save(outMovement);
+
+        StockMovement inMovement = StockMovement.create(
+                transferInTypeId,
+                request.getProductId(),
+                request.getLotId(),
+                request.getFromWarehouseId(),
+                request.getFromLocationId(),
+                request.getToWarehouseId(),
+                request.getToLocationId(),
+                request.getQuantity(),
+                availableStatusId,
+                availableStatusId,
+                null,
+                "Stock Transfer In",
+                currentUserId
+        );
+        StockMovement savedInMovement = movementRepository.save(inMovement);
+
+        return StockTransferResponse.builder()
+                .transferOutMovement(mapper.toDto(savedOutMovement))
+                .transferInMovement(mapper.toDto(savedInMovement))
+                .sourceBalance(mapper.toDto(updatedSourceBalance))
+                .destinationBalance(mapper.toDto(updatedDestBalance))
                 .build();
-        long totalElements = movementTypeRepository.count(criteria);
-        List<MovementTypeSummaryDto> dtos = movementTypeRepository.search(criteria).stream()
-                .map(mapper::toSummary)
-                .toList();
-        return PageResponse.of(dtos, totalElements, criteria.getPage(), criteria.getSize());
     }
 }
