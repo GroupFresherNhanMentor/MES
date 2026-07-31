@@ -30,8 +30,10 @@ class AuditLogImmutabilityIntegrationTest extends AbstractIntegrationTest {
     @Test
     @DisplayName("Audit logs persisted cannot be mutated")
     void saveAuditLog_IsImmutable() {
+        UUID adminUserId = seedAdminUser();
+
         AuditLog auditLog = AuditLog.create(
-                UUID.randomUUID(),
+                adminUserId,
                 AuditAction.CREATE_WORK_ORDER,
                 "WORK_ORDER",
                 UUID.randomUUID(),

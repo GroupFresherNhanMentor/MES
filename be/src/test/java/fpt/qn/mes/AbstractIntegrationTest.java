@@ -44,9 +44,9 @@ public abstract class AbstractIntegrationTest {
     JwtEncoder jwtEncoder;
 
     @Autowired
-    DSLContext dslCtx;
+    private DSLContext dslCtx;
 
-    protected void seedAdminUser() {
+    protected UUID seedAdminUser() {
         UUID roleId = dslCtx.select(ROLES.ID)
                 .from(ROLES)
                 .where(ROLES.NAME.eq("ADMIN"))
@@ -73,6 +73,8 @@ public abstract class AbstractIntegrationTest {
                 .values(userId, roleId)
                 .onConflictDoNothing()
                 .execute();
+
+        return userId;
     }
 
     protected String generateToken(String username, String role) {

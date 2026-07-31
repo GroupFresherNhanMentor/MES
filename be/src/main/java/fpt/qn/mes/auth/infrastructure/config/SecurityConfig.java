@@ -85,11 +85,15 @@ public class SecurityConfig {
                             "/actuator/health/**",
                             "/v3/api-docs/**",
                             "/swagger-ui/**",
-                            "/swagger-ui.html",
-                            "/api/stock**",
-                            "/api/stock**/**",
-                            "/api/quality-inspections/**")
+                            "/swagger-ui.html")
                             .permitAll();
+                    if (environment.acceptsProfiles(Profiles.of("dev"))) {
+                        auth.requestMatchers(
+                                "/api/stock**",
+                                "/api/stock**/**",
+                                "/api/quality-inspections/**")
+                                .permitAll();
+                    }
                     auth.requestMatchers("/actuator/**").hasRole("ADMIN");
                     auth.requestMatchers("/api/**").authenticated();
                     auth.anyRequest().denyAll();
