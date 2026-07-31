@@ -79,15 +79,19 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/actuator/health/**")
+                    auth.requestMatchers(
+                            "/api/auth/login",
+                            "/api/auth/refresh",
+                            "/actuator/health/**",
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html")
                             .permitAll();
-                    if (environment.acceptsProfiles(Profiles.of("dev", "test"))) {
+                    if (environment.acceptsProfiles(Profiles.of("dev"))) {
                         auth.requestMatchers(
-                                "/v3/api-docs/**", 
-                                "/swagger-ui/**", 
-                                "/swagger-ui.html",
                                 "/api/stock**",
-                                "/api/stock**/**")
+                                "/api/stock**/**",
+                                "/api/quality-inspections/**")
                                 .permitAll();
                     }
                     auth.requestMatchers("/actuator/**").hasRole("ADMIN");

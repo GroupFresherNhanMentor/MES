@@ -11,9 +11,7 @@ import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketReq
 import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
 import fpt.qn.mes.maintenance.application.dto.request.UpdateMaintenanceTicketRequest;
-import fpt.qn.mes.maintenance.application.mapper.MaintenanceDtoMapper;
 import fpt.qn.mes.maintenance.application.port.in.MaintenanceUseCase;
-import fpt.qn.mes.maintenance.domain.repository.MaintenanceRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -22,9 +20,6 @@ import lombok.experimental.FieldDefaults;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MaintenanceService implements MaintenanceUseCase {
-
-    MaintenanceRepository repository;
-    MaintenanceDtoMapper mapper;
 
     @Override @Transactional(readOnly = true)
     public PageResponse<MaintenanceTicketResponse> getTickets(int page, int size) {
