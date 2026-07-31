@@ -31,12 +31,22 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let l">
-            <span class="ff-badge"
-              [class.ff-badge--active]="l.lineStatusName === 'ACTIVE'"
-              [class.ff-badge--cancelled]="l.lineStatusName !== 'ACTIVE'">
-              {{ l.lineStatusName || 'INACTIVE' }}
+            @let rawName = l.lineStatusName || l.status || '';
+            @let sName = rawName.toUpperCase();
+            <span class="ff-badge" [ngClass]="{
+              'ff-badge--active': sName === 'ACTIVE',
+              'ff-badge--running': sName === 'RUNNING',
+              'ff-badge--onhold': sName === 'MAINTENANCE' || sName === 'PAUSED',
+              'ff-badge--cancelled': sName !== 'ACTIVE' && sName !== 'RUNNING' && sName !== 'MAINTENANCE' && sName !== 'PAUSED'
+            }">
+              {{ rawName || 'INACTIVE' }}
             </span>
           </td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary text-sm">{{ l.createdAt ? (l.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

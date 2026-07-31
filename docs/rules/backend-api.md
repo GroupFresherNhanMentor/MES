@@ -81,7 +81,7 @@ Error shape:
 ## URL Conventions
 
 ```
-GET    /api/{resources}              list (paginated)
+GET    /api/{resources}              list (paginated unless approved legacy catalog)
 GET    /api/{resources}/{id}         single
 POST   /api/{resources}              create
 PUT    /api/{resources}/{id}         full update
@@ -112,6 +112,25 @@ Response uses `PageResponse<T>`:
 }
 ```
 
+All new list endpoints must be paginated. A legacy endpoint may retain an
+unpaginated `List<T>` response only when every condition below is met:
+
+- an existing public contract explicitly requires the response shape to remain
+  unchanged;
+- the endpoint returns bounded configuration/catalog data rather than an
+  operational dataset;
+- the feature plan records the exception in `Complexity Tracking`;
+- the query has deterministic database ordering;
+- an API compatibility test locks the existing response shape.
+
+`FactoryFlow_SRS.md` classifies roles as bounded RBAC configuration data,
+while `FactoryFlow_Manufacturing_Operations_Platform.md` requires pagination
+for large lists. The approved legacy exception is therefore limited to:
+
+- `GET /api/roles`
+
+This exception must not be copied to new endpoints.
+
 ## Validation
 
 Request DTOs use Jakarta Bean Validation annotations:
@@ -136,7 +155,7 @@ HTTP-semantic categories — the specific context is carried in the `message` fi
 | `NOT_FOUND` | 404 | Entity does not exist (all `*NotFoundException`) |
 | `INVALID_INPUT` | 400 | Validation errors, domain rule violations, bad arguments |
 | `UNAUTHORIZED` | 401 | Invalid/expired JWT token |
-| `FORBIDDEN` | 403 | Authenticated but lacks permission |
+| `FORBIDDEN` | 403 | Authenticated but does not have an allowed role |
 | `CONFLICT` | 409 | Duplicate creation (e.g., username already exists) |
 | `INTERNAL_SERVER_ERROR` | 500 | Unexpected errors |
 

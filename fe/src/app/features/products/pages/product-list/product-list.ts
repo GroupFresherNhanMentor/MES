@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { NgClass, SlicePipe } from '@angular/common';
+import { DatePipe, NgClass, SlicePipe } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +22,7 @@ interface LookupEntry { id: string; name: string; description: string; }
 @Component({
   selector: 'app-product-list',
   imports: [
-    SlicePipe, NgClass, FormsModule,
+    DatePipe, SlicePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatDialogModule,
     MatSnackBarModule, MatCardModule, MatTooltipModule,
@@ -43,7 +43,7 @@ export class ProductListComponent {
 
   types = signal<LookupEntry[]>([]);
   statuses = signal<LookupEntry[]>([]);
-  displayedColumns = ['code', 'name', 'type', 'unit', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'type', 'unit', 'status', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<LookupEntry[]>('/api/products/types').subscribe(r => { if (r.success) this.types.set(r.data); });

@@ -17,10 +17,12 @@ import type { WarehouseDto } from '../../../../core/models/warehouse.model';
 import { WAREHOUSE_STATUSES } from '../../../../configs/constants';
 import { WarehouseFormComponent } from '../warehouse-form/warehouse-form';
 
+import { DatePipe, NgClass } from '@angular/common';
+
 @Component({
   selector: 'app-warehouse-list',
   imports: [
-    FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
@@ -40,7 +42,7 @@ export class WarehouseList {
   filterStatus = signal('');
 
   statuses = WAREHOUSE_STATUSES;
-  displayedColumns = ['code', 'name', 'address', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'address', 'status', 'createdAt', 'actions'];
 
   constructor() { this.load(); }
 
