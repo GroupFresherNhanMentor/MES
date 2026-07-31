@@ -1,6 +1,7 @@
 package fpt.qn.mes.master.warehouse.application.dto.warehouse;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import fpt.qn.mes.master.warehouse.application.dto.warehousestatus.WarehouseStatusResponse;
@@ -26,6 +27,7 @@ public class WarehouseResponse {
     String name;
     String address;
     WarehouseStatusResponse warehouseStatus;
+    List<WarehouseManagerResponse> managers;
     Instant createdAt;
     UserInfo createdBy;
     Instant updatedAt;

@@ -1,5 +1,6 @@
 package fpt.qn.mes.master.warehouse.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
@@ -13,4 +14,9 @@ public interface WarehouseRepository {
     PaginationResult<Warehouse> search(WarehouseSearchCriteria criteria);
     boolean existsByCode(String code);
     boolean existsById(UUID id);
+
+    void assignManager(UUID warehouseId, UUID userId, UUID assignedBy);
+    void removeManager(UUID warehouseId, UUID userId);
+    List<Warehouse.ManagerRef> findManagersByWarehouseId(UUID warehouseId);
+    boolean isManagerAssigned(UUID warehouseId, UUID userId);
 }
