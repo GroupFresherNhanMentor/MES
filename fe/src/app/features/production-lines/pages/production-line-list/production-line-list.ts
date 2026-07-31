@@ -64,11 +64,11 @@ export class ProductionLineList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(l: ProductionLineDto) {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(l: ProductionLineDto) {

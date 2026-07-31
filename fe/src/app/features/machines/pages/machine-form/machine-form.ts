@@ -46,7 +46,6 @@ interface Status { id: string; name: string; }
           @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
-      }
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">

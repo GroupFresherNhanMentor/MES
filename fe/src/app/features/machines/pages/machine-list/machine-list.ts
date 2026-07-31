@@ -70,11 +70,11 @@ export class MachineList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(MachineFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(MachineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(m: MachineDto) {
-    this.dialog.open(MachineFormComponent, { width: '500px', data: m }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(MachineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: m }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   isRetired(m: MachineDto): boolean {
