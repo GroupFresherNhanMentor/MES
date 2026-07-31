@@ -51,6 +51,7 @@ public class OpenApiConfig {
     }
 
 
+    @Bean
     public GroupedOpenApi allApi(
         OperationCustomizer rbacOperationSecurity,
         OperationCustomizer idempotencyKeyHeaderCustomizer

@@ -70,7 +70,7 @@ public class SecurityConfig {
             IdempotencyService idempotencyService, 
             Environment environment,
             ObjectMapper objectMapper,
-            @Qualifier("accessJwtDecoder") JwtDecoder accessJwtDecoder) throws Exception {
+            JwtDecoder accessJwtDecoder) throws Exception {
         IdempotencyFilter idempotencyFilter = new IdempotencyFilter(idempotencyService, objectMapper);
 
         return http
@@ -116,8 +116,30 @@ public class SecurityConfig {
 
 
     @Bean
-    JwtDecoder jwtDecoder() {
+    JwtDecoder tokenDecoder() {
+        NimbusJwtDecoder decoder = buildDecoder();
+        decoder.setJwtValidator(baseValidator());
+        return decoder;
+    }
 
+    @Bean
+    JwtDecoder accessJwtDecoder(TokenBlacklistPort tokenBlacklistPort) {
+
+
+        NimbusJwtDecoder decoder = buildDecoder();
+        OAuth2TokenValidator<Jwt> typeValidator = jwt -> "access".equals(jwt.getClaimAsString("token_type"))
+                ? OAuth2TokenValidatorResult.success()
+                : OAuth2TokenValidatorResult.failure(
+                        new OAuth2Error("invalid_token", "Access token required", null));
+        OAuth2TokenValidator<Jwt> blacklistValidator = jwt -> (jwt.getId() != null && tokenBlacklistPort.isBlacklisted(jwt.getId()))
+                ? OAuth2TokenValidatorResult.failure(
+                        new OAuth2Error("invalid_token", "Token has been revoked", null))
+                : OAuth2TokenValidatorResult.success();
+        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(baseValidator(), typeValidator, blacklistValidator));
+        return decoder;
+    }
+
+    private NimbusJwtDecoder buildDecoder() {
         SecretKeySpec key = new SecretKeySpec(
                 jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         return NimbusJwtDecoder.withSecretKey(key).build();

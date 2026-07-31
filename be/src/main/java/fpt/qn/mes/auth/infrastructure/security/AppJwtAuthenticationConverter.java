@@ -27,12 +27,16 @@ public class AppJwtAuthenticationConverter
             throw invalidToken();
         }
 
+        String tokenType = jwt.getClaimAsString("token_type");
+        if (!"access".equals(tokenType)) {
+            throw invalidToken();
+        }
+
         String username = jwt.getClaimAsString("username");
         List<String> roles = jwt.getClaimAsStringList("roles");
         if (roles == null) {
             roles = List.of();
         }
-
         AppUserPrincipal principal = AppUserPrincipal.builder()
                 .id(userId)
                 .username(username != null ? username : "")

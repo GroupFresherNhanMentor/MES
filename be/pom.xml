@@ -241,7 +241,7 @@
                     <locations>
                         <location>filesystem:src/main/resources/db/migration</location>
                     </locations>
-                    <outOfOrder>true</outOfOrder>
+                    <!-- <outOfOrder>true</outOfOrder> -->
                 </configuration>
             </plugin>
             <plugin>
@@ -267,5 +267,3 @@
         </plugins>
     </build>
 </project>
-
-
