@@ -16,6 +16,7 @@ import type { BomItemDto, CreateBomItemRequest } from '../../../../core/models/b
 
 export interface BomAddItemDialogData {
   bomId: string;
+  existingMaterialIds?: string[];
 }
 
 @Component({
@@ -58,8 +59,9 @@ export class BomAddItemDialog implements OnInit {
     this.form.get('materialProductId')?.valueChanges.subscribe((prodId) => {
       if (prodId) {
         const prod = this.materialsList().find((p) => p.id === prodId);
-        if (prod && prod.unitName) {
-          this.form.patchValue({ unit: prod.unitName });
+        const unitName = prod?.unit?.name || prod?.unitName;
+        if (unitName) {
+          this.form.patchValue({ unit: unitName });
         }
       }
     });
@@ -67,30 +69,27 @@ export class BomAddItemDialog implements OnInit {
 
   private loadMaterials(): void {
     this.loading.set(true);
-    const materialTypeIds = ['PT-RAW', 'PT-SUB', 'PT-CON'];
-    this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${materialTypeIds.join(',')}`).subscribe({
+    this.api.get<any>(`${API.products.base}?size=100`).subscribe({
       next: (r) => {
         this.loading.set(false);
-        if (r.data?.items) {
-          const filtered = r.data.items.filter((p) => {
-            const typeName = (p.productTypeName || '').trim().toUpperCase();
-            const typeId = (p.productTypeId || '').trim().toUpperCase();
+        if (r.success && r.data) {
+          const rawItems: ProductDto[] = r.data?.items || (Array.isArray(r.data) ? r.data : []);
+          const existingIds = this.data?.existingMaterialIds || [];
+          const filtered = rawItems.filter((p) => {
+            if (p.id && existingIds.includes(p.id)) return false;
+            const typeName = (p.productType?.name || p.productTypeName || '').trim().toUpperCase();
             return (
               typeName === 'RAW_MATERIAL' ||
               typeName === 'SEMI_FINISHED' ||
-              typeName === 'SUB_ASSEMBLY' ||
               typeName === 'CONSUMABLE' ||
-              typeId === 'PT-RAW' ||
-              typeId === 'PT-SUB' ||
-              typeId === 'PT-CON'
+              typeName === 'SPARE_PART'
             );
           });
-          this.materialsList.set(filtered);
+          const available = filtered.length > 0 ? filtered : rawItems.filter((p) => p.id && !existingIds.includes(p.id));
+          this.materialsList.set(available);
         }
       },
-      error: () => {
-        this.loading.set(false);
-      },
+      error: () => this.loading.set(false),
     });
   }
 
