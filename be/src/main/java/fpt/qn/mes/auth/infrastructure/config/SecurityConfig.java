@@ -2,10 +2,7 @@ package fpt.qn.mes.auth.infrastructure.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
-
 import javax.crypto.spec.SecretKeySpec;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -25,6 +22,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
@@ -39,9 +37,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import fpt.qn.mes.auth.infrastructure.security.AppJwtAuthenticationConverter;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.idempotency.infrastructure.filter.IdempotencyFilter;
 
 import fpt.qn.mes.auth.application.port.out.TokenBlacklistPort;
-import fpt.qn.mes.auth.infrastructure.security.AppJwtAuthenticationConverter;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 
 import fpt.qn.mes.common.exception.ErrorCode;
@@ -65,20 +65,29 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
+    SecurityFilterChain filterChain(HttpSecurity http,
             AppJwtAuthenticationConverter jwtConverter,
+            IdempotencyService idempotencyService, 
             Environment environment,
             ObjectMapper objectMapper,
             @Qualifier("accessJwtDecoder") JwtDecoder accessJwtDecoder) throws Exception {
+        IdempotencyFilter idempotencyFilter = new IdempotencyFilter(idempotencyService, objectMapper);
+
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/actuator/health/**")
                             .permitAll();
                     if (environment.acceptsProfiles(Profiles.of("dev", "test"))) {
-                        auth.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html")
+                        auth.requestMatchers(
+                                "/v3/api-docs/**", 
+                                "/swagger-ui/**", 
+                                "/swagger-ui.html",
+                                "/api/stock**",
+                                "/api/stock**/**")
                                 .permitAll();
                     }
                     auth.requestMatchers("/actuator/**").hasRole("ADMIN");
@@ -93,6 +102,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint((req, res, ex) -> writeError(res, HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, "Authentication required", objectMapper))
                         .accessDeniedHandler((req, res, ex) -> writeError(res, HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, "Access denied", objectMapper))
                 )
+                .addFilterAfter(idempotencyFilter, BearerTokenAuthenticationFilter.class)
                 .build();
     }
 
@@ -106,14 +116,14 @@ public class SecurityConfig {
 
 
     @Bean
-    public JwtDecoder tokenDecoder() {
+    JwtDecoder tokenDecoder() {
         NimbusJwtDecoder decoder = buildDecoder();
         decoder.setJwtValidator(baseValidator());
         return decoder;
     }
 
     @Bean
-    public JwtDecoder accessJwtDecoder(TokenBlacklistPort tokenBlacklistPort) {
+    JwtDecoder accessJwtDecoder(TokenBlacklistPort tokenBlacklistPort) {
 
 
         NimbusJwtDecoder decoder = buildDecoder();
@@ -128,7 +138,6 @@ public class SecurityConfig {
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(baseValidator(), typeValidator, blacklistValidator));
         return decoder;
     }
-
 
     private NimbusJwtDecoder buildDecoder() {
         SecretKeySpec key = new SecretKeySpec(
@@ -148,7 +157,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public JwtEncoder jwtEncoder() {
+    JwtEncoder jwtEncoder() {
         SecretKeySpec key = new SecretKeySpec(
                 jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         JWKSource<SecurityContext> jwks = new ImmutableSecret<>(key);
@@ -156,12 +165,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder() {
+    PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
