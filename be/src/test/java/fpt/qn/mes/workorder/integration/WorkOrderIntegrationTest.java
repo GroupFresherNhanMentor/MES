@@ -45,7 +45,6 @@ import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.service.WorkOrderService;
 
 class WorkOrderIntegrationTest extends AbstractIntegrationTest {
@@ -68,13 +67,15 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String url() {
-        return "http://localhost:" + port + "/api/v1/work-orders/"
+        // Base test endpoint URL updated to /api/work-orders
+        return "http://localhost:" + port + "/api/work-orders/"
                 + UUID.randomUUID() + "/reserve-materials";
     }
 
     @Test
     void reserveMaterials_returns401WithoutAuthentication() {
-        var request = new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", jsonHeaders());
+        // Reserve materials without authentication headers should return 401 UNAUTHORIZED
+        var request = new HttpEntity<>(jsonHeaders());
 
         assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST, request, String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
@@ -84,11 +85,12 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void reserveMaterials_returns403ForNonPlanner() {
+        // Reserve materials with non-planner user token should return 403 FORBIDDEN
         HttpHeaders headers = jsonHeaders();
         headers.setBearerAuth(generateAdminToken());
 
         assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST,
-                new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", headers), String.class))
+                new HttpEntity<>(headers), String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
                 .satisfies(error -> assertThat(((HttpStatusCodeException) error).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -183,9 +185,8 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                 new UsernamePasswordAuthenticationToken(principal, "n/a",
                         java.util.List.of(new SimpleGrantedAuthority("ROLE_PLANNER"))));
         try {
-            var request = new ReserveWorkOrderMaterialsRequest();
-            request.setMachineId(machineId);
-            var response = workOrderService.reserveMaterials(workOrderId, request);
+            // Reserve materials for Work Order without passing request body
+            var response = workOrderService.reserveMaterials(workOrderId);
 
             assertThat(response.getStatus()).isEqualTo("READY_TO_PRODUCE");
             assertThat(dsl.select(WORK_ORDERS.WORK_ORDER_STATUS_ID).from(WORK_ORDERS)

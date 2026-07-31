@@ -14,7 +14,6 @@ docker-compose up -d
 - A finished product with an active BOM and an existing Work Order in `PLANNED` status.
 - `work_order_materials` populated for the Work Order.
 - `AVAILABLE` stock balances for every required material in the configured warehouse.
-- A machine with status `AVAILABLE`.
 
 ## Start the Backend
 
@@ -30,10 +29,8 @@ The API is expected to be available at `http://localhost:8080`.
 Replace the UUID values with seeded data and use a valid Planner token:
 
 ```bash
-curl -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"machineId":"{availableMachineId}"}'
+curl -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
+  -H "Authorization: Bearer ${PLANNER_TOKEN}"
 ```
 
 Expected result:
@@ -50,10 +47,8 @@ Expected result:
 Use a Work Order whose required quantity exceeds the available quantity in the configured warehouse:
 
 ```bash
-curl -i -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"machineId":"{availableMachineId}"}'
+curl -i -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
+  -H "Authorization: Bearer ${PLANNER_TOKEN}"
 ```
 
 Expected result:
@@ -69,9 +64,9 @@ Expected result:
 
 Seed sufficient stock in another warehouse but insufficient stock in `RAW_MATERIAL_WAREHOUSE`. Repeat the request and verify that the other warehouse is ignored and the response remains `INSUFFICIENT_STOCK`.
 
-## Machine Guard
+## Machine Assignment
 
-Use a machine with status `DOWN`, `RUNNING`, `UNDER_MAINTENANCE`, or `RETIRED`. Verify that the request returns `400 INVALID_INPUT` and no stock changes occur.
+This endpoint does not accept or validate a machine. Validate the selected machine and its availability when starting production.
 
 ## FIFO Verification
 

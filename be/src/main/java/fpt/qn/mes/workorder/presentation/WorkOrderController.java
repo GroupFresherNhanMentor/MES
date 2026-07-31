@@ -36,11 +36,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 
+/**
+ * Controller providing REST API endpoints for Work Order management.
+ * Base path standardized to /api/work-orders.
+ */
 @RestController
-@RequestMapping("/api/v1/work-orders")
+@RequestMapping("/api/work-orders")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkOrderController {
@@ -81,12 +84,18 @@ public class WorkOrderController {
         return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
     }
 
+    /**
+     * Reserves raw materials for a Work Order using FIFO allocation.
+     * No request body is required as machine assignment takes place during production start.
+     *
+     * @param id Work Order UUID
+     * @return ApiResponse containing ReserveWorkOrderMaterialsResponse DTO
+     */
     @PreAuthorize("hasRole('PLANNER')")
     @PostMapping("/{id}/reserve-materials")
     public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(
-            @PathVariable UUID id,
-            @Valid @RequestBody ReserveWorkOrderMaterialsRequest req) {
-        var result = workOrderUseCase.reserveMaterials(id, req);
+            @PathVariable UUID id) {
+        var result = workOrderUseCase.reserveMaterials(id);
         return ResponseEntity.ok(ApiResponse.success(result,
                 "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
     }

@@ -6,22 +6,22 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement endpoint POST /api/v1/work-orders/{id}/reserve-materials"
+**Input**: User description: "Implement endpoint POST /api/work-orders/{id}/reserve-materials"
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Reserve Materials for Production (Priority: P1)
 
-A Planner reserves all materials required by a Work Order so the order can proceed to production when the required stock and designated machine are available.
+A Planner reserves all materials required by a Work Order so the order can proceed to production when the required stock is available.
 
-**Why this priority**: Material reservation is the gate between planning and production. It prevents the factory from starting a Work Order without secured material or an available machine.
+**Why this priority**: Material reservation is the gate between planning and production. It prevents the factory from starting a Work Order without secured material.
 
-**Independent Test**: Can be fully tested by submitting a valid Work Order ID and an available machine ID for a planned order with sufficient stock in the configured raw material warehouse.
+**Independent Test**: Can be fully tested by submitting a valid Work Order ID for a planned order with sufficient stock in the configured raw material warehouse.
 
 **Acceptance Scenarios**:
 
-1. **Given** a Work Order is in `PLANNED` status, all required materials are available in the configured raw material warehouse, and the requested machine is `AVAILABLE`, **When** the Planner calls `POST /api/v1/work-orders/{id}/reserve-materials`, **Then** the system reserves all required materials, creates the reservation movements, changes the Work Order to `READY_TO_PRODUCE`, and returns `200 OK` with the Work Order ID and `READY_TO_PRODUCE` status.
-2. **Given** a Work Order is in `MATERIAL_SHORTAGE` status, stock has been replenished, and the requested machine is `AVAILABLE`, **When** the Planner calls the reserve endpoint, **Then** the system retries the reservation and changes the Work Order to `READY_TO_PRODUCE` when all requirements are met.
+1. **Given** a Work Order is in `PLANNED` status and all required materials are available in the configured raw material warehouse, **When** the Planner calls `POST /api/work-orders/{id}/reserve-materials`, **Then** the system reserves all required materials, creates the reservation movements, changes the Work Order to `READY_TO_PRODUCE`, and returns `200 OK` with the Work Order ID and `READY_TO_PRODUCE` status.
+2. **Given** a Work Order is in `MATERIAL_SHORTAGE` status and stock has been replenished, **When** the Planner calls the reserve endpoint, **Then** the system retries the reservation and changes the Work Order to `READY_TO_PRODUCE` when all material requirements are met.
 3. **Given** a material is available in multiple lots, **When** the system reserves that material, **Then** it consumes lots in FIFO order by lot creation time.
 
 ---
@@ -29,20 +29,6 @@ A Planner reserves all materials required by a Work Order so the order can proce
 ### User Story 2 - Prevent Partial Reservation on Shortage (Priority: P1)
 
 A Planner receives a clear shortage result when any required material is insufficient, without leaving the inventory or Work Order materials partially reserved.
-
-**Why this priority**: Partial reservation would make inventory and Work Order state unreliable and could cause production to start with incomplete materials.
-
-**Independent Test**: Can be fully tested with a Work Order requiring more of one material than is available in the configured warehouse while another material is sufficient.
-
-**Acceptance Scenarios**:
-
-1. **Given** at least one required material has insufficient `AVAILABLE` stock, **When** the Planner calls the reserve endpoint, **Then** no material is reserved, no reservation movement is created, the Work Order is set to `MATERIAL_SHORTAGE`, and the response identifies each missing material and shortage quantity.
-2. **Given** stock exists for a required material in another warehouse but not in the configured raw material warehouse, **When** the Planner reserves materials, **Then** the other warehouse is ignored and the Work Order is handled as a shortage.
-3. **Given** a Work Order is already `READY_TO_PRODUCE`, `IN_PROGRESS`, `PAUSED`, `COMPLETED`, or `CANCELLED`, **When** the Planner calls the reserve endpoint, **Then** the system rejects the request without changing stock or Work Order material quantities.
-
----
-
-### User Story 3 - Preserve Reservation Integrity and Traceability (Priority: P1)
 
 The system protects shared inventory from competing reservation requests and records the resulting Work Order status transition for audit purposes.
 
@@ -61,8 +47,14 @@ The system protects shared inventory from competing reservation requests and rec
 ### Edge Cases
 
 - What happens when the Work Order ID does not exist? The system returns `404 NOT_FOUND` without changing inventory.
-- What happens when `machineId` is missing or does not identify an existing machine? The system returns `400 INVALID_INPUT` or `404 NOT_FOUND` without reserving stock.
-- What happens when the requested machine is not `AVAILABLE`? The system rejects the reservation with `400 INVALID_INPUT` and leaves inventory unchanged.
+- How is machine assignment handled? This operation does not accept or validate a machine; the production-start operation validates the selected machine and its availability.
+- What happens when the Work Order is in an invalid lifecycle status? The system rejects the action with `400 INVALID_INPUT` and leaves inventory unchanged.
+- What happens when the configured `RAW_MATERIAL_WAREHOUSE` cannot be resolved? The system rejects the operation with a clear configuration error and leaves inventory unchanged.
+- What happens when the same request competes with another reservation? The system serializes access, rechecks the current quantity, and either completes the reservation or returns `INSUFFICIENT_STOCK`.
+- What happens when a material is split across several lots? The system uses the oldest eligible lots first and creates a movement for each lot used.
+- What happens when a retry is submitted after a successful reservation? The system rejects the request because the Work Order is no longer in a reservable status.
+
+## Requirements *(mandatory)*
 - What happens when the Work Order is in an invalid lifecycle status? The system rejects the action with `400 INVALID_INPUT` and leaves inventory unchanged.
 - What happens when the configured `RAW_MATERIAL_WAREHOUSE` cannot be resolved? The system rejects the operation with a clear configuration error and leaves inventory unchanged.
 - What happens when the same request competes with another reservation? The system serializes access, rechecks the current quantity, and either completes the reservation or returns `INSUFFICIENT_STOCK`.
@@ -73,23 +65,22 @@ The system protects shared inventory from competing reservation requests and rec
 
 ### Functional Requirements
 
-- **FR-001**: System MUST expose `POST /api/v1/work-orders/{id}/reserve-materials` for authenticated users with the `PLANNER` role.
-- **FR-002**: The request MUST require a valid `machineId` and MUST NOT accept `sourceWarehouseId` from the client.
-- **FR-003**: System MUST resolve the source warehouse using the configured warehouse code `RAW_MATERIAL_WAREHOUSE` for every reservation request.
-- **FR-004**: System MUST consider only `AVAILABLE` stock balances for the required material products within the resolved source warehouse. Stock in all other warehouses MUST be excluded.
+- **FR-001**: System MUST expose `POST /api/work-orders/{id}/reserve-materials` for authenticated users with the `PLANNER` role.
+- **FR-003**: System MUST query `AVAILABLE` stock balances across all `ACTIVE` warehouses without requiring a primary warehouse configuration or client warehouse parameter.
+- **FR-004**: System MUST consider `AVAILABLE` stock balances for the required material products across all `ACTIVE` warehouses in strict FIFO date order (`stock_lots.created_at ASC`).
 - **FR-005**: System MUST calculate or use each Work Order material requirement according to `requiredQuantity = plannedQuantity × quantityPerUnit × (1 + scrapRate)`.
 - **FR-006**: When multiple eligible lots contain the same material, the system MUST reserve them in FIFO order based on lot creation time.
 - **FR-007**: System MUST allow reservation only when the Work Order status is `PLANNED` or `MATERIAL_SHORTAGE`.
-- **FR-008**: System MUST verify that the requested machine exists and has status `AVAILABLE` before changing the Work Order to `READY_TO_PRODUCE`.
-- **FR-009**: System MUST change a Work Order to `READY_TO_PRODUCE` only when all required materials are sufficient and the requested machine is available.
-- **FR-010**: Reservation MUST be all-or-nothing. If any required material is insufficient, the system MUST not change stock balances, reserved material quantities, or create reservation movements for any material.
-- **FR-011**: On successful reservation, the system MUST move the reserved quantities from `AVAILABLE` to `RESERVED`, update the Work Order material reservation quantities, and create immutable `RESERVE` stock movements linked to the Work Order and selected lots.
+- **FR-008**: System MUST change a Work Order to `READY_TO_PRODUCE` only when all required materials are sufficient.
+- **FR-009**: Machine assignment and availability validation are outside this reservation operation and occur when production starts.
+- **FR-010**: Reservation MUST be all-or-nothing. If any required material is insufficient across all active warehouses, the system MUST not change stock balances, reserved material quantities, or create reservation movements for any material.
+- **FR-011**: On successful reservation, the system MUST move the reserved quantities from `AVAILABLE` to `RESERVED` at each respective warehouse and location, update the Work Order material reservation quantities, and create immutable `RESERVE` stock movements linked to the Work Order, selected lots, warehouse IDs, and location IDs.
 - **FR-012**: The system MUST execute the reservation and related Work Order changes as one atomic transaction.
 - **FR-013**: The system MUST use pessimistic locking for the stock balances involved in reservation, recheck quantities while locked, and guarantee that stock never becomes negative or reserved beyond available quantity.
 - **FR-014**: When stock is insufficient, the system MUST set the Work Order status to `MATERIAL_SHORTAGE` and return `400` with error code `INSUFFICIENT_STOCK`, including the missing materials and shortage quantities.
 - **FR-015**: Every important Work Order status transition caused by this operation MUST create an audit record with action `RESERVE_MATERIAL`.
 - **FR-016**: A successful request MUST return `200 OK` with message `Materials reserved successfully. Work Order is now READY_TO_PRODUCE.` and data containing `workOrderId` and status `READY_TO_PRODUCE`.
-- **FR-017**: The system MUST return `401 Unauthorized` for unauthenticated requests, `403 Forbidden` for non-Planner users, `404 NOT_FOUND` for missing Work Orders or machines, and `400 INVALID_INPUT` for invalid input or invalid Work Order or machine state.
+- **FR-017**: The system MUST return `401 Unauthorized` for unauthenticated requests, `403 Forbidden` for non-Planner users, `404 NOT_FOUND` for missing Work Orders, and `400 INVALID_INPUT` for an invalid Work Order state.
 
 ### Key Entities
 
@@ -98,7 +89,6 @@ The system protects shared inventory from competing reservation requests and rec
 - **Raw Material Warehouse**: The warehouse identified by the configured code `RAW_MATERIAL_WAREHOUSE`; it is the only warehouse eligible for this reservation operation.
 - **Stock Balance**: The current quantity of a product and lot at a warehouse location and stock status.
 - **Stock Lot**: A material lot used to apply FIFO selection during reservation.
-- **Machine**: The machine supplied by `machineId`; it must be `AVAILABLE` before the Work Order becomes ready for production.
 - **Stock Movement**: The immutable `RESERVE` record that traces each quantity moved from `AVAILABLE` to `RESERVED`.
 - **Audit Log**: The immutable record of the reservation action and important Work Order status transitions.
 
@@ -106,7 +96,7 @@ The system protects shared inventory from competing reservation requests and rec
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of valid reservations with sufficient material and an available machine return `200 OK` and place the Work Order in `READY_TO_PRODUCE`.
+- **SC-001**: 100% of valid reservations with sufficient material return `200 OK` and place the Work Order in `READY_TO_PRODUCE`.
 - **SC-002**: 100% of shortage reservations leave all stock balances and Work Order material reservation quantities unchanged, except for the required `MATERIAL_SHORTAGE` status result.
 - **SC-003**: In the defined 20-request concurrency test with 10 available units, exactly 10 requests succeed and 10 fail, with no negative stock and no duplicate reservation movements.
 - **SC-004**: 100% of successful status transitions caused by reservation have a corresponding `RESERVE_MATERIAL` audit record.
@@ -119,6 +109,6 @@ The system protects shared inventory from competing reservation requests and rec
 - The system has one resolvable configured warehouse identified by `RAW_MATERIAL_WAREHOUSE`.
 - Work Order material requirements are already associated with the Work Order when this action is called.
 - The Work Order's BOM and material requirement data remain stable during reservation; changing planning quantities is handled by the Work Order update flow.
-- `machineId` identifies the machine designated for this reservation request, and machine availability is evaluated at request time.
+- Machine assignment and availability are evaluated by the production-start operation, not by material reservation.
 - A successful reservation is not repeated for a Work Order that has already reached `READY_TO_PRODUCE`.
 - The exact API response envelope may include the platform-wide response metadata in addition to the specified success message and data fields.

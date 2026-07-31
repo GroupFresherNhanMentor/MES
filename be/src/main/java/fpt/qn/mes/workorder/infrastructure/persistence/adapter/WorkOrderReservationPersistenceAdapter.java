@@ -5,6 +5,8 @@ import static fpt.qn.mes.jooq.Tables.STOCK_BALANCES;
 import static fpt.qn.mes.jooq.Tables.STOCK_LOTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_STATUSES;
+import static fpt.qn.mes.jooq.Tables.WAREHOUSES;
+import static fpt.qn.mes.jooq.Tables.WAREHOUSE_STATUSES;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.util.UuidV7;
@@ -32,9 +35,11 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
 
     DSLContext ctx;
 
+    /**
+     * Queries available stock items across all ACTIVE warehouses in pure FIFO date order.
+     */
     @Override
-    public List<ReservationStock> findAvailableStock(UUID warehouseId, Collection<UUID> productIds,
-            UUID availableStatusId) {
+    public List<ReservationStock> findAvailableStock(Collection<UUID> productIds, UUID availableStatusId) {
         if (productIds == null || productIds.isEmpty()) {
             return List.of();
         }
@@ -49,12 +54,17 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                         STOCK_LOTS.CREATED_AT)
                 .from(STOCK_BALANCES)
                 .join(STOCK_LOTS).on(STOCK_LOTS.ID.eq(STOCK_BALANCES.LOT_ID))
-                .where(STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId))
+                .join(WAREHOUSES).on(WAREHOUSES.ID.eq(STOCK_BALANCES.WAREHOUSE_ID))
+                .join(WAREHOUSE_STATUSES).on(WAREHOUSE_STATUSES.ID.eq(WAREHOUSES.WAREHOUSE_STATUS_ID))
+                .where(WAREHOUSE_STATUSES.NAME.eq("ACTIVE"))
                 .and(STOCK_BALANCES.PRODUCT_ID.in(productIds))
                 .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(availableStatusId))
                 .and(STOCK_BALANCES.QUANTITY.gt(java.math.BigDecimal.ZERO))
-                .orderBy(STOCK_BALANCES.PRODUCT_ID.asc(), STOCK_LOTS.CREATED_AT.asc(),
-                        STOCK_LOTS.ID.asc(), STOCK_BALANCES.LOCATION_ID.asc())
+                .orderBy(
+                        STOCK_BALANCES.PRODUCT_ID.asc(),
+                        STOCK_LOTS.CREATED_AT.asc(),
+                        STOCK_LOTS.ID.asc(),
+                        STOCK_BALANCES.LOCATION_ID.asc())
                 .forUpdate()
                 .fetch(record -> new ReservationStock(
                         record.get(STOCK_BALANCES.ID),

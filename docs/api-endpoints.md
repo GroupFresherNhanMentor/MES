@@ -724,44 +724,217 @@
 * `plannedStartDate` must be before `plannedEndDate`.
 * If `workOrderStatusId` is provided, it only allows simple planning transitions `DRAFT ⇄ PLANNED`. Other states (like `IN_PROGRESS`, `CANCELLED`, etc.) passed via PUT will be rejected (HTTP 400).
 * Requires the client to use dedicated Action Endpoints (`/reserve-materials`, `/start`, `/pause`, `/resume`, `/complete`, `/cancel`) for operational status transitions.
+**Response `201`:** `BomDto`
+
+---
+
+### POST `/boms/{id}/activate`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
+
+**Response `200`:** `BomDto`
+
+---
+
+### POST `/boms/{id}/new-version`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-003` — Create New BOM Version (Clones BOM header with auto-incremented version and deep-copies component items in `DRAFT` status)
+
+**Response `201`:** `BomDto`
+
+---
+
+### POST `/boms/{bomId}/items`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Request body:**
+```json
+{ "materialProductId": "uuid", "quantityPerUnit": 1.5, "unit": "string", "scrapRate": 0.02 }
+```
+**Response `201`:** `BomItemDto`
+
+---
+
+### DELETE `/boms/{bomId}/items/{itemId}`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Response `200`:** no data
+
+---
+
+### GET `/boms/statuses`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string", "description": "string" }]`
+
+---
+
+## 11. Inventory
+
+### GET `/stock-lots`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `productId`
+
+**Response `200`:** `PageResponse<StockLotDto>`
+```json
+{ "id": "uuid", "lotNumber": "string", "productId": "uuid", "lotTypeId": "uuid", "expiryDate": "date", "createdAt": "instant" }
+```
+
+---
+
+### GET `/stock-lots/{id}`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Response `200`:** `StockLotDto`
+
+---
+
+### POST `/stock-lots`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER`
+
+**Request body:**
+```json
+{ "lotNumber": "string", "productId": "uuid", "lotTypeId": "uuid", "expiryDate": "date" }
+```
+**Response `201`:** `StockLotDto`
+
+---
+
+### GET `/stock-balances`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `warehouseId` · `productId` · `locationId`
+
+**Response `200`:** `PageResponse<StockBalanceDto>`
+```json
+{ "id": "uuid", "warehouseId": "uuid", "locationId": "uuid", "productId": "uuid", "lotId": "uuid", "stockStatusId": "uuid", "quantity": 100.00, "version": 1 }
+```
+
+---
+
+### GET `/stock-movements`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `productId` · `warehouseId` · `movementTypeId` · `from` · `to`
+
+**Response `200`:** `PageResponse<StockMovementDto>`
+
+---
+
+### POST `/stock-movements`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER`
+
+**Request body:**
+```json
+{
+  "movementTypeId": "uuid", "productId": "uuid", "lotId": "uuid",
+  "warehouseId": "uuid", "locationId": "uuid", "quantity": 50.0,
+  "fromStatusId": "uuid", "toStatusId": "uuid", "reason": "string"
+}
+```
+**Response `201`:** `StockMovementDto`
+
+---
+
+### GET `/lot-types`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+### GET `/stock-statuses`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+### GET `/movement-types`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+## 12. Work Orders
+
+### GET `/work-orders`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR` · `FACTORY_MANAGER`
+
+**Query params:** `page` · `size` · `statusId` · `productId`
+
+**Response `200`:** `PageResponse<WorkOrderDto>`
+```json
+{
+  "id": "uuid", "code": "string", "finishedProductId": "uuid", "bomId": "uuid",
+  "plannedQuantity": 100.0, "plannedStartDate": "instant", "plannedEndDate": "instant",
+  "priorityId": "uuid", "workOrderStatusId": "uuid", "createdBy": "uuid", "createdAt": "instant"
+}
+```
+
+---
+
+### GET `/work-orders/{id}`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR` · `FACTORY_MANAGER`
 
 **Response `200`:** `WorkOrderDto`
 
 ---
 
-### POST `/api/v1/work-orders/{id}/reserve-materials`
-> **Roles:** `PLANNER`
+### POST `/work-orders`
+> **Roles:** `ADMIN` · `PLANNER`
 
 **Request body:**
 ```json
 {
-  "machineId": "uuid"
+  "code": "string", "finishedProductId": "uuid", "bomId": "uuid",
+  "plannedQuantity": 100.0, "plannedStartDate": "instant", "plannedEndDate": "instant",
+  "priorityId": "uuid", "workOrderStatusId": "uuid"
 }
 ```
+**Response `201`:** `WorkOrderDto`
 
-**Business rules:**
-* The system resolves the source warehouse configured with code `RAW_MATERIAL_WAREHOUSE`. The client must not provide `sourceWarehouseId`.
-* Only `AVAILABLE` stock balances within the resolved source warehouse may be considered for reservation.
-* When multiple lots contain the same material, lots must be selected in FIFO order by `stock_lots.created_at`.
-* The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
-* The specified machine must exist and have status `AVAILABLE`.
-* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available and the specified machine is available.
-* Reservation uses pessimistic locking (`SELECT FOR UPDATE`) for the relevant stock balances.
-* The operation must run in one transaction. Partial reservation is not allowed and stock quantity must never become negative.
-* On success, `AVAILABLE` quantities are moved to `RESERVED`, `work_order_materials.reserved_quantity` is updated, and `RESERVE` stock movements are created for the selected lots.
-* Every important status transition must create an audit log with action `RESERVE_MATERIAL`.
-* If any material is insufficient, no stock balance or reservation quantity is changed. The Work Order moves to `MATERIAL_SHORTAGE` and the API returns `INSUFFICIENT_STOCK` with the missing materials and quantities.
+---
 
-**Response `200`:**
+### PUT `/work-orders/{id}`
+> **Roles:** `ADMIN` · `PLANNER`
+
+**Request body:**
 ```json
 {
-  "success": true,
-  "message": "Materials reserved successfully. Work Order is now READY_TO_PRODUCE.",
-  "data": {
-    "workOrderId": "uuid-lệnh-sản-xuất",
-    "status": "READY_TO_PRODUCE"
-  }
+  "code": "string", 
+  "plannedQuantity": 100.0,
+  "plannedStartDate": "instant", 
+  "plannedEndDate": "instant",
+  "priorityId": "uuid", 
+  "workOrderStatusId": "uuid"
 }
+```
+**Constraints:**
+* `plannedQuantity` must be > 0.
+* `plannedStartDate` must be before `plannedEndDate`.
+* If `workOrderStatusId` is provided, it only allows simple planning transitions `DRAFT ⇄ PLANNED`. Other states (like `IN_PROGRESS`, `CANCELLED`, etc.) passed via PUT will be rejected (HTTP 400).
+* Requires the client to use dedicated Action Endpoints (`/reserve-materials`, `/start`, `/pause`, `/resume`, `/complete`, `/cancel`) for operational status transitions.
+
+**Response `200`:** `WorkOrderDto`
+
+---
+
+### POST `/work-orders/{id}/reserve-materials`
+> **Roles:** `PLANNER`
+
+**Request body:** None.
+
+**Business rules:**
+* The system queries `AVAILABLE` stock balances across all `ACTIVE` warehouses in pure FIFO date order (`stock_lots.created_at ASC`).
+* The client must not provide a request body or `sourceWarehouseId`.
+* When multiple lots contain the same material, lots are selected in strict FIFO order by `stock_lots.created_at`.
+* The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
+* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available. Machine assignment and availability are validated when production starts.
 ```
 
 ---
