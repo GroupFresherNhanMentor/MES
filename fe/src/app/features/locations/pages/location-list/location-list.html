@@ -38,6 +38,11 @@
           <td mat-cell *matCellDef="let l" class="font-medium">{{ l.name }}</td>
         </ng-container>
 
+        <ng-container matColumnDef="warehouse">
+          <th mat-header-cell *matHeaderCellDef>Warehouse</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary">{{ l.warehouseName || l.warehouseId || '-' }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let l">
@@ -48,6 +53,11 @@
               {{ l.locationStatusName || 'INACTIVE' }}
             </span>
           </td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary text-sm">{{ l.createdAt ? (l.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">

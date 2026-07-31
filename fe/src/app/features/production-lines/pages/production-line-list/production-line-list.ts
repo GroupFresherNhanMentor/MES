@@ -16,10 +16,12 @@ import { ApiService } from '../../../../core/services/api';
 import type { ProductionLineDto } from '../../../../core/models/production-line.model';
 import { ProductionLineFormComponent } from '../production-line-form/production-line-form';
 
+import { DatePipe } from '@angular/common';
+
 @Component({
   selector: 'app-production-line-list',
   imports: [
-    FormsModule,
+    DatePipe, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
@@ -37,7 +39,7 @@ export class ProductionLineList {
   size = signal(20);
   keyword = signal('');
   filterStatus = signal('');
-  displayedColumns = ['code', 'name', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'status', 'createdAt', 'actions'];
 
   constructor() { this.load(); }
 

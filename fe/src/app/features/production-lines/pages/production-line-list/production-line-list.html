@@ -39,6 +39,11 @@
           </td>
         </ng-container>
 
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary text-sm">{{ l.createdAt ? (l.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef class="!text-right">Actions</th>
           <td mat-cell *matCellDef="let l" class="!text-right">
