@@ -2,6 +2,7 @@ package fpt.qn.mes.quality.application.service;
 
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +50,7 @@ public class QcActionService implements QcActionUseCase {
     public void createQcAction(CreateQcActionRequest request) {
         UUID currentUserId = currentUserPort.getCurrentUserId();
         QcAction action = QcAction.builder()
-            .id(UUID.randomUUID())
+            .id(UuidV7.generate())
             .name(request.getName())
             .description(request.getDescription())
             .createdBy(currentUserId)

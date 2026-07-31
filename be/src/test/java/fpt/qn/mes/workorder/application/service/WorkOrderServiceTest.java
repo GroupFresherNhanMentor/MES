@@ -28,8 +28,8 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
 import fpt.qn.mes.workorder.application.exception.InvalidInputException;
 import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
@@ -57,7 +57,7 @@ class WorkOrderServiceTest {
     WorkOrderService service;
 
     WorkOrder sampleEntity;
-    WorkOrderDto sampleDto;
+    WorkOrderResponse sampleDto;
     UUID productId;
     UUID statusId;
 
@@ -75,7 +75,7 @@ class WorkOrderServiceTest {
                 .createdAt(Instant.now())
                 .build();
 
-        sampleDto = WorkOrderDto.builder()
+        sampleDto = WorkOrderResponse.builder()
                 .id(sampleEntity.getId())
                 .code(sampleEntity.getCode())
                 .finishedProductId(productId)
@@ -101,7 +101,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(request);
+        PageResponse<WorkOrderResponse> result = service.getWorkOrders(request);
 
         // Assert
         assertNotNull(result);
@@ -120,7 +120,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        PageResponse<WorkOrderDto> result = service.getWorkOrders(null);
+        PageResponse<WorkOrderResponse> result = service.getWorkOrders(null);
 
         // Assert
         assertNotNull(result);
@@ -158,7 +158,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        WorkOrderDto result = service.createWorkOrder(req, userId);
+        WorkOrderResponse result = service.createWorkOrder(req, userId);
 
         // Assert
         assertNotNull(result);
@@ -187,7 +187,7 @@ class WorkOrderServiceTest {
     }
 
     @Test
-    @DisplayName("getWorkOrderById with existing ID should return WorkOrderDto with materials and events")
+    @DisplayName("getWorkOrderById with existing ID should return WorkOrderResponse with materials and events")
     void getWorkOrderById_existingId_shouldReturnDto() {
         // Arrange
         UUID id = sampleEntity.getId();
@@ -197,7 +197,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        WorkOrderDto result = service.getWorkOrderById(id);
+        WorkOrderResponse result = service.getWorkOrderById(id);
 
         // Assert
         assertNotNull(result);
@@ -240,7 +240,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        WorkOrderDto result = service.updateWorkOrder(id, req);
+        WorkOrderResponse result = service.updateWorkOrder(id, req);
 
         // Assert
         assertNotNull(result);
@@ -295,10 +295,10 @@ class WorkOrderServiceTest {
         when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(bom));
         when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
-        when(mapper.toDto(any(WorkOrderMaterial.class))).thenReturn(WorkOrderMaterialDto.builder().build());
+        when(mapper.toDto(any(WorkOrderMaterial.class))).thenReturn(WorkOrderMaterialResponse.builder().build());
 
         // Act
-        WorkOrderDto result = service.updateWorkOrder(id, req);
+        WorkOrderResponse result = service.updateWorkOrder(id, req);
 
         // Assert
         assertNotNull(result);
@@ -324,7 +324,7 @@ class WorkOrderServiceTest {
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
 
         // Act
-        WorkOrderDto result = service.updateWorkOrder(id, req);
+        WorkOrderResponse result = service.updateWorkOrder(id, req);
 
         // Assert
         assertNotNull(result);

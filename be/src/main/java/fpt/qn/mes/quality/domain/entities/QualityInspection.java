@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,7 +46,7 @@ public class QualityInspection {
     public static QualityInspection create(UUID workOrderId, UUID productId, UUID lotId,
             BigDecimal quantity, QcStatus qcStatus) {
         return QualityInspection.builder()
-            .id(UUID.randomUUID())
+            .id(UuidV7.generate())
             .workOrder(WorkOrderRef.builder().id(workOrderId).build())
             .product(ProductRef.builder().id(productId).build())
             .lot(StockLotRef.builder().id(lotId).build())

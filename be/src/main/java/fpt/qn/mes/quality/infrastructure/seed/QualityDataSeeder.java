@@ -57,7 +57,7 @@ public class QualityDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(QC_ACTIONS, QC_ACTIONS.ID, QC_ACTIONS.NAME, QC_ACTIONS.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded qc_actions");

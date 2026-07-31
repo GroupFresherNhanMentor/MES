@@ -7,7 +7,6 @@ import static fpt.qn.mes.jooq.Tables.UNITS_OF_MEASURE;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;

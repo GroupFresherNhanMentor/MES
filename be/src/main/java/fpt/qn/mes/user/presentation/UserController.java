@@ -17,7 +17,7 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.port.in.UserUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -33,23 +33,23 @@ public class UserController {
     UserUseCase userUseCase;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<UserDto>>> getUsers(
+    public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> getUserById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody CreateUserRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserDto>> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

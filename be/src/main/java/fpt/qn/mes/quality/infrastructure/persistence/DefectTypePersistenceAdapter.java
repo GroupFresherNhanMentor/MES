@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.jooq.tables.records.DefectTypesRecord;
 import fpt.qn.mes.quality.domain.entities.DefectType;
@@ -53,7 +54,7 @@ public class DefectTypePersistenceAdapter extends BaseRepository<DefectTypesReco
     @Override
     public DefectType save(DefectType defectType) {
         DefectTypesRecord r = mapper.toRecord(defectType);
-        if (r.getId() == null) r.setId(UUID.randomUUID());
+        if (r.getId() == null) r.setId(UuidV7.generate());
         dslCtx.insertInto(DEFECT_TYPES)
             .set(r)
             .onConflict(DEFECT_TYPES.ID)
