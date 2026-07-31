@@ -18,8 +18,11 @@ import lombok.experimental.FieldDefaults;
 public class Bom {
     UUID id;
     UUID finishedProductId;
+    String finishedProductCode;
+    String finishedProductName;
     Integer version;
     UUID bomStatusId;
+    String bomStatusName;
     UUID createdBy;
     Instant createdAt;
     List<BomItem> items;

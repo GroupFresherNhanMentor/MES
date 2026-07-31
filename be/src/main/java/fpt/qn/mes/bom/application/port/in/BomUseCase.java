@@ -10,6 +10,8 @@ import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.service.LookupEntry;
 
+import fpt.qn.mes.bom.application.dto.request.UpdateBomItemRequest;
+
 public interface BomUseCase {
     List<LookupEntry> getBomStatuses();
     PageResponse<BomResponse> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId);
@@ -18,5 +20,6 @@ public interface BomUseCase {
     BomResponse activateBom(UUID id);
     BomResponse createNewVersion(UUID id);
     BomItemResponse addBomItem(UUID bomId, CreateBomItemRequest request);
+    BomItemResponse updateBomItem(UUID bomId, UUID itemId, UpdateBomItemRequest request);
     void deleteBomItem(UUID bomId, UUID itemId);
 }

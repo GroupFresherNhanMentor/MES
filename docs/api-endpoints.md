@@ -503,7 +503,7 @@ deduplicated; any missing ID rejects the complete mutation.
 
 **Response `200`:** `PageResponse<BomDto>`
 ```json
-{ "id": "uuid", "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid", "createdBy": "uuid", "createdAt": "instant", "items": [] }
+{ "id": "uuid", "finishedProductId": "uuid", "finishedProductCode": "string", "finishedProductName": "string", "version": 1, "bomStatusId": "uuid", "bomStatusName": "string", "createdBy": "uuid", "createdAt": "instant", "items": [] }
 ```
 
 ---
@@ -521,7 +521,7 @@ deduplicated; any missing ID rejects the complete mutation.
 
 **Request body:**
 ```json
-{ "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid (optional — defaults to DRAFT)" }
+{ "finishedProductId": "uuid", "version": "integer (optional — auto-calculated maxVersion + 1 if omitted/duplicate)", "bomStatusId": "uuid (optional — defaults to DRAFT)" }
 ```
 **Response `201`:** `BomDto`
 
@@ -552,6 +552,21 @@ deduplicated; any missing ID rejects the complete mutation.
 { "materialProductId": "uuid", "quantityPerUnit": 1.5, "unit": "string", "scrapRate": 0.02 }
 ```
 **Response `201`:** `BomItemDto`
+```json
+{ "id": "uuid", "bomId": "uuid", "materialProductId": "uuid", "materialProductCode": "string", "materialProductName": "string", "quantityPerUnit": 1.5, "unitId": "uuid", "unit": "string", "scrapRate": 0.02 }
+```
+
+---
+
+### PUT `/boms/{bomId}/items/{itemId}`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Request body:**
+```json
+{ "quantityPerUnit": 2.0, "unit": "string", "scrapRate": 0.05 }
+```
+**Response `200`:** `BomItemDto`
 
 ---
 

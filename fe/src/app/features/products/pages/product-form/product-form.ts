@@ -8,6 +8,7 @@ import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/materia
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
+import { API } from '../../../../configs/api-endpoints';
 import type { ProductDto } from '../../../../core/models/product.model';
 
 interface LookupEntry { id: string; name: string; description: string; }
@@ -44,6 +45,15 @@ interface LookupEntry { id: string; name: string; description: string; }
       }
 
       <mat-form-field appearance="outline">
+        <mat-label>Unit of Measure</mat-label>
+        <mat-select [(ngModel)]="unitId" name="unitId" required>
+          @for (u of units; track u.id) {
+            <mat-option [value]="u.id">{{ u.name }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
         <mat-select [(ngModel)]="productStatusId" name="productStatusId" required>
           @for (s of statuses; track s.id) {
@@ -72,19 +82,27 @@ export class ProductFormComponent implements OnInit {
   productStatusId = '';
 
   types: LookupEntry[] = [];
+  units: LookupEntry[] = [];
   statuses: LookupEntry[] = [];
 
   ngOnInit() {
-    this.api.get<LookupEntry[]>('/api/products/types').subscribe(r => {
-      if (r.success) {
-        this.types = r.data;
+    this.api.get<any>(API.products.productTypes + '?size=100').subscribe(r => {
+      if (r.success && r.data) {
+        this.types = r.data.items || r.data;
         if (!this.data && this.types.length > 0) this.productTypeId = this.types[0].id;
       }
     });
 
-    this.api.get<LookupEntry[]>('/api/products/statuses').subscribe(r => {
-      if (r.success) {
-        this.statuses = r.data;
+    this.api.get<any>(API.products.unitsOfMeasure + '?size=100').subscribe(r => {
+      if (r.success && r.data) {
+        this.units = r.data.items || r.data;
+        if (!this.data && this.units.length > 0) this.unitId = this.units[0].id;
+      }
+    });
+
+    this.api.get<any>(API.products.productStatuses + '?size=100').subscribe(r => {
+      if (r.success && r.data) {
+        this.statuses = r.data.items || r.data;
         if (!this.data && this.statuses.length > 0) this.productStatusId = this.statuses[0].id;
       }
     });
@@ -92,30 +110,27 @@ export class ProductFormComponent implements OnInit {
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name;
-      this.productTypeId = this.data.productTypeId;
-      this.unitId = this.data.unitId;
-      this.productStatusId = this.data.productStatusId;
+      this.productTypeId = this.data.productType?.id || this.data.productTypeId || '';
+      this.unitId = this.data.unit?.id || this.data.unitId || '';
+      this.productStatusId = this.data.productStatus?.id || this.data.productStatusId || '';
     }
   }
 
   isValid(): boolean {
     if (this.data) {
-      return !!this.name;
+      return !!this.name && !!this.unitId && !!this.productStatusId;
     }
-    return !!this.code && !!this.name && !!this.productTypeId && !!this.productStatusId;
+    return !!this.code && !!this.name && !!this.productTypeId && !!this.unitId && !!this.productStatusId;
   }
 
   save() {
-    // If unitId is empty for creation, default to a fallback GUID or first available
-    const effectiveUnitId = this.unitId || '00000000-0000-0000-0000-000000000001';
-
     if (this.data) {
       const updateBody = {
         name: this.name,
-        unitId: effectiveUnitId,
+        unitId: this.unitId,
         productStatusId: this.productStatusId
       };
-      this.api.put(`/api/products/${this.data.id}`, updateBody).subscribe(r => {
+      this.api.put(`${API.products.base}/${this.data.id}`, updateBody).subscribe(r => {
         if (r.success) {
           this.snackBar.open('Updated', 'OK', { duration: 2000 });
           this.dialogRef.close(true);
@@ -126,10 +141,10 @@ export class ProductFormComponent implements OnInit {
         code: this.code,
         name: this.name,
         productTypeId: this.productTypeId,
-        unitId: effectiveUnitId,
+        unitId: this.unitId,
         productStatusId: this.productStatusId
       };
-      this.api.post('/api/products', createBody).subscribe(r => {
+      this.api.post(API.products.base, createBody).subscribe(r => {
         if (r.success) {
           this.snackBar.open('Created', 'OK', { duration: 2000 });
           this.dialogRef.close(true);
