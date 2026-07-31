@@ -2,6 +2,8 @@
 spring:
   application:
     name: project-management-system
+  profiles:
+    active: dev
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mes}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
