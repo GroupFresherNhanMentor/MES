@@ -16,12 +16,12 @@ import { ApiService } from '../../../../core/services/api';
 import type { ProductionLineDto } from '../../../../core/models/production-line.model';
 import { ProductionLineFormComponent } from '../production-line-form/production-line-form';
 
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-production-line-list',
   imports: [
-    DatePipe, FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,

@@ -39,8 +39,10 @@
             @let rawName = m.machineStatusName || m.status || '';
             @let sName = rawName.toUpperCase();
             <span class="ff-badge" [ngClass]="{
-              'ff-badge--active': sName === 'RUNNING' || sName === 'ACTIVE',
-              'ff-badge--idle': sName === 'IDLE' || sName === 'AVAILABLE',
+              'ff-badge--running': sName === 'RUNNING',
+              'ff-badge--active': sName === 'ACTIVE',
+              'ff-badge--available': sName === 'AVAILABLE',
+              'ff-badge--idle': sName === 'IDLE',
               'ff-badge--onhold': sName === 'UNDER_MAINTENANCE' || sName === 'MAINTENANCE',
               'ff-badge--cancelled': sName === 'INACTIVE' || sName === 'RETIRED' || sName === 'BREAKDOWN' || sName === 'DEACTIVATED'
             }">

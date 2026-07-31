@@ -55,8 +55,9 @@
             @let sName = rawName.toUpperCase();
             <span class="ff-badge" [ngClass]="{
               'ff-badge--active': sName === 'ACTIVE',
-              'ff-badge--pending': sName === 'DRAFT',
-              'ff-badge--cancelled': sName !== 'ACTIVE' && sName !== 'DRAFT'
+              'ff-badge--available': sName === 'AVAILABLE',
+              'ff-badge--pending': sName === 'DRAFT' || sName === 'PENDING',
+              'ff-badge--cancelled': sName !== 'ACTIVE' && sName !== 'AVAILABLE' && sName !== 'DRAFT' && sName !== 'PENDING'
             }">
               {{ rawName || 'INACTIVE' }}
             </span>

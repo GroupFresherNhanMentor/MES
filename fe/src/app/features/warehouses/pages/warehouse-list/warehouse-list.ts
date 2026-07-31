@@ -17,12 +17,12 @@ import type { WarehouseDto } from '../../../../core/models/warehouse.model';
 import { WAREHOUSE_STATUSES } from '../../../../configs/constants';
 import { WarehouseFormComponent } from '../warehouse-form/warehouse-form';
 
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 
 @Component({
   selector: 'app-warehouse-list',
   imports: [
-    DatePipe, FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,

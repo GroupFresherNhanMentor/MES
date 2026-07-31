@@ -46,11 +46,16 @@
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let l">
-            <span class="ff-badge"
-              [class.ff-badge--active]="l.locationStatusName === 'AVAILABLE' || l.locationStatusName === 'ACTIVE'"
-              [class.ff-badge--onhold]="l.locationStatusName === 'MAINTENANCE'"
-              [class.ff-badge--cancelled]="l.locationStatusName === 'INACTIVE' || l.locationStatusName === 'OCCUPIED'">
-              {{ l.locationStatusName || 'INACTIVE' }}
+            @let rawName = l.locationStatusName || l.status || '';
+            @let sName = rawName.toUpperCase();
+            <span class="ff-badge" [ngClass]="{
+              'ff-badge--available': sName === 'AVAILABLE',
+              'ff-badge--active': sName === 'ACTIVE',
+              'ff-badge--onhold': sName === 'MAINTENANCE' || sName === 'UNDER_MAINTENANCE',
+              'ff-badge--occupied': sName === 'OCCUPIED',
+              'ff-badge--cancelled': sName === 'INACTIVE' || sName === 'DEACTIVATED'
+            }">
+              {{ rawName || 'INACTIVE' }}
             </span>
           </td>
         </ng-container>
