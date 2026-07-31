@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.application.port.in.UserUseCase;
 import fpt.qn.mes.user.domain.repository.UserRepository;
@@ -27,22 +27,22 @@ public class UserService implements UserUseCase {
     UserDtoMapper userDtoMapper;
 
     @Override @Transactional(readOnly = true)
-    public PageResponse<UserDto> getUsers(int page, int size) {
+    public PageResponse<UserResponse> getUsers(int page, int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional(readOnly = true)
-    public UserDto getUserById(UUID id) {
+    public UserResponse getUserById(UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public UserDto createUser(CreateUserRequest request) {
+    public UserResponse createUser(CreateUserRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public UserDto updateUser(UUID id, UpdateUserRequest request) {
+    public UserResponse updateUser(UUID id, UpdateUserRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

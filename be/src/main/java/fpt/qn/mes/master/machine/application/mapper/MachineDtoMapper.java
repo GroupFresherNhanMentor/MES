@@ -2,11 +2,10 @@ package fpt.qn.mes.master.machine.application.mapper;
 
 import org.mapstruct.Mapper;
 
-import fpt.qn.mes.master.machine.application.dto.response.MachineDto;
+import fpt.qn.mes.master.machine.application.dto.machine.MachineResponse;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {MachineStatusDtoMapper.class})
 public interface MachineDtoMapper {
-
-    MachineDto toDto(Machine machine);
+    MachineResponse toDto(Machine machine);
 }

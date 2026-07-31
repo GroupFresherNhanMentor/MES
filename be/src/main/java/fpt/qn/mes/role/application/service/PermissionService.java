@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.role.application.dto.request.CreatePermissionRequest;
-import fpt.qn.mes.role.application.dto.response.PermissionDto;
+import fpt.qn.mes.role.application.dto.response.PermissionResponse;
 import fpt.qn.mes.role.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.role.application.port.in.PermissionUseCase;
 import fpt.qn.mes.role.domain.repository.PermissionRepository;
@@ -24,17 +24,17 @@ public class PermissionService implements PermissionUseCase {
     RoleDtoMapper mapper;
 
     @Override @Transactional(readOnly = true)
-    public List<PermissionDto> getPermissions() {
+    public List<PermissionResponse> getPermissions() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional(readOnly = true)
-    public PermissionDto getPermissionById(UUID id) {
+    public PermissionResponse getPermissionById(UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public PermissionDto createPermission(CreatePermissionRequest request) {
+    public PermissionResponse createPermission(CreatePermissionRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 

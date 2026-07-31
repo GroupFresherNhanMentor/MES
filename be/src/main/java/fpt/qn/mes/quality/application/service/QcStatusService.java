@@ -3,6 +3,8 @@ package fpt.qn.mes.quality.application.service;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+
+import fpt.qn.mes.common.util.UuidV7;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
@@ -49,7 +51,7 @@ public class QcStatusService implements QcStatusUseCase {
     public void createQcStatus(CreateQcStatusRequest request) {
         UUID currentUserId = currentUserPort.getCurrentUserId();
         QcStatus status = QcStatus.builder()
-            .id(UUID.randomUUID())
+            .id(UuidV7.generate())
             .name(request.getName())
             .description(request.getDescription())
             .createdBy(currentUserId)

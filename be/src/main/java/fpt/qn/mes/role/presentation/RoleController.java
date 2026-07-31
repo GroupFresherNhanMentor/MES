@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.role.application.dto.request.AssignPermissionsRequest;
 import fpt.qn.mes.role.application.dto.request.CreateRoleRequest;
-import fpt.qn.mes.role.application.dto.response.RoleDto;
+import fpt.qn.mes.role.application.dto.response.RoleResponse;
 import fpt.qn.mes.role.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.role.application.port.in.RoleUseCase;
 import jakarta.validation.Valid;
@@ -33,22 +33,22 @@ public class RoleController {
     RoleUseCase roleUseCase;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RoleDto>>> getRoles() {
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getRoles() {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoleDto>> getRoleById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<RoleResponse>> getRoleById(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RoleDto>> createRole(@Valid @RequestBody CreateRoleRequest request) {
+    public ResponseEntity<ApiResponse<RoleResponse>> createRole(@Valid @RequestBody CreateRoleRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<RoleDto>> updateRole(@PathVariable UUID id, @RequestBody UpdateRoleRequest request) {
+    public ResponseEntity<ApiResponse<RoleResponse>> updateRole(@PathVariable UUID id, @RequestBody UpdateRoleRequest request) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
