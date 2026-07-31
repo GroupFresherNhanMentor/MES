@@ -8,10 +8,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
-@Getter @Setter @FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateStockLotRequest {
-    @NotBlank String lotNumber;
-    @NotNull UUID productId;
+    @NotBlank
+    String lotNumber;
+    @NotNull
+    UUID productId;
     UUID lotTypeId;
     LocalDate expiryDate;
 }

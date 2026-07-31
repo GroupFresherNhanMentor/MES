@@ -19,12 +19,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.exception.AppException;
 import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
-import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
+import fpt.qn.mes.inventory.application.port.out.ProductCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseLocationCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseLocationQueryPort;
 import fpt.qn.mes.inventory.application.service.InventoryService;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
@@ -33,38 +37,26 @@ import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
+import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
-import fpt.qn.mes.master.location.application.port.in.WarehouseLocationUseCase;
-import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
-import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.user.application.mapper.UserDtoMapper;
-import fpt.qn.mes.user.domain.repository.UserRepository;
+import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
 
 @ExtendWith(MockitoExtension.class)
 class StockAdjustmentServiceTest {
 
-    @Mock
-    StockBalanceRepository balanceRepository;
-    @Mock
-    StockMovementRepository movementRepository;
-    @Mock
-    MovementTypeRepository movementTypeRepository;
-    @Mock
-    StockAdjustmentApprovalRepository approvalRepository;
-    @Mock
-    InventoryDtoMapper mapper;
-    @Mock
-    StockAdjustmentApprovalDtoMapper approvalMapper;
-    @Mock
-    WarehouseUseCase warehouseUseCase;
-    @Mock
-    ProductUseCase productUseCase;
-    @Mock
-    WarehouseLocationUseCase warehouseLocationUseCase;
-    @Mock
-    UserRepository userRepository;
-    @Mock
-    UserDtoMapper userDtoMapper;
+    @Mock StockLotRepository lotRepository;
+    @Mock StockMovementRepository movementRepository;
+    @Mock StockBalanceRepository balanceRepository;
+    @Mock MovementTypeRepository movementTypeRepository;
+    @Mock StockStatusRepository stockStatusRepository;
+    @Mock StockAdjustmentApprovalRepository approvalRepository;
+    @Mock InventoryDtoMapper mapper;
+    @Mock StockAdjustmentApprovalDtoMapper approvalMapper;
+    @Mock CurrentUserPort currentUserPort;
+    @Mock ProductCheckPort productCheckPort;
+    @Mock WarehouseCheckPort warehouseCheckPort;
+    @Mock WarehouseLocationCheckPort warehouseLocationCheckPort;
+    @Mock WarehouseLocationQueryPort warehouseLocationQueryPort;
 
     @InjectMocks
     InventoryService inventoryService;
@@ -97,11 +89,11 @@ class StockAdjustmentServiceTest {
                 .build();
 
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)).thenReturn(Optional.of(movementTypeId));
         when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementResponse.builder().id(UUID.randomUUID()).build());
 
-        inventoryService.adjustStock(request, userId);
+        inventoryService.adjustStock(request);
 
         verify(balanceRepository).save(any(StockBalance.class));
         verify(movementRepository).save(any(StockMovement.class));
@@ -128,12 +120,12 @@ class StockAdjustmentServiceTest {
                 .referenceNo("REF-002")
                 .build();
 
-        UUID approvalId = UUID.randomUUID();
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(approvalRepository.save(any(StockAdjustmentApproval.class)))
-                .thenReturn(StockAdjustmentApproval.builder().id(approvalId).build());
+                .thenReturn(StockAdjustmentApproval.builder().id(UUID.randomUUID()).build());
 
-        inventoryService.adjustStock(request, userId);
+        inventoryService.adjustStock(request);
 
         verify(approvalRepository).save(any(StockAdjustmentApproval.class));
         verify(movementRepository, never()).save(any());
@@ -148,7 +140,7 @@ class StockAdjustmentServiceTest {
                 .reason("")
                 .build();
 
-        assertThatThrownBy(() -> inventoryService.adjustStock(request, userId))
+        assertThatThrownBy(() -> inventoryService.adjustStock(request))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining("Reason is required");
     }
@@ -169,7 +161,7 @@ class StockAdjustmentServiceTest {
 
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
 
-        assertThatThrownBy(() -> inventoryService.adjustStock(request, userId))
+        assertThatThrownBy(() -> inventoryService.adjustStock(request))
                 .isInstanceOf(AppException.class)
                 .hasMessageContaining("Adjustment cannot result in negative stock balance");
     }
@@ -198,13 +190,18 @@ class StockAdjustmentServiceTest {
                 .version(1L)
                 .build();
 
+        StockMovement savedMovement = StockMovement.builder().id(UUID.randomUUID()).build();
+        StockMovementResponse expectedResponse = StockMovementResponse.builder().id(savedMovement.getId()).build();
+
         when(approvalRepository.findById(approvalId)).thenReturn(Optional.of(approval));
         when(balanceRepository.findById(balanceId)).thenReturn(Optional.of(balance));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)).thenReturn(Optional.of(movementTypeId));
-        when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(StockMovementResponse.builder().id(UUID.randomUUID()).build());
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
+        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
+        when(movementRepository.findById(any())).thenReturn(Optional.of(savedMovement));
+        when(mapper.toDto(savedMovement)).thenReturn(expectedResponse);
 
-        StockMovementResponse result = inventoryService.approveAdjustment(approvalId, userId);
+        StockMovementResponse result = inventoryService.approveAdjustment(approvalId);
 
         assertThat(result).isNotNull();
         verify(balanceRepository).save(any(StockBalance.class));
@@ -223,7 +220,7 @@ class StockAdjustmentServiceTest {
 
         when(approvalRepository.findById(approvalId)).thenReturn(Optional.of(approval));
 
-        inventoryService.rejectAdjustment(approvalId, userId);
+        inventoryService.rejectAdjustment(approvalId);
 
         verify(approvalRepository).deleteById(approvalId);
         verify(balanceRepository, never()).save(any());

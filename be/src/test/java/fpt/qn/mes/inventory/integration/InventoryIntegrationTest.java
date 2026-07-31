@@ -37,7 +37,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import fpt.qn.mes.AbstractIntegrationTest;
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
 import fpt.qn.mes.inventory.application.dto.stocklot.create.CreateStockLotRequest;
@@ -141,6 +145,11 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
         dsl.insertInto(MOVEMENT_TYPES, MOVEMENT_TYPES.ID, MOVEMENT_TYPES.NAME)
                 .values(movementTypeId, "MTYPE_" + movementTypeId.toString().substring(0, 8))
                 .execute();
+
+        AppUserPrincipal principal = AppUserPrincipal.builder()
+                .id(userId).username("test_user").enabled(true).roles(List.of("ROLE_USER")).build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, null, List.of()));
     }
 
     @Test
@@ -167,7 +176,7 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
         req.setToStatusId(stockStatusId);
         req.setQuantity(new BigDecimal("100.00"));
         req.setReferenceNo("PO-GET-001");
-        inventoryService.recordMovement(req, userId);
+        inventoryService.recordMovement(req);
 
         fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest searchReq = new fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest();
         searchReq.setReferenceNo("PO-GET-001");
@@ -191,7 +200,7 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
         request.setFromStatusId(stockStatusId);
         request.setQuantity(new BigDecimal("50.00"));
 
-        assertThatThrownBy(() -> inventoryService.recordMovement(request, userId))
+        assertThatThrownBy(() -> inventoryService.recordMovement(request))
                 .isInstanceOf(InsufficientStockException.class);
     }
 
@@ -282,7 +291,7 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
                         request.setLotId(cLotId);
                         request.setToStatusId(cStockStatusId);
                         request.setQuantity(new BigDecimal("10.00"));
-                        inventoryService.recordMovement(request, cUserId);
+                        inventoryService.recordMovement(request);
                         successCount.incrementAndGet();
                     } catch (Exception e) {
                         e.printStackTrace();

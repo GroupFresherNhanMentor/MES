@@ -21,6 +21,23 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockMovement {
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ProductRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class WarehouseRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class WarehouseLocationRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserRef { UUID id; String username; String fullName; }
+
     UUID id;
     MovementType movementType;
     StockLot stockLot;
@@ -37,6 +54,13 @@ public class StockMovement {
     String reason;
     UUID createdBy;
     Instant createdAt;
+
+    ProductRef product;
+    WarehouseRef fromWarehouse;
+    WarehouseRef toWarehouse;
+    WarehouseLocationRef fromLocation;
+    WarehouseLocationRef toLocation;
+    UserRef createdByUser;
 
     public static StockMovement create(
             UUID movementTypeId,

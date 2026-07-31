@@ -10,6 +10,7 @@ import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.inventory.application.dto.stockstatus.StockStatusResponse;
 import fpt.qn.mes.inventory.application.dto.stockstatus.create.CreateStockStatusRequest;
 import fpt.qn.mes.inventory.application.dto.stockstatus.search.StockStatusSearchRequest;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.inventory.application.exception.StockStatusConflictException;
 import fpt.qn.mes.inventory.application.mapper.StockStatusDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.StockStatusUseCase;
@@ -27,6 +28,7 @@ public class StockStatusService implements StockStatusUseCase {
 
     StockStatusRepository stockStatusRepository;
     StockStatusDtoMapper mapper;
+    CurrentUserPort currentUserPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,7 +55,7 @@ public class StockStatusService implements StockStatusUseCase {
         if (stockStatusRepository.existsByName(request.getName())) {
             throw new StockStatusConflictException("StockStatus with name already exists: " + request.getName());
         }
-        stockStatusRepository.save(StockStatus.create(request.getName(), request.getDescription()));
+        stockStatusRepository.save(StockStatus.create(request.getName(), request.getDescription(), currentUserPort.getCurrentUserId()));
     }
 
     @Override
