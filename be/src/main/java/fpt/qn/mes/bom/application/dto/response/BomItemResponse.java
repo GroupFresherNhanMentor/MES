@@ -8,5 +8,13 @@ import lombok.experimental.FieldDefaults;
 
 @Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BomItemResponse {
-    UUID id; UUID bomId; UUID materialProductId; BigDecimal quantityPerUnit; String unit; BigDecimal scrapRate;
+    UUID id;
+    UUID bomId;
+    UUID materialProductId;
+    String materialProductCode;
+    String materialProductName;
+    BigDecimal quantityPerUnit;
+    UUID unitId;
+    String unit;
+    BigDecimal scrapRate;
 }
