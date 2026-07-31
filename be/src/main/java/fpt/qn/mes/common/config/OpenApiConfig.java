@@ -2,6 +2,7 @@ package fpt.qn.mes.common.config;
 
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -27,7 +28,6 @@ public class OpenApiConfig {
                         .version("1.0.0")
                         .description("API documentation for the Manufacturing Execution System (Clean Architecture, Spring Boot, jOOQ)")
                         .contact(new Contact().name("FPT MES Team")))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME,
                                 new SecurityScheme()
@@ -50,83 +50,119 @@ public class OpenApiConfig {
         };
     }
 
-    @Bean
-    GroupedOpenApi allApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+
+    public GroupedOpenApi allApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("00. All Endpoints")
                 .pathsToMatch("/api/**")
-                .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
+                .addOperationCustomizer(rbacOperationSecurity)
+                .addOperationCustomizer(idempotencyKeyHeaderCustomizer)
                 .build();
     }
 
     @Bean
-    GroupedOpenApi authApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi authApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("01. Authentication")
                 .pathsToMatch("/api/auth/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi masterDataApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi masterDataApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("02. Master Data")
                 .packagesToScan("fpt.qn.mes.master")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi inventoryApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi inventoryApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("03. Inventory")
                 .pathsToMatch("/api/stock**", "/api/movement-types/**", "/api/lot-types/**", "/api/stock**/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi bomApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi bomApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("04. Bill of Materials (BOM)")
                 .pathsToMatch("/api/boms/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi workOrderApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi workOrderApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("05. Work Orders")
                 .pathsToMatch("/api/work-orders/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi qualityApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi qualityApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("06. Quality Control")
                 .pathsToMatch("/api/quality/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi maintenanceApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi maintenanceApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("07. Maintenance")
                 .pathsToMatch("/api/maintenance/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }
 
     @Bean
-    GroupedOpenApi userSecurityApi(OperationCustomizer idempotencyKeyHeaderCustomizer) {
+    GroupedOpenApi userSecurityApi(
+        OperationCustomizer rbacOperationSecurity,
+        OperationCustomizer idempotencyKeyHeaderCustomizer
+    ) {
         return GroupedOpenApi.builder()
                 .group("08. User & Access Control")
                 .pathsToMatch("/api/users/**", "/api/roles/**", "/api/permissions/**")
+                .addOperationCustomizer(rbacOperationSecurity)
                 .addOperationCustomizer(idempotencyKeyHeaderCustomizer) // <-- THÊM VÀO ĐÂY
                 .build();
     }

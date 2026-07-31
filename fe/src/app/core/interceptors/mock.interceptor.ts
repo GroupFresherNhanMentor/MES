@@ -58,42 +58,42 @@ const MOCK_PRODUCT_STATUSES = [
 
 // ── Mock Warehouses ──
 const MOCK_WAREHOUSES = [
-  { id: 'WH-HN', warehouseCode: 'WH-HN', warehouseName: 'Hanoi Main', address: '100 Nguyen Trai', city: 'Hanoi', capacity: 10000, usedCapacity: 6200, status: 'ACTIVE', locationCount: 4, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'WH-HCM', warehouseCode: 'WH-HCM', warehouseName: 'HCMC Branch', address: '200 Le Loi', city: 'Ho Chi Minh', capacity: 15000, usedCapacity: 8900, status: 'ACTIVE', locationCount: 6, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'WH-DN', warehouseCode: 'WH-DN', warehouseName: 'Da Nang', address: '50 Bach Dang', city: 'Da Nang', capacity: 8000, usedCapacity: 3100, status: 'ACTIVE', locationCount: 3, createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'WH-HN', code: 'WH-HN', name: 'Hanoi Main', address: '100 Nguyen Trai', city: 'Hanoi', capacity: 10000, usedCapacity: 6200, warehouseStatusName: 'ACTIVE', locationCount: 4, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'WH-HCM', code: 'WH-HCM', name: 'HCMC Branch', address: '200 Le Loi', city: 'Ho Chi Minh', capacity: 15000, usedCapacity: 8900, warehouseStatusName: 'ACTIVE', locationCount: 6, createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'WH-DN', code: 'WH-DN', name: 'Da Nang', address: '50 Bach Dang', city: 'Da Nang', capacity: 8000, usedCapacity: 3100, warehouseStatusName: 'ACTIVE', locationCount: 3, createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
 // ── Mock Locations ──
 const MOCK_LOCATIONS: Record<string, any[]> = {
   'WH-HN': [
-    { id: 'LOC-HN-A1', warehouseId: 'WH-HN', locationCode: 'A-01', description: 'Row A, Shelf 1', maxCapacity: 500, currentLoad: 320, status: 'AVAILABLE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-    { id: 'LOC-HN-A2', warehouseId: 'WH-HN', locationCode: 'A-02', description: 'Row A, Shelf 2', maxCapacity: 500, currentLoad: 500, status: 'OCCUPIED', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-    { id: 'LOC-HN-B1', warehouseId: 'WH-HN', locationCode: 'B-01', description: 'Row B, Shelf 1', maxCapacity: 300, currentLoad: 150, status: 'AVAILABLE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-    { id: 'LOC-HN-B2', warehouseId: 'WH-HN', locationCode: 'B-02', description: 'Row B, Shelf 2', maxCapacity: 300, currentLoad: 0, status: 'MAINTENANCE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HN-A1', warehouseId: 'WH-HN', code: 'A-01', description: 'Row A, Shelf 1', maxCapacity: 500, currentLoad: 320, locationStatusName: 'ACTIVE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HN-A2', warehouseId: 'WH-HN', code: 'A-02', description: 'Row A, Shelf 2', maxCapacity: 500, currentLoad: 500, locationStatusName: 'ACTIVE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HN-B1', warehouseId: 'WH-HN', code: 'B-01', description: 'Row B, Shelf 1', maxCapacity: 300, currentLoad: 150, locationStatusName: 'ACTIVE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HN-B2', warehouseId: 'WH-HN', code: 'B-02', description: 'Row B, Shelf 2', maxCapacity: 300, currentLoad: 0, status: 'MAINTENANCE', warehouseName: 'Hanoi Main', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   ],
   'WH-HCM': [
-    { id: 'LOC-HCM-A1', warehouseId: 'WH-HCM', locationCode: 'A-01', description: 'Section A', maxCapacity: 1000, currentLoad: 780, status: 'AVAILABLE', warehouseName: 'HCMC Branch', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-    { id: 'LOC-HCM-A2', warehouseId: 'WH-HCM', locationCode: 'A-02', description: 'Section A-2', maxCapacity: 1000, currentLoad: 450, status: 'AVAILABLE', warehouseName: 'HCMC Branch', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HCM-A1', warehouseId: 'WH-HCM', code: 'A-01', description: 'Section A', maxCapacity: 1000, currentLoad: 780, locationStatusName: 'ACTIVE', warehouseName: 'HCMC Branch', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-HCM-A2', warehouseId: 'WH-HCM', code: 'A-02', description: 'Section A-2', maxCapacity: 1000, currentLoad: 450, locationStatusName: 'ACTIVE', warehouseName: 'HCMC Branch', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   ],
   'WH-DN': [
-    { id: 'LOC-DN-A1', warehouseId: 'WH-DN', locationCode: 'DN-01', description: 'Main Storage', maxCapacity: 800, currentLoad: 310, status: 'AVAILABLE', warehouseName: 'Da Nang', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+    { id: 'LOC-DN-A1', warehouseId: 'WH-DN', code: 'DN-01', description: 'Main Storage', maxCapacity: 800, currentLoad: 310, locationStatusName: 'ACTIVE', warehouseName: 'Da Nang', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
   ],
 };
 
 // ── Mock Production Lines ──
 const MOCK_PRODUCTION_LINES = [
-  { id: 'L-ASM1', lineCode: 'ASM-01', lineName: 'Assembly Line 1', description: 'Main widget assembly line', status: 'ACTIVE', machineCount: 5, supervisor: 'Nguyen Van A', location: 'Building A, Floor 1', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'L-ASM2', lineCode: 'ASM-02', lineName: 'Assembly Line 2', description: 'Secondary widget assembly line', status: 'ACTIVE', machineCount: 3, supervisor: 'Tran Thi B', location: 'Building A, Floor 2', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'L-PKG', lineCode: 'PKG-01', lineName: 'Packaging Line', description: 'Finished product packaging line', status: 'ACTIVE', machineCount: 2, supervisor: 'Le Van C', location: 'Building B, Floor 1', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'L-ASM1', code: 'ASM-01', name: 'Assembly Line 1', description: 'Main widget assembly line', lineStatusName: 'ACTIVE', machineCount: 5, supervisor: 'Nguyen Van A', location: 'Building A, Floor 1', createdAt: '2025-01-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'L-ASM2', code: 'ASM-02', name: 'Assembly Line 2', description: 'Secondary widget assembly line', lineStatusName: 'ACTIVE', machineCount: 3, supervisor: 'Tran Thi B', location: 'Building A, Floor 2', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'L-PKG', code: 'PKG-01', name: 'Packaging Line', description: 'Finished product packaging line', lineStatusName: 'ACTIVE', machineCount: 2, supervisor: 'Le Van C', location: 'Building B, Floor 1', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
 // ── Mock Machines ──
 const MOCK_MACHINES = [
-  { id: 'M-001', machineCode: 'CNC-001', machineName: 'CNC Milling Machine 1', model: 'Haas VF-2', serialNumber: 'HS-2025-001', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', status: 'RUNNING', location: 'Building A', installationDate: '2025-01-15', lastMaintenanceDate: '2025-05-15', nextMaintenanceDate: '2025-08-15', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'M-002', machineCode: 'CNC-002', machineName: 'CNC Milling Machine 2', model: 'Haas VF-3', serialNumber: 'HS-2025-002', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', status: 'RUNNING', location: 'Building A', installationDate: '2025-01-15', lastMaintenanceDate: '2025-05-20', nextMaintenanceDate: '2025-08-20', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'M-003', machineCode: 'ROBO-001', machineName: 'Robotic Arm 1', model: 'Fanuc CRX-10', serialNumber: 'FN-2025-001', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', status: 'RUNNING', location: 'Building A', installationDate: '2025-02-01', lastMaintenanceDate: '2025-04-01', nextMaintenanceDate: '2025-07-01', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'M-004', machineCode: 'CNC-003', machineName: 'CNC Lathe', model: 'Haas ST-20', serialNumber: 'HS-2025-003', productionLineId: 'L-ASM2', productionLineName: 'Assembly Line 2', status: 'IDLE', location: 'Building A', installationDate: '2025-03-01', lastMaintenanceDate: '2025-06-01', nextMaintenanceDate: '2025-09-01', createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
-  { id: 'M-005', machineCode: 'PKG-001', machineName: 'Packaging Machine', model: 'Bosch P-500', serialNumber: 'BS-2025-001', productionLineId: 'L-PKG', productionLineName: 'Packaging Line', status: 'RUNNING', location: 'Building B', installationDate: '2025-02-15', lastMaintenanceDate: '2025-05-25', nextMaintenanceDate: '2025-08-25', createdAt: '2025-02-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'M-001', code: 'CNC-001', name: 'CNC Milling Machine 1', model: 'Haas VF-2', serialNumber: 'HS-2025-001', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', machineStatusName: 'RUNNING', location: 'Building A', installationDate: '2025-01-15', lastMaintenanceDate: '2025-05-15', nextMaintenanceDate: '2025-08-15', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'M-002', code: 'CNC-002', name: 'CNC Milling Machine 2', model: 'Haas VF-3', serialNumber: 'HS-2025-002', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', machineStatusName: 'RUNNING', location: 'Building A', installationDate: '2025-01-15', lastMaintenanceDate: '2025-05-20', nextMaintenanceDate: '2025-08-20', createdAt: '2025-01-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'M-003', code: 'ROBO-001', name: 'Robotic Arm 1', model: 'Fanuc CRX-10', serialNumber: 'FN-2025-001', productionLineId: 'L-ASM1', productionLineName: 'Assembly Line 1', machineStatusName: 'RUNNING', location: 'Building A', installationDate: '2025-02-01', lastMaintenanceDate: '2025-04-01', nextMaintenanceDate: '2025-07-01', createdAt: '2025-02-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'M-004', code: 'CNC-003', name: 'CNC Lathe', model: 'Haas ST-20', serialNumber: 'HS-2025-003', productionLineId: 'L-ASM2', productionLineName: 'Assembly Line 2', machineStatusName: 'AVAILABLE', location: 'Building A', installationDate: '2025-03-01', lastMaintenanceDate: '2025-06-01', nextMaintenanceDate: '2025-09-01', createdAt: '2025-03-01T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
+  { id: 'M-005', code: 'PKG-001', name: 'Packaging Machine', model: 'Bosch P-500', serialNumber: 'BS-2025-001', productionLineId: 'L-PKG', productionLineName: 'Packaging Line', machineStatusName: 'RUNNING', location: 'Building B', installationDate: '2025-02-15', lastMaintenanceDate: '2025-05-25', nextMaintenanceDate: '2025-08-25', createdAt: '2025-02-15T00:00:00Z', updatedAt: '2025-06-01T00:00:00Z' },
 ];
 
 // ── Mock BOMs ──
@@ -230,7 +230,7 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   // ── Warehouses ──
   if (url === `${base}/warehouses` && method === 'POST') {
     const body = req.body as any;
-    const newWH = { id: `WH-${String(Date.now())}`, ...body, status: 'ACTIVE', usedCapacity: 0, locationCount: 0, createdAt: ts(), updatedAt: ts() };
+    const newWH = { id: `WH-${String(Date.now())}`, ...body, warehouseStatusName: 'ACTIVE', usedCapacity: 0, locationCount: 0, createdAt: ts(), updatedAt: ts() };
     MOCK_WAREHOUSES.push(newWH);
     return respond(ok(newWH));
   }
@@ -255,7 +255,7 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   if (locMatch && method === 'POST') {
     const wId = locMatch[1];
     const body = req.body as any;
-    const newLoc = { id: `LOC-${String(Date.now())}`, warehouseId: wId, ...body, status: 'AVAILABLE', currentLoad: 0, createdAt: ts(), updatedAt: ts() };
+    const newLoc = { id: `LOC-${String(Date.now())}`, warehouseId: wId, ...body, locationStatusName: 'ACTIVE', currentLoad: 0, createdAt: ts(), updatedAt: ts() };
     if (!MOCK_LOCATIONS[wId]) MOCK_LOCATIONS[wId] = [];
     MOCK_LOCATIONS[wId].push(newLoc);
     return respond(ok(newLoc));
@@ -277,7 +277,7 @@ export const mockInterceptor: HttpInterceptorFn = (req, next) => {
   // ── Production Lines ──
   if (url === `${base}/production-lines` && method === 'POST') {
     const body = req.body as any;
-    const newLine = { id: `L-${String(Date.now())}`, ...body, status: 'ACTIVE', machineCount: 0, createdAt: ts(), updatedAt: ts() };
+    const newLine = { id: `L-${String(Date.now())}`, ...body, lineStatusName: 'ACTIVE', machineCount: 0, createdAt: ts(), updatedAt: ts() };
     MOCK_PRODUCTION_LINES.push(newLine);
     return respond(ok(newLine));
   }

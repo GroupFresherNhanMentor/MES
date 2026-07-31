@@ -38,16 +38,31 @@
           <td mat-cell *matCellDef="let l" class="font-medium">{{ l.name }}</td>
         </ng-container>
 
+        <ng-container matColumnDef="warehouse">
+          <th mat-header-cell *matHeaderCellDef>Warehouse</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary">{{ l.warehouseName || l.warehouseId || '-' }}</td>
+        </ng-container>
+
         <ng-container matColumnDef="status">
           <th mat-header-cell *matHeaderCellDef>Status</th>
           <td mat-cell *matCellDef="let l">
-            <span class="ff-badge"
-              [class.ff-badge--active]="l.locationStatusName === 'AVAILABLE' || l.locationStatusName === 'ACTIVE'"
-              [class.ff-badge--onhold]="l.locationStatusName === 'MAINTENANCE'"
-              [class.ff-badge--cancelled]="l.locationStatusName === 'INACTIVE' || l.locationStatusName === 'OCCUPIED'">
-              {{ l.locationStatusName || 'INACTIVE' }}
+            @let rawName = l.locationStatusName || l.status || '';
+            @let sName = rawName.toUpperCase();
+            <span class="ff-badge" [ngClass]="{
+              'ff-badge--available': sName === 'AVAILABLE',
+              'ff-badge--active': sName === 'ACTIVE',
+              'ff-badge--onhold': sName === 'MAINTENANCE' || sName === 'UNDER_MAINTENANCE',
+              'ff-badge--occupied': sName === 'OCCUPIED',
+              'ff-badge--cancelled': sName === 'INACTIVE' || sName === 'DEACTIVATED'
+            }">
+              {{ rawName || 'INACTIVE' }}
             </span>
           </td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created Date</th>
+          <td mat-cell *matCellDef="let l" class="text-text-secondary text-sm">{{ l.createdAt ? (l.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
         </ng-container>
 
         <ng-container matColumnDef="actions">
