@@ -70,7 +70,7 @@ public class SecurityConfig {
             IdempotencyService idempotencyService, 
             Environment environment,
             ObjectMapper objectMapper,
-            JwtDecoder accessJwtDecoder) throws Exception {
+            @Qualifier("accessJwtDecoder") JwtDecoder accessJwtDecoder) throws Exception {
         IdempotencyFilter idempotencyFilter = new IdempotencyFilter(idempotencyService, objectMapper);
 
         return http
