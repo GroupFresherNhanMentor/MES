@@ -21,12 +21,32 @@ public class User {
     Instant createdAt;
 
     public static User create(String username, String passwordHash, String fullName) {
-        throw new UnsupportedOperationException("Not implemented");
+        return User.builder()
+                .id(UUID.randomUUID())
+                .username(username == null ? null : username.trim())
+                .passwordHash(passwordHash)
+                .fullName(fullName)
+                .active(true)
+                .createdAt(Instant.now())
+                .build();
+    }
+
+    public User updateFullName(String newFullName) {
+        return User.builder()
+                .id(id)
+                .username(username)
+                .passwordHash(passwordHash)
+                .fullName(newFullName)
+                .active(active)
+                .createdAt(createdAt)
+                .build();
     }
 
     public void activate() {
+        active = true;
     }
 
     public void deactivate() {
+        active = false;
     }
 }

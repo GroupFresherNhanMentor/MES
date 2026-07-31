@@ -189,9 +189,8 @@ Hệ thống phải cho phép user đăng nhập bằng username/password.
 **Output:**
 - accessToken
 - refreshToken (optional)
-- user profile
-- roles
-- permissions
+- userId
+- username
 
 **Acceptance criteria:**
 - Given user nhập đúng username/password, When gọi API login, Then hệ thống trả về JWT token hợp lệ.
@@ -852,7 +851,7 @@ Hệ thống phải validate:
 - Date hợp lệ
 - Status transition hợp lệ
 - Duplicate code
-- Permission
+- Role authorization
 - Stock không âm
 - Machine availability
 - BOM active

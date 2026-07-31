@@ -3,6 +3,7 @@ package fpt.qn.mes.user.presentation;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,33 +34,45 @@ public class UserController {
     UserUseCase userUseCase;
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(userUseCase.getUsers(page, size), "Users retrieved"));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.ok(ApiResponse.success(userUseCase.getUserById(id), "User retrieved"));
     }
 
     @PostMapping
+    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody CreateUserRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(ApiResponse.success(userUseCase.createUser(request), "User created"));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(@PathVariable UUID id, @RequestBody UpdateUserRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateUserRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(userUseCase.updateUser(id, request), "User updated"));
     }
 
     @PatchMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> activateUser(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        userUseCase.activateUser(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "User activated"));
     }
 
     @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivateUser(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
+        userUseCase.deactivateUser(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "User deactivated"));
     }
 }
