@@ -6,6 +6,7 @@ export interface MachineDto {
   name: string;
   machineStatusId: string;
   machineStatusName: string;
+  machineStatus?: { id: string; name: string; description?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

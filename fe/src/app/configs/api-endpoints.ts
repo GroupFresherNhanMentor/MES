@@ -29,8 +29,8 @@ export const API = {
       `${BASE}/warehouses/${warehouseId}/locations/${id}/deactivate`,
   },
   productionLines: {
-    base: `${BASE}/production-lines`,
-    byId: (id: string | number) => `${BASE}/production-lines/${id}`,
+    base: `${BASE}/lines`,
+    byId: (id: string | number) => `${BASE}/lines/${id}`,
     deactivate: (id: string | number) => `${BASE}/production-lines/${id}/deactivate`,
   },
   machines: {

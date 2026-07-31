@@ -82,6 +82,13 @@ export class ProductListComponent {
     });
   }
 
+  activate(p: ProductDto) {
+    this.api.put(`/api/products/${p.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+
   openCreate() {
     this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }

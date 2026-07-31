@@ -76,9 +76,15 @@
               <button mat-icon-button class="ff-action-btn-edit" (click)="openEdit(p)" matTooltip="Edit product">
                 <mat-icon>edit</mat-icon>
               </button>
+              @if (p.productStatus?.name === 'ACTIVE' || p.productStatusName === 'ACTIVE') {
               <button mat-icon-button class="ff-action-btn-delete" (click)="deactivate(p)" matTooltip="Deactivate">
                 <mat-icon>block</mat-icon>
               </button>
+              } @else {
+              <button mat-icon-button class="ff-action-btn-edit" (click)="activate(p)" matTooltip="Activate">
+                <mat-icon>check_circle</mat-icon>
+              </button>
+              }
             </div>
           </td>
         </ng-container>

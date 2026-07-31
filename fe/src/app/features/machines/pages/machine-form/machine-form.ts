@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -9,7 +9,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
 import type { MachineDto } from '../../../../core/models/machine.model';
-import type { ProductionLineDto } from '../../../../core/models/production-line.model';
+
+interface Status { id: string; name: string; }
 
 @Component({
   selector: 'app-machine-form',
@@ -22,25 +23,29 @@ import type { ProductionLineDto } from '../../../../core/models/production-line.
         <mat-label>Code</mat-label>
         <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data">
       </mat-form-field>
-
       <mat-form-field appearance="outline">
         <mat-label>Name</mat-label>
         <input matInput [(ngModel)]="name" name="name" required>
       </mat-form-field>
-
       <mat-form-field appearance="outline">
         <mat-label>Production Line</mat-label>
         <mat-select [(ngModel)]="productionLineId" name="lineId" required>
-          @for (line of lines(); track line.id) {
-            <mat-option [value]="line.id">{{ line.name }} ({{ line.code }})</mat-option>
-          }
+          @for (l of lines; track l.id) { <mat-option [value]="l.id">{{ l.code }} - {{ l.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
+      @if (!data) {
+      <mat-form-field appearance="outline">
+        <mat-label>Status</mat-label>
+        <mat-select [(ngModel)]="statusId" name="status" required>
+          @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
+        </mat-select>
+      </mat-form-field>
+      }
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name || !productionLineId">Save</button>
+    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name || !statusId || !productionLineId">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -53,30 +58,39 @@ export class MachineFormComponent {
   code = '';
   name = '';
   productionLineId = '';
-  lines = signal<ProductionLineDto[]>([]);
+  statusId = '';
+  statuses: Status[] = [];
+  lines: { id: string; code: string; name: string }[] = [];
 
   constructor() {
-    this.api.get<{ items: ProductionLineDto[] }>('/api/production-lines?page=0&size=100').subscribe(r => {
-      if (r.success) this.lines.set(r.data.items);
+    this.api.get<{ items: Status[] }>('/api/machine-statuses?page=0&size=50').subscribe(r => {
+      if (r.success) {
+        this.statuses = r.data.items;
+        if (this.statuses.length > 0 && !this.statusId) this.statusId = this.statuses[0].id;
+      }
     });
-
+    this.api.get<{ items: { id: string; code: string; name: string }[] }>('/api/lines?page=0&size=50').subscribe(r => {
+      if (r.success) {
+        this.lines = r.data.items;
+        if (this.lines.length > 0 && !this.productionLineId) this.productionLineId = this.lines[0].id;
+      }
+    });
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name;
       this.productionLineId = this.data.productionLineId || '';
+      this.statusId = this.data.machineStatusId;
     }
   }
 
   save() {
-    const body = { code: this.code, name: this.name, productionLineId: this.productionLineId, machineStatusId: '00000000-0000-0000-0000-000000000001' };
+    const body = { code: this.code, name: this.name, productionLineId: this.productionLineId };
     const req = this.data
-      ? this.api.put(`/api/machines/${this.data.id}`, { name: this.name })
+      ? this.api.put(`/api/machines/${this.data.id}`, { name: this.name, productionLineId: this.productionLineId })
       : this.api.post('/api/machines', body);
-    req.subscribe(r => {
-      if (r.success) {
-        this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 });
-        this.dialogRef.close(true);
-      }
-    });
+    req.subscribe({
+        next: r => { if (r.success) { this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },
+        error: e => this.snackBar.open(e?.error?.message || 'Error saving Machine', 'OK', { duration: 4000 })
+      });
   }
 }

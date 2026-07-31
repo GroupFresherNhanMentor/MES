@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -16,7 +17,7 @@ import { ApiService } from '../../../../core/services/api';
 import type { ProductionLineDto } from '../../../../core/models/production-line.model';
 import { ProductionLineFormComponent } from '../production-line-form/production-line-form';
 
-import { DatePipe, NgClass } from '@angular/common';
+interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-production-line-list',
@@ -38,14 +39,21 @@ export class ProductionLineList {
   page = signal(0);
   size = signal(20);
   keyword = signal('');
-  filterStatus = signal('');
-  displayedColumns = ['code', 'name', 'status', 'createdAt', 'actions'];
+  filterStatusId = signal('');
+  statuses = signal<LookupEntry[]>([]);
 
-  constructor() { this.load(); }
+  displayedColumns = ['code', 'name', 'status', 'actions'];
+
+  constructor() {
+    this.api.get<{ items: LookupEntry[] }>('/api/line-statuses?page=0&size=50').subscribe(r => {
+      if (r.success) this.statuses.set(r.data.items);
+    });
+    this.load();
+  }
 
   load() {
-    let url = `/api/production-lines?page=${this.page()}&size=${this.size()}`;
-    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
+    let url = `/api/lines?page=${this.page()}&size=${this.size()}`;
+    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
     this.api.get<{ items: ProductionLineDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -55,18 +63,24 @@ export class ProductionLineList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px' }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(l: ProductionLineDto) {
-    this.dialog.open(ProductionLineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(ProductionLineFormComponent, { width: '500px', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(l: ProductionLineDto) {
-    this.api.put(`/api/production-lines/${l.id}/deactivate`, {}).subscribe(r => {
+    this.api.put(`/api/lines/${l.id}/deactivate`, {}).subscribe(r => {
       if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
   }
 
-  isActive(s: string) { return s === 'ACTIVE'; }
+  activate(l: ProductionLineDto) {
+    this.api.put(`/api/lines/${l.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  statusName(id: string) { return this.statuses().find(s => s.id === id)?.name ?? ''; }
 }

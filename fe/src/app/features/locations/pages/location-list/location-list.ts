@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe, NgClass } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
@@ -14,11 +15,10 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
-import type { LocationDto } from "../../../../core/models/location.model";
-import { LOCATION_STATUSES } from '../../../../configs/constants';
+import type { LocationDto } from '../../../../core/models/location.model';
 import { LocationFormComponent } from '../location-form/location-form';
 
-import { DatePipe, NgClass } from '@angular/common';
+interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-location-list',
@@ -42,19 +42,22 @@ export class LocationList {
   page = signal(0);
   size = signal(20);
   keyword = signal('');
-  filterStatus = signal('');
+  filterStatusId = signal('');
+  statuses = signal<LookupEntry[]>([]);
 
-  statuses = LOCATION_STATUSES;
-  displayedColumns = ['code', 'name', 'warehouse', 'status', 'createdAt', 'actions'];
+  displayedColumns = ['code', 'name', 'status', 'actions'];
 
   constructor() {
     this.warehouseId = this.route.snapshot.paramMap.get('warehouseId') || '';
+    this.api.get<{ items: LookupEntry[] }>('/api/location-statuses?page=0&size=50').subscribe(r => {
+      if (r.success) this.statuses.set(r.data.items);
+    });
     this.load();
   }
 
   load() {
     let url = `/api/warehouses/${this.warehouseId}/locations?page=${this.page()}&size=${this.size()}`;
-    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
     this.api.get<{ items: LocationDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -64,12 +67,11 @@ export class LocationList {
   search() { this.page.set(0); this.load(); }
 
   openCreate() {
-    const ref = this.dialog.open(LocationFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: { warehouseId: this.warehouseId } });
-    ref.afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(LocationFormComponent, { width: '500px', data: { warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   openEdit(l: LocationDto) {
-    this.dialog.open(LocationFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: l }).afterClosed().subscribe(r => { if (r) this.load(); });
+    this.dialog.open(LocationFormComponent, { width: '500px', data: { ...l, warehouseId: this.warehouseId } }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
   deactivate(l: LocationDto) {
@@ -78,5 +80,11 @@ export class LocationList {
     });
   }
 
-  isActive(s: string) { return s === 'ACTIVE'; }
+  activate(l: LocationDto) {
+    this.api.put(`/api/warehouses/${this.warehouseId}/locations/${l.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  statusName(id: string) { return this.statuses().find(s => s.id === id)?.name ?? ''; }
 }
