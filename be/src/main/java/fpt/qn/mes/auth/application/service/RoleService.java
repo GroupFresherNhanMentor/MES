@@ -7,13 +7,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
+import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.auth.application.port.in.RoleUseCase;
-import fpt.qn.mes.auth.domain.repository.RoleRepository;
 import fpt.qn.mes.auth.domain.entities.Role;
-import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
+import fpt.qn.mes.auth.domain.repository.RoleRepository;
 import fpt.qn.mes.common.exception.ConflictException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -30,8 +30,8 @@ public class RoleService implements RoleUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoleDto> getRoles() {
-        List<RoleDto> result = new java.util.ArrayList<>();
+    public List<RoleResponse> getRoles() {
+        List<RoleResponse> result = new java.util.ArrayList<>();
         for (Role role : roleRepository.findAll()) {
             result.add(toDto(role));
         }
@@ -40,14 +40,14 @@ public class RoleService implements RoleUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public RoleDto getRoleById(UUID id) {
+    public RoleResponse getRoleById(UUID id) {
         return toDto(roleRepository.findById(id)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found")));
     }
 
     @Override
     @Transactional
-    public RoleDto createRole(CreateRoleRequest request) {
+    public RoleResponse createRole(CreateRoleRequest request) {
         if (roleRepository.existsByName(request.getName())) {
             throw new ConflictException("Role name already exists");
         }
@@ -57,7 +57,7 @@ public class RoleService implements RoleUseCase {
 
     @Override
     @Transactional
-    public RoleDto updateRole(UUID id, UpdateRoleRequest request) {
+    public RoleResponse updateRole(UUID id, UpdateRoleRequest request) {
         administrativeAccessGuard.lock();
         Role current = roleRepository.findById(id)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found"));
@@ -87,7 +87,7 @@ public class RoleService implements RoleUseCase {
         administrativeAccessGuard.assertAdministrativeAccessRemains();
     }
 
-    private RoleDto toDto(Role role) {
+    private RoleResponse toDto(Role role) {
         return mapper.toDto(role);
     }
 }

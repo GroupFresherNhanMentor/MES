@@ -13,12 +13,8 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-<<<<<<<< HEAD:be/src/main/java/fpt/qn/mes/auth/application/security/CredentialAccount.java
 public class CredentialAccount {
 
-========
-public class PermissionResponse {
->>>>>>>> origin/develop:be/src/main/java/fpt/qn/mes/role/application/dto/response/PermissionResponse.java
     UUID id;
     String username;
     String passwordHash;
@@ -26,4 +22,3 @@ public class PermissionResponse {
     boolean active;
     List<String> roles;
 }
-

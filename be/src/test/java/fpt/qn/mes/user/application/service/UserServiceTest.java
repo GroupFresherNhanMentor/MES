@@ -25,7 +25,7 @@ import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.exception.ConflictException;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.exception.UserNotFoundException;
 import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.domain.entities.User;
@@ -58,7 +58,7 @@ class UserServiceTest {
     @Test
     void paginatedReadClampsBoundsAndDoesNotExposePassword() {
         User user = user(true);
-        UserDto dto = dto(user);
+        UserResponse dto = dto(user);
         when(repository.findAll(0, 100))
                 .thenReturn(PaginationResult.<User>builder()
                         .items(List.of(user))
@@ -71,7 +71,7 @@ class UserServiceTest {
         assertThat(result.getItems()).containsExactly(dto);
         assertThat(result.getPageNumber()).isZero();
         assertThat(result.getPageSize()).isEqualTo(100);
-        assertThat(UserDto.class.getDeclaredFields())
+        assertThat(UserResponse.class.getDeclaredFields())
                 .extracting(field -> field.getName())
                 .doesNotContain("password", "passwordHash");
     }
@@ -142,7 +142,7 @@ class UserServiceTest {
         when(repository.update(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(mapper.toDto(any(User.class))).thenAnswer(invocation -> dto(invocation.getArgument(0)));
 
-        UserDto updated = service.updateUser(inactive.getId(), request);
+        UserResponse updated = service.updateUser(inactive.getId(), request);
         assertThat(updated.getFullName()).isEqualTo("Updated Alice");
         assertThat(updated.getUsername()).isEqualTo("alice");
 
@@ -162,8 +162,8 @@ class UserServiceTest {
                 .build();
     }
 
-    private UserDto dto(User user) {
-        return UserDto.builder()
+    private UserResponse dto(User user) {
+        return UserResponse.builder()
                 .id(user.getId())
                 .username(user.getUsername())
                 .fullName(user.getFullName())

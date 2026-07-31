@@ -18,7 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.auth.application.dto.request.ReplaceUserRolesRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
 import fpt.qn.mes.auth.application.exception.UserReferenceNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
@@ -54,7 +54,7 @@ class UserRoleServiceTest {
         org.mockito.Mockito.lenient().when(mapper.toDto(any(Role.class)))
                 .thenAnswer(invocation -> {
                     Role role = invocation.getArgument(0);
-                    return RoleDto.builder()
+                    return RoleResponse.builder()
                             .id(role.getId())
                             .name(role.getName())
                             .build();
@@ -74,7 +74,7 @@ class UserRoleServiceTest {
         when(userRoleRepository.countExistingRoleIds(List.of(first, second))).thenReturn(2L);
         when(userRoleRepository.findRolesByUserId(user.getId())).thenReturn(List.of(role));
 
-        List<RoleDto> result = service.replaceUserRoles(user.getId(), request);
+        List<RoleResponse> result = service.replaceUserRoles(user.getId(), request);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().getName()).isEqualTo("AUDITOR");

@@ -20,12 +20,12 @@ import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
 import fpt.qn.mes.auth.application.dto.request.LoginRequest;
 import fpt.qn.mes.auth.application.dto.request.RefreshRequest;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.dto.response.TokenResponse;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 
 class AuthApiCompatibilityIntegrationTest extends AbstractIntegrationTest {
 
@@ -71,8 +71,8 @@ class AuthApiCompatibilityIntegrationTest extends AbstractIntegrationTest {
         assertFields(CreateRoleRequest.class, "name", "description");
         assertFields(UpdateRoleRequest.class, "name", "description");
 
-        assertFields(UserDto.class, "id", "username", "fullName", "active", "createdAt");
-        assertFields(RoleDto.class, "id", "name", "description");
+        assertFields(UserResponse.class, "id", "username", "fullName", "active", "createdAt");
+        assertFields(RoleResponse.class, "id", "name", "description");
         assertFields(
                 ApiResponse.class,
                 "success", "data", "errorCode", "message", "details", "timestamp");

@@ -46,7 +46,7 @@ class AuthOpenApiContractIntegrationTest extends AbstractIntegrationTest {
                 }
             }
         }
-        assertThat(operationCount).isEqualTo(100);
+        assertThat(operationCount).isEqualTo(119);
 
 
         var groupedResponse = restTemplate.getForEntity(

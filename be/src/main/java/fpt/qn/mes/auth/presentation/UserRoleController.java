@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.auth.application.dto.request.ReplaceUserRolesRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.port.in.UserRoleUseCase;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import jakarta.validation.Valid;
@@ -31,14 +31,14 @@ public class UserRoleController {
 
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<RoleDto>>> getUserRoles(@PathVariable UUID userId) {
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> getUserRoles(@PathVariable UUID userId) {
         return ResponseEntity.ok(ApiResponse.success(
                 userRoleUseCase.getUserRoles(userId), "User roles retrieved"));
     }
 
     @PutMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<List<RoleDto>>> replaceUserRoles(
+    public ResponseEntity<ApiResponse<List<RoleResponse>>> replaceUserRoles(
             @PathVariable UUID userId,
             @Valid @RequestBody ReplaceUserRolesRequest request) {
         return ResponseEntity.ok(ApiResponse.success(

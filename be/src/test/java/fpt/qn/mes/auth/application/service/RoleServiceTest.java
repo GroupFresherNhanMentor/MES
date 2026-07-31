@@ -18,7 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.auth.domain.entities.Role;
@@ -39,7 +39,7 @@ class RoleServiceTest {
         service = new RoleService(roleRepository, mapper, guard);
         org.mockito.Mockito.lenient().when(mapper.toDto(any(Role.class))).thenAnswer(invocation -> {
             Role role = invocation.getArgument(0);
-            return RoleDto.builder()
+            return RoleResponse.builder()
                     .id(role.getId())
                     .name(role.getName())
                     .description(role.getDescription())
@@ -56,7 +56,7 @@ class RoleServiceTest {
         when(roleRepository.save(any(Role.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        RoleDto result = service.createRole(request);
+        RoleResponse result = service.createRole(request);
 
         assertThat(result.getName()).isEqualTo("PLANNER");
         assertThat(result.getDescription()).isEqualTo("Planning");

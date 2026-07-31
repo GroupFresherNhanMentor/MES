@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.auth.application.dto.request.ReplaceUserRolesRequest;
-import fpt.qn.mes.auth.application.dto.response.RoleDto;
+import fpt.qn.mes.auth.application.dto.response.RoleResponse;
 import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
 import fpt.qn.mes.auth.application.exception.UserReferenceNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
@@ -34,14 +34,14 @@ public class UserRoleService implements UserRoleUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoleDto> getUserRoles(UUID userId) {
+    public List<RoleResponse> getUserRoles(UUID userId) {
         requireUser(userId);
         return toDtos(userRoleRepository.findRolesByUserId(userId));
     }
 
     @Override
     @Transactional
-    public List<RoleDto> replaceUserRoles(UUID userId, ReplaceUserRolesRequest request) {
+    public List<RoleResponse> replaceUserRoles(UUID userId, ReplaceUserRolesRequest request) {
         requireUser(userId);
         administrativeAccessGuard.lock();
         LinkedHashSet<UUID> unique = new LinkedHashSet<>(request.getRoleIds());
@@ -62,8 +62,8 @@ public class UserRoleService implements UserRoleUseCase {
     }
 
 
-    private List<RoleDto> toDtos(List<Role> roles) {
-        List<RoleDto> result = new ArrayList<>();
+    private List<RoleResponse> toDtos(List<Role> roles) {
+        List<RoleResponse> result = new ArrayList<>();
         for (Role role : roles) {
             result.add(roleDtoMapper.toDto(role));
         }
