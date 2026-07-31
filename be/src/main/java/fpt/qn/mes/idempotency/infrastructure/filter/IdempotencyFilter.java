@@ -1,8 +1,6 @@
-package fpt.qn.mes.common.idempotency.infrastructure.filter;
+package fpt.qn.mes.idempotency.infrastructure.filter;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
 import java.util.UUID;
 
 import jakarta.servlet.FilterChain;
@@ -10,10 +8,10 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
@@ -23,36 +21,23 @@ import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.exception.AppException;
 import fpt.qn.mes.common.exception.ErrorCode;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService.ClaimResult;
-import fpt.qn.mes.common.idempotency.domain.entities.IdempotencyKey;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService.ClaimResult;
+import fpt.qn.mes.idempotency.domain.entities.IdempotencyKey;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 
-// XÓA @Component Ở ĐÂY!
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Slf4j
 public class IdempotencyFilter extends OncePerRequestFilter {
 
     public static final String HEADER_IDEMPOTENCY_KEY = "X-Idempotency-Key";
 
-    // Danh sách các method không làm thay đổi dữ liệu, bỏ qua filter này
-    private static final Set<String> SAFE_METHODS = Set.of(
-            HttpMethod.GET.name(), 
-            HttpMethod.HEAD.name(), 
-            HttpMethod.OPTIONS.name(), 
-            HttpMethod.TRACE.name()
-    );
-
     IdempotencyService idempotencyService;
     ObjectMapper objectMapper;
-
-    // Bỏ qua GET, OPTIONS... để tối ưu hiệu năng
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return SAFE_METHODS.contains(request.getMethod());
-    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -70,8 +55,12 @@ public class IdempotencyFilter extends OncePerRequestFilter {
         UUID userId = resolveUserId();
         String clientIdentifier = resolveClientIdentifier(wrappedRequest, userId);
         String requestPath = wrappedRequest.getRequestURI();
-        String requestMethod = wrappedRequest.getMethod(); // Của bạn thêm vào
+        String requestMethod = wrappedRequest.getMethod();
         byte[] requestBody = wrappedRequest.getCachedBody();
+
+        log.info("request path: {}", requestPath);
+        log.info("requestMethod: {}", requestMethod);
+
 
         ClaimResult claimResult;
         try {
@@ -83,23 +72,13 @@ public class IdempotencyFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Đã có người gọi Key này trước đó
         if (!claimResult.isNewClaim()) {
             IdempotencyKey cachedKey = claimResult.record();
-
-            // CHẶN NGAY RACE CONDITION: Key tồn tại nhưng chưa có kết quả (đang xử lý)
-            if (cachedKey.getResponseBody() == null) {
-                writeErrorResponse(response, 409, ErrorCode.CONFLICT, "Request is currently being processed. Please wait.");
-                return;
-            }
-
-            // Trả về kết quả cũ kèm chuẩn UTF-8
             response.setStatus(cachedKey.getStatusCode());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            
-            response.getWriter().write(cachedKey.getResponseBody());
-            response.getWriter().flush();
+            if (cachedKey.getResponseBody() != null) {
+                response.getWriter().write(cachedKey.getResponseBody());
+            }
             return;
         }
 
@@ -111,13 +90,13 @@ public class IdempotencyFilter extends OncePerRequestFilter {
 
             int status = wrappedResponse.getStatus();
             byte[] responseBodyBytes = wrappedResponse.getContentAsByteArray();
-            
-            // LẤY CHUỖI RESPONSE CHUẨN UTF-8 TRÁNH LỖI FONT
-            String responseBodyStr = new String(responseBodyBytes, StandardCharsets.UTF_8);
+            String responseBodyStr = new String(responseBodyBytes, response.getCharacterEncoding());
 
             if (status >= 200 && status < 300) {
+                // Record successful 2xx response for future idempotency replay
                 idempotencyService.recordSuccessResponse(recordId, status, responseBodyStr);
             } else {
+                // Non-2xx response -> release claim lock to permit retries
                 idempotencyService.releaseLockOnFailure(recordId);
             }
 
@@ -146,13 +125,9 @@ public class IdempotencyFilter extends OncePerRequestFilter {
     }
 
     private void writeErrorResponse(HttpServletResponse response, int status, ErrorCode errorCode, String message) throws IOException {
-        // KIỂM TRA ĐỂ TRÁNH LỖI CRASH "RESPONSE ALREADY COMMITTED"
-        if (!response.isCommitted()) {
-            response.setStatus(status);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-            ApiResponse<Void> apiResponse = ApiResponse.error(errorCode, message);
-            objectMapper.writeValue(response.getOutputStream(), apiResponse);
-        }
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ApiResponse<Void> apiResponse = ApiResponse.error(errorCode, message);
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
     }
 }

@@ -1,10 +1,10 @@
-package fpt.qn.mes.common.idempotency.domain.repository;
+package fpt.qn.mes.idempotency.domain.repository;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.idempotency.domain.entities.IdempotencyKey;
 import fpt.qn.mes.common.repository.BaseDomainRepository;
+import fpt.qn.mes.idempotency.domain.entities.IdempotencyKey;
 
 public interface IdempotencyKeyRepository extends BaseDomainRepository<IdempotencyKey, UUID> {
 

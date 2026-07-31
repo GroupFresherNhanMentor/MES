@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency.application.service;
+package fpt.qn.mes.idempotency.application.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -13,11 +13,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fpt.qn.mes.common.idempotency.application.exception.IdempotencyConflictException;
-import fpt.qn.mes.common.idempotency.application.exception.IdempotencyPayloadMismatchException;
-import fpt.qn.mes.common.idempotency.domain.entities.IdempotencyKey;
-import fpt.qn.mes.common.idempotency.domain.repository.IdempotencyKeyRepository;
 import fpt.qn.mes.common.util.UuidV7;
+import fpt.qn.mes.idempotency.application.exception.IdempotencyConflictException;
+import fpt.qn.mes.idempotency.application.exception.IdempotencyPayloadMismatchException;
+import fpt.qn.mes.idempotency.domain.entities.IdempotencyKey;
+import fpt.qn.mes.idempotency.domain.repository.IdempotencyKeyRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

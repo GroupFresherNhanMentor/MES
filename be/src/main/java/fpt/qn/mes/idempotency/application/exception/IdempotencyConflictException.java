@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency.application.exception;
+package fpt.qn.mes.idempotency.application.exception;
 
 import fpt.qn.mes.common.exception.AppException;
 import fpt.qn.mes.common.exception.ErrorCode;

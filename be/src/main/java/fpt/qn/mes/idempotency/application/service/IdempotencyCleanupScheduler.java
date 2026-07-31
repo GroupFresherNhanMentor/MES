@@ -1,9 +1,9 @@
-package fpt.qn.mes.common.idempotency.application.service;
+package fpt.qn.mes.idempotency.application.service;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import fpt.qn.mes.common.idempotency.domain.repository.IdempotencyKeyRepository;
+import fpt.qn.mes.idempotency.domain.repository.IdempotencyKeyRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

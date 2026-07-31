@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency.domain.entities;
+package fpt.qn.mes.idempotency.domain.entities;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

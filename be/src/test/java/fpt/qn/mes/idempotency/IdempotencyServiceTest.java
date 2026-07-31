@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency;
+package fpt.qn.mes.idempotency;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,12 +19,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import fpt.qn.mes.common.idempotency.application.exception.IdempotencyConflictException;
-import fpt.qn.mes.common.idempotency.application.exception.IdempotencyPayloadMismatchException;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService.ClaimResult;
-import fpt.qn.mes.common.idempotency.domain.entities.IdempotencyKey;
-import fpt.qn.mes.common.idempotency.domain.repository.IdempotencyKeyRepository;
+import fpt.qn.mes.idempotency.application.exception.IdempotencyConflictException;
+import fpt.qn.mes.idempotency.application.exception.IdempotencyPayloadMismatchException;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService.ClaimResult;
+import fpt.qn.mes.idempotency.domain.entities.IdempotencyKey;
+import fpt.qn.mes.idempotency.domain.repository.IdempotencyKeyRepository;
 
 @ExtendWith(MockitoExtension.class)
 class IdempotencyServiceTest {

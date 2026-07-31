@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency.infrastructure.persistence;
+package fpt.qn.mes.idempotency.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.IDEMPOTENCY_KEYS;
 
@@ -9,14 +9,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
-
 import org.springframework.stereotype.Repository;
 
-import fpt.qn.mes.common.idempotency.application.mapper.IdempotencyKeyRecordMapper;
-import fpt.qn.mes.common.idempotency.domain.entities.IdempotencyKey;
-import fpt.qn.mes.common.idempotency.domain.repository.IdempotencyKeyRepository;
 import fpt.qn.mes.common.repository.BaseRepository;
-import fpt.qn.mes.common.util.UuidV7;
+import fpt.qn.mes.idempotency.application.mapper.IdempotencyKeyRecordMapper;
+import fpt.qn.mes.idempotency.domain.entities.IdempotencyKey;
+import fpt.qn.mes.idempotency.domain.repository.IdempotencyKeyRepository;
 import fpt.qn.mes.jooq.tables.records.IdempotencyKeysRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -63,7 +61,7 @@ public class IdempotencyKeyPersistenceAdapter extends BaseRepository<Idempotency
     public IdempotencyKey save(IdempotencyKey entity) {
         IdempotencyKeysRecord record = mapper.toRecord(entity);
         if (record.getId() == null) {
-            record.setId(UuidV7.generate());
+            record.setId(UUID.randomUUID());
         }
         if (record.getCreatedAt() == null) {
             record.setCreatedAt(OffsetDateTime.now(ZoneOffset.UTC));

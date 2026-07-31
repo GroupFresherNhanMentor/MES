@@ -2,9 +2,7 @@ package fpt.qn.mes.auth.infrastructure.config;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-
 import javax.crypto.spec.SecretKeySpec;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,12 +25,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-
 import fpt.qn.mes.auth.infrastructure.security.AppJwtAuthenticationConverter;
 import fpt.qn.mes.auth.infrastructure.security.JwtAccessDeniedHandler;
 import fpt.qn.mes.auth.infrastructure.security.JwtAuthenticationEntryPoint;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService;
-import fpt.qn.mes.common.idempotency.infrastructure.filter.IdempotencyFilter;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.idempotency.infrastructure.filter.IdempotencyFilter;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -71,9 +68,6 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/api/stock**",
                                 "/api/stock**/**",
-                                "/api/stock-lots/**",
-                                "/api/stock-movements/**",
-                                "/api/stock-in/**",
                                 "/api/lot-types/**",
                                 "/api/stock-statuses/**",
                                 "/api/movement-types/**"

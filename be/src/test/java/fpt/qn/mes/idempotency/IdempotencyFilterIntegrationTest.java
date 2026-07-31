@@ -1,4 +1,4 @@
-package fpt.qn.mes.common.idempotency;
+package fpt.qn.mes.idempotency;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import fpt.qn.mes.AbstractIntegrationTest;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService;
-import fpt.qn.mes.common.idempotency.application.service.IdempotencyService.ClaimResult;
-import fpt.qn.mes.common.idempotency.domain.repository.IdempotencyKeyRepository;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService;
+import fpt.qn.mes.idempotency.application.service.IdempotencyService.ClaimResult;
+import fpt.qn.mes.idempotency.domain.repository.IdempotencyKeyRepository;
 
 class IdempotencyFilterIntegrationTest extends AbstractIntegrationTest {
 
