@@ -5,18 +5,21 @@ import java.util.UUID;
 
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.dto.response.BomItemDto;
+import fpt.qn.mes.bom.application.dto.response.BomResponse;
+import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.service.LookupEntry;
 
+import fpt.qn.mes.bom.application.dto.request.UpdateBomItemRequest;
+
 public interface BomUseCase {
     List<LookupEntry> getBomStatuses();
-    PageResponse<BomDto> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId);
-    BomDto getBomById(UUID id);
-    BomDto createBom(CreateBomRequest request);
-    BomDto activateBom(UUID id);
-    BomDto createNewVersion(UUID id);
-    BomItemDto addBomItem(UUID bomId, CreateBomItemRequest request);
+    PageResponse<BomResponse> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId);
+    BomResponse getBomById(UUID id);
+    BomResponse createBom(CreateBomRequest request);
+    BomResponse activateBom(UUID id);
+    BomResponse createNewVersion(UUID id);
+    BomItemResponse addBomItem(UUID bomId, CreateBomItemRequest request);
+    BomItemResponse updateBomItem(UUID bomId, UUID itemId, UpdateBomItemRequest request);
     void deleteBomItem(UUID bomId, UUID itemId);
 }

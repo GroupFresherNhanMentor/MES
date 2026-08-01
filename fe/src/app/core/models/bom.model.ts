@@ -18,6 +18,7 @@ export interface BomItemDto {
   materialProductName?: string;
   materialProductCode?: string;
   quantityPerUnit: number;
+  unitId?: string;
   unit?: string;
   scrapRate?: number;
 }

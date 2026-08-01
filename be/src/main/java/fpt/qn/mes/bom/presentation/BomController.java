@@ -15,10 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.PutMapping;
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.dto.response.BomItemDto;
+import fpt.qn.mes.bom.application.dto.request.UpdateBomItemRequest;
+import fpt.qn.mes.bom.application.dto.response.BomResponse;
+import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
@@ -38,7 +40,7 @@ public class BomController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'FACTORY_MANAGER', 'OPERATOR', 'QC_INSPECTOR')")
-    public ResponseEntity<ApiResponse<PageResponse<BomDto>>> getBoms(
+    public ResponseEntity<ApiResponse<PageResponse<BomResponse>>> getBoms(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) UUID finishedProductId,
@@ -49,37 +51,44 @@ public class BomController {
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'FACTORY_MANAGER', 'OPERATOR', 'QC_INSPECTOR')")
-    public ResponseEntity<ApiResponse<BomDto>> getBomById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<BomResponse>> getBomById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(bomUseCase.getBomById(id), "OK"));
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
-    public ResponseEntity<ApiResponse<BomDto>> createBom(
+    public ResponseEntity<ApiResponse<BomResponse>> createBom(
             @Valid @RequestBody CreateBomRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(bomUseCase.createBom(request), "Created"));
+.body(ApiResponse.success(bomUseCase.createBom(request), "Created"));
     }
 
     @PostMapping("/{id}/activate")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
-    public ResponseEntity<ApiResponse<BomDto>> activateBom(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<BomResponse>> activateBom(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(bomUseCase.activateBom(id), "OK"));
     }
 
     @PostMapping("/{id}/new-version")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
-    public ResponseEntity<ApiResponse<BomDto>> createNewVersion(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<BomResponse>> createNewVersion(@PathVariable UUID id) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(bomUseCase.createNewVersion(id), "Created"));
+.body(ApiResponse.success(bomUseCase.createNewVersion(id), "Created"));
     }
 
     @PostMapping("/{bomId}/items")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
-    public ResponseEntity<ApiResponse<BomItemDto>> addBomItem(
+    public ResponseEntity<ApiResponse<BomItemResponse>> addBomItem(
             @PathVariable UUID bomId, @Valid @RequestBody CreateBomItemRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(bomUseCase.addBomItem(bomId, request), "Created"));
+    }
+
+    @PutMapping("/{bomId}/items/{itemId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    public ResponseEntity<ApiResponse<BomItemResponse>> updateBomItem(
+            @PathVariable UUID bomId, @PathVariable UUID itemId, @Valid @RequestBody UpdateBomItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(bomUseCase.updateBomItem(bomId, itemId, request), "OK"));
     }
 
     @DeleteMapping("/{bomId}/items/{itemId}")
@@ -87,7 +96,7 @@ public class BomController {
     public ResponseEntity<ApiResponse<Void>> deleteBomItem(
             @PathVariable UUID bomId, @PathVariable UUID itemId) {
         bomUseCase.deleteBomItem(bomId, itemId);
-        return ResponseEntity.ok(ApiResponse.success(null, "Deleted"));
+        return ResponseEntity.ok(ApiResponse.success("Deleted"));
     }
 
     @GetMapping("/statuses")

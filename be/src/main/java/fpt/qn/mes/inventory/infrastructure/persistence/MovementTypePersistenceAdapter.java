@@ -1,21 +1,27 @@
 package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.MOVEMENT_TYPES;
+import static fpt.qn.mes.jooq.Tables.USERS;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
+import fpt.qn.mes.jooq.tables.Users;
 import fpt.qn.mes.jooq.tables.records.MovementTypesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -24,27 +30,45 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypesRecord> implements MovementTypeRepository {
 
-    public MovementTypePersistenceAdapter(DSLContext ctx) {
+    private static final Users CREATOR = USERS.as("creator");
+    private static final Users UPDATER = USERS.as("updater");
+
+    private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
+            "name", MOVEMENT_TYPES.NAME,
+            "created_at", MOVEMENT_TYPES.CREATED_AT
+    );
+    private static final Field<?> DEFAULT_SORT_FIELD = MOVEMENT_TYPES.CREATED_AT;
+
+    MovementTypeRecordMapper mapper;
+
+    public MovementTypePersistenceAdapter(DSLContext ctx, MovementTypeRecordMapper mapper) {
         super(ctx, MOVEMENT_TYPES);
+        this.mapper = mapper;
     }
 
     @Override
     public Optional<MovementType> findById(UUID id) {
-        if (id == null) {
-            return Optional.empty();
-        }
-        return fetchById(id).map(r -> MovementType.builder()
-                .id(r.getId())
-                .name(r.getName())
-                .description(r.getDescription())
-                .build());
+        return ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
+                .where(MOVEMENT_TYPES.ID.eq(id))
+                .fetchOptional(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
+    }
+
+    @Override
+    public Optional<MovementType> findByName(String name) {
+        return ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
+                .where(MOVEMENT_TYPES.NAME.eq(name))
+                .fetchOptional(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
     public Optional<UUID> findIdByName(String name) {
-        if (name == null || name.isBlank()) {
-            return Optional.empty();
-        }
+        if (name == null || name.isBlank()) return Optional.empty();
         return ctx.select(MOVEMENT_TYPES.ID)
                 .from(MOVEMENT_TYPES)
                 .where(MOVEMENT_TYPES.NAME.eq(name))
@@ -52,41 +76,51 @@ public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypes
     }
 
     @Override
-    public List<MovementType> search(MovementTypeSearchCriteria criteria) {
-        Condition condition = buildCondition(criteria);
-        int page = criteria != null ? criteria.getPage() : 0;
-        int size = criteria != null ? criteria.getSize() : 20;
-
-        return ctx.selectFrom(MOVEMENT_TYPES)
-                .where(condition)
-                .limit(size)
-                .offset(page * size)
-                .fetch(r -> MovementType.builder()
-                        .id(r.getId())
-                        .name(r.getName())
-                        .description(r.getDescription())
-                        .build());
+    public boolean existsById(UUID id) {
+        return ctx.fetchExists(MOVEMENT_TYPES, MOVEMENT_TYPES.ID.eq(id));
     }
 
     @Override
-    public long count(MovementTypeSearchCriteria criteria) {
+    public boolean existsByName(String name) {
+        return ctx.fetchExists(MOVEMENT_TYPES, MOVEMENT_TYPES.NAME.eq(name));
+    }
+
+    @Override
+    public MovementType save(MovementType movementType) {
+        MovementTypesRecord r = mapper.toRecord(movementType);
+        ctx.insertInto(MOVEMENT_TYPES).set(r)
+                .onConflict(MOVEMENT_TYPES.ID).doUpdate().set(r)
+                .execute();
+        return movementType;
+    }
+
+    @Override
+    public PaginationResult<MovementType> search(MovementTypeSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
-        return ctx.fetchCount(ctx.selectFrom(MOVEMENT_TYPES).where(condition));
+        List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
+        long total = ctx.fetchCount(MOVEMENT_TYPES, condition);
+        List<MovementType> items = ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
+                .where(condition)
+                .orderBy(orderBy)
+                .limit(criteria.getSize())
+                .offset((long) criteria.getPage() * criteria.getSize())
+                .fetch(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
+        return PaginationResult.<MovementType>builder().total(total).items(items).build();
     }
 
     private Condition buildCondition(MovementTypeSearchCriteria criteria) {
-        if (criteria == null) {
-            return DSL.noCondition();
-        }
-        List<Condition> conditions = new ArrayList<>();
+        Condition condition = DSL.noCondition();
         if (criteria.getQuery() != null && !criteria.getQuery().isBlank()) {
-            String pattern = "%" + criteria.getQuery().trim() + "%";
-            conditions.add(MOVEMENT_TYPES.NAME.likeIgnoreCase(pattern)
-                    .or(MOVEMENT_TYPES.DESCRIPTION.likeIgnoreCase(pattern)));
+            condition = condition.and(
+                    MOVEMENT_TYPES.NAME.containsIgnoreCase(criteria.getQuery())
+                            .or(MOVEMENT_TYPES.DESCRIPTION.containsIgnoreCase(criteria.getQuery())));
         }
         if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            conditions.add(MOVEMENT_TYPES.NAME.eq(criteria.getName().trim()));
+            condition = condition.and(MOVEMENT_TYPES.NAME.containsIgnoreCase(criteria.getName()));
         }
-        return conditions.stream().reduce(DSL.noCondition(), Condition::and);
+        return condition;
     }
 }

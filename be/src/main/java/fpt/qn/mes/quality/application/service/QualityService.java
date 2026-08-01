@@ -38,6 +38,9 @@ import fpt.qn.mes.quality.domain.repository.QcStatusRepository;
 import fpt.qn.mes.quality.domain.repository.QualityInspectionRepository;
 import fpt.qn.mes.quality.domain.repository.criteria.QualityInspectionResultSearchCriteria;
 import fpt.qn.mes.quality.domain.repository.criteria.QualityInspectionSearchCriteria;
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -53,6 +56,7 @@ public class QualityService implements QualityUseCase {
     QcStockPort qcStockPort;
     QualityDtoMapper qualityDtoMapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -142,6 +146,11 @@ public class QualityService implements QualityUseCase {
             inspectionId, true, request.getPassedQuantity(), null, null, null, currentUserId, request.getNote());
         inspectionRepository.saveResult(result);
 
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.QC_PASS, "QUALITY_INSPECTION", inspectionId,
+                    null, "{\"passedQuantity\":" + request.getPassedQuantity() + "}", null));
+        }
+
         UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
         UUID toStockStatusId   = qcStockPort.getAvailableStatusId();
         UUID movementTypeId    = qcStockPort.getQcReleaseMovementTypeId();
@@ -201,6 +210,17 @@ public class QualityService implements QualityUseCase {
         QualityInspectionResult result = QualityInspectionResult.create(
             inspectionId, false, failedQty, defectType, request.getReason(), action, currentUserId, request.getNote());
         inspectionRepository.saveResult(result);
+
+        if (eventPublisher != null) {
+            AuditAction auditAction = AuditAction.QC_FAIL;
+            if ("HOLD".equals(actionName)) {
+                auditAction = AuditAction.QC_HOLD;
+            } else if ("SCRAP".equals(actionName)) {
+                auditAction = AuditAction.SCRAP_STOCK;
+            }
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, auditAction, "QUALITY_INSPECTION", inspectionId,
+                    null, "{\"failedQuantity\":" + failedQty + ",\"reason\":\"" + request.getReason() + "\",\"action\":\"" + actionName + "\"}", null));
+        }
 
         UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
         String qcStatusName;

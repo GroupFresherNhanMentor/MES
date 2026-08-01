@@ -136,14 +136,14 @@ Factory Manager xem báo cáo | Auditor xem audit log
 **Actor:** Mọi user (login), Admin (quản lý user/role).
 
 **FR-AUTH-001 — Login**
-- Input: `username, password`. Output: `accessToken, refreshToken (optional), user profile, roles, permissions`.
+- Input: `username, password`. Output: `userId, username, accessToken, refreshToken`.
 - Sai password → lỗi authentication failed. Đúng → JWT hợp lệ.
 
 **FR-AUTH-002 — Role-based access control**
 - API giới hạn theo role (VD: chỉ Admin tạo user, chỉ duy nhất Planner tạo Work Order). Sai quyền → HTTP 403.
-- **Quyết định triển khai:** Permission tính theo role qua map tĩnh trong code (`Map<Role, Set<Permission>>`) ở mức Must Have — không bắt buộc phải có UI quản lý permission động, dù bảng `permissions`/`role_permissions` đã có sẵn trong schema (kế thừa từ `diagram.puml`) cho hướng mở rộng sau này.
+- **Quyết định triển khai:** Spring Security chỉ nạp các authority dạng `ROLE_<ROLE_NAME>` từ `user_roles`; controller khai báo trực tiếp các role được phép truy cập.
 
-**Data model:** `users, roles, permissions, user_roles, role_permissions`
+**Data model:** `users, roles, user_roles, permissions, role_permissions` (`permissions` và `role_permissions` được giữ để tương thích dữ liệu nhưng không tham gia authorization runtime)
 
 ---
 
@@ -300,8 +300,10 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 **Actor:** Planner.
 
 **FR-RES-001 — Reserve**
-- Đọc BOM → tính required → chỉ reserve nếu AVAILABLE đủ → chuyển AVAILABLE→RESERVED (ở `stock_balances`), tạo movement RESERVE, **WO chuyển sang `READY_TO_PRODUCE`** (đã bỏ `MATERIAL_RESERVED`, xem mục 3.6). Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
-- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at` (gap tự quyết định).
+- Đọc BOM → tính required → truy vấn và gom nguyên vật liệu khả dụng (`AVAILABLE`) từ tất cả các Kho đang hoạt động (`ACTIVE`) trong hệ thống theo thứ tự ngày nhập kho/tạo lô FIFO (`stock_lots.created_at ASC`).
+- Không yêu cầu truyền `machineId` hay Request Body tại bước reserve (kiểm tra trạng thái máy sản xuất được chuyển sang bước khởi chạy sản xuất `/start`).
+- Chuyển `AVAILABLE` → `RESERVED` (tại đúng `stock_balances` của từng Kho và Vị trí ô/kệ), cập nhật `work_order_materials.reserved_quantity`, tạo movement log `RESERVE` chi tiết cho từng kho xuất (`from_warehouse_id`, `to_warehouse_id`, `from_location_id`, `to_location_id`). Khi đủ 100% vật tư, **WO chuyển sang `READY_TO_PRODUCE`**. Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
+- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at ASC`.
 
 **FR-RES-002 — Release**
 - Chỉ release khi RESERVED; chuyển về AVAILABLE; tạo movement RELEASE_RESERVATION; không release nếu WO đã IN_PROGRESS/COMPLETED.
@@ -449,7 +451,7 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 ### 4.1. Tổng quan theo domain
 
 ```
-AUTH            → users, roles, permissions, user_roles, role_permissions
+AUTH            → users, roles, user_roles, permissions, role_permissions
 MASTER DATA     → products (+ types/statuses/UOM), warehouses (+ managers/locations),
                    production_lines, machines
 INVENTORY       → stock_lots (+ lot_types), stock_balances (+ statuses)
@@ -468,7 +470,8 @@ AUDIT           → audit_logs, idempotency_keys
 | Nhóm | Bảng | Vai trò |
 |---|---|---|
 | Auth | `users` | Tài khoản đăng nhập |
-| | `roles`, `permissions`, `user_roles`, `role_permissions` | RBAC (permission tables kế thừa diagram.puml, không có trong URS mục 9) |
+| | `roles`, `user_roles` | Gán nhiều role cho user và phân quyền API theo role |
+| | `permissions`, `role_permissions` | Giữ lại để tương thích dữ liệu; runtime không sử dụng |
 | Master Data | `products`, `product_types`, `product_statuses` | Sản phẩm/vật tư |
 | | `units_of_measure` | Đơn vị tính (bổ sung theo URS mục 9) |
 | | `warehouses`, `warehouse_statuses`, `warehouse_managers` (bổ sung) | Kho |

@@ -7,6 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
+import { AuthService } from '../../../../core/services/auth';
+
 interface MockUser {
   id: string; fullName: string; username: string; email: string; role: string; employeeId: string;
 }
@@ -15,7 +17,7 @@ const MOCK_USERS: MockUser[] = [
   { id: '00000000-0000-0000-0000-000000000001', fullName: 'Admin', username: 'admin', email: 'admin@mes.com', role: 'ADMIN', employeeId: 'EMP001' },
   { id: '00000000-0000-0000-0000-000000000002', fullName: 'Warehouse Manager', username: 'warehouse', email: 'warehouse@mes.com', role: 'WAREHOUSE_MANAGER', employeeId: 'EMP002' },
   { id: '00000000-0000-0000-0000-000000000003', fullName: 'Planner', username: 'planner', email: 'planner@mes.com', role: 'PLANNER', employeeId: 'EMP003' },
-  { id: '00000000-0000-0000-0000-000000000004', fullName: 'Operator', username: 'operator', email: 'operator@mes.com', role: 'PRODUCTION_OPERATOR', employeeId: 'EMP004' },
+  { id: '00000000-0000-0000-0000-000000000004', fullName: 'Operator', username: 'operator', email: 'operator@mes.com', role: 'OPERATOR', employeeId: 'EMP004' },
   { id: '00000000-0000-0000-0000-000000000005', fullName: 'QC Inspector', username: 'qc', email: 'qc@mes.com', role: 'QC_INSPECTOR', employeeId: 'EMP005' },
   { id: '00000000-0000-0000-0000-000000000006', fullName: 'Maintenance Engineer', username: 'maintenance', email: 'maintenance@mes.com', role: 'MAINTENANCE_ENGINEER', employeeId: 'EMP006' },
   { id: '00000000-0000-0000-0000-000000000007', fullName: 'Factory Manager', username: 'manager', email: 'manager@mes.com', role: 'FACTORY_MANAGER', employeeId: 'EMP007' },
@@ -116,14 +118,15 @@ const MOCK_USERS: MockUser[] = [
 })
 export class Login {
   private router = inject(Router);
+  private authService = inject(AuthService);
   username = 'admin';
-  password = 'admin';
+  password = 'Admin@1234';
   error = '';
   mockUsers = MOCK_USERS;
 
   quickSelect(usr: string) {
     this.username = usr;
-    this.password = usr;
+    this.password = 'Admin@1234';
   }
 
   login() {
@@ -131,13 +134,14 @@ export class Login {
       this.error = 'Please enter username and password';
       return;
     }
-    const user = MOCK_USERS.find(u => u.username === this.username && this.password === this.username);
-    if (user) {
-      localStorage.setItem('ff_access_token', 'mock-token');
-      localStorage.setItem('ff_user', JSON.stringify({ ...user, status: 'ACTIVE' }));
-      this.router.navigateByUrl('/dashboard');
-    } else {
-      this.error = 'Invalid username or password';
-    }
+    this.error = '';
+    this.authService.login({ username: this.username, password: this.password }).subscribe({
+      next: () => {
+        void this.router.navigateByUrl('/dashboard');
+      },
+      error: (err) => {
+        this.error = err?.error?.message || 'Invalid username or password';
+      },
+    });
   }
 }

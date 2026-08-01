@@ -2,15 +2,19 @@ package fpt.qn.mes.user.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.USERS;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
+
 import fpt.qn.mes.common.domainQuery.PaginationResult;
+import fpt.qn.mes.common.exception.ConflictException;
 import fpt.qn.mes.common.repository.BaseRepository;
-import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.jooq.tables.records.UsersRecord;
 import fpt.qn.mes.user.domain.entities.User;
 import fpt.qn.mes.user.domain.repository.UserRepository;
@@ -30,60 +34,59 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
 
     @Override
     public Optional<User> findById(UUID id) {
-        UsersRecord record = ctx.selectFrom(USERS)
-                .where(USERS.ID.eq(id))
-                .fetchOne();
-        return Optional.ofNullable(userMapper.toDomain(record));
+        return fetchById(id).map(record -> userMapper.toDomain(record));
     }
 
     @Override
     public Optional<User> findByUsername(String username) {
-        UsersRecord record = ctx.selectFrom(USERS)
-                .where(USERS.USERNAME.eq(username))
-                .fetchOne();
-        return Optional.ofNullable(userMapper.toDomain(record));
+        return ctx.selectFrom(USERS)
+                .where(USERS.USERNAME.eq(username.trim()))
+                .fetchOptional()
+                .map(record -> userMapper.toDomain(record));
     }
 
     @Override
     public User save(User user) {
-        UsersRecord record = userMapper.toRecord(user);
-        if (record.getId() == null) {
-            record.setId(UuidV7.generate());
+        try {
+            return userMapper.toDomain(create(userMapper.toRecord(user)));
+        } catch (DataAccessException | DuplicateKeyException ex) {
+            throw new ConflictException("Username already exists");
         }
-        ctx.attach(record);
-        record.store();
-        return userMapper.toDomain(record);
     }
 
     @Override
     public User update(User user) {
         UsersRecord record = userMapper.toRecord(user);
-        ctx.attach(record);
-        record.update();
-        return userMapper.toDomain(record);
+        return userMapper.toDomain(ctx.update(USERS)
+                .set(record)
+                .where(USERS.ID.eq(user.getId()))
+                .returning()
+                .fetchOne());
     }
 
     @Override
     public PaginationResult<User> findAll(int page, int size) {
-        long totalElements = count();
-        List<User> items = ctx.selectFrom(USERS)
-                .orderBy(USERS.CREATED_AT.desc())
+        long total = ctx.fetchCount(USERS);
+        var records = ctx.selectFrom(USERS)
+                .orderBy(USERS.USERNAME.asc(), USERS.ID.asc())
                 .limit(size)
                 .offset(page * size)
-                .fetch()
-                .map(userMapper::toDomain);
-
-        return PaginationResult
-                    .<User>builder()
-                    .items(items)
-                    .total(totalElements)
-                    .build();
-
-
+                .fetch();
+        List<User> users = new ArrayList<>();
+        for (UsersRecord record : records) {
+            users.add(userMapper.toDomain(record));
+        }
+        return PaginationResult.<User>builder()
+                .items(users)
+                .total(total)
+                .build();
     }
 
     @Override
     public boolean existsByUsername(String username) {
-        return ctx.fetchExists(ctx.selectFrom(USERS).where(USERS.USERNAME.eq(username)));
+        return ctx.fetchExists(ctx.selectOne()
+                .from(USERS)
+                .where(USERS.USERNAME.eq(username.trim())));
     }
 }
+

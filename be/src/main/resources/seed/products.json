@@ -1,0 +1,9 @@
+[
+  { "code": "PROD-001", "name": "Electric Motor 500W", "productType": "FINISHED_GOOD", "unit": "PCS", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "PROD-002", "name": "Control Unit Assembly", "productType": "FINISHED_GOOD", "unit": "PCS", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "PROD-003", "name": "Stator Housing Sub-Assembly", "productType": "SEMI_FINISHED", "unit": "PCS", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "MAT-001", "name": "Copper Wire 1.2mm", "productType": "RAW_MATERIAL", "unit": "KG", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "MAT-002", "name": "Steel Sheet 2mm", "productType": "RAW_MATERIAL", "unit": "KG", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "MAT-003", "name": "Ball Bearing 6204", "productType": "RAW_MATERIAL", "unit": "PCS", "productStatus": "ACTIVE", "version": "1" },
+  { "code": "MAT-004", "name": "Synthetic Lubricant ISO VG 68", "productType": "CONSUMABLE", "unit": "L", "productStatus": "ACTIVE", "version": "1" }
+]

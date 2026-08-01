@@ -1,18 +1,18 @@
 package fpt.qn.mes.inventory.domain.repository;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.repository.BaseDomainRepository;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.inventory.domain.entities.LotType;
 import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
 
-public interface LotTypeRepository extends BaseDomainRepository<LotType, UUID> {
-
+public interface LotTypeRepository {
+    Optional<LotType> findById(UUID id);
+    Optional<LotType> findByName(String name);
     Optional<UUID> findIdByName(String name);
-
-    List<LotType> search(LotTypeSearchCriteria criteria);
-
-    long count(LotTypeSearchCriteria criteria);
+    boolean existsById(UUID id);
+    boolean existsByName(String name);
+    LotType save(LotType lotType);
+    PaginationResult<LotType> search(LotTypeSearchCriteria criteria);
 }

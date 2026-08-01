@@ -108,3 +108,17 @@ public class BomService {
     // use log.info(...), log.warn(...), etc.
 }
 ```
+
+---
+
+## Utilities
+
+**Pagination Calculation:** Never write manual math or use `Math.ceil()` to calculate total pages for paginated responses. Always use the centralized utility method.
+
+```java
+// FORBIDDEN
+int totalPages = (int) Math.ceil((double) result.getTotal() / size);
+
+// REQUIRED
+int totalPages = PaginationUtils.calculateTotalPages(result.getTotal(), size);
+```

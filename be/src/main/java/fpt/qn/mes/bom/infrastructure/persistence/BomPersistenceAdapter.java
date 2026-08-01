@@ -3,20 +3,29 @@ package fpt.qn.mes.bom.infrastructure.persistence;
 import static fpt.qn.mes.jooq.Tables.BOMS;
 import static fpt.qn.mes.jooq.Tables.BOM_ITEMS;
 import static fpt.qn.mes.jooq.Tables.BOM_STATUSES;
+import static fpt.qn.mes.jooq.Tables.PRODUCTS;
+import static fpt.qn.mes.jooq.Tables.UNITS_OF_MEASURE;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
+
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.BomItemsRecord;
+import fpt.qn.mes.jooq.tables.records.BomStatusesRecord;
 import fpt.qn.mes.jooq.tables.records.BomsRecord;
+import fpt.qn.mes.jooq.tables.records.ProductsRecord;
+import fpt.qn.mes.jooq.tables.records.UnitsOfMeasureRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -33,9 +42,30 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         this.dslCtx = ctx;
     }
 
+    private List<BomItem> fetchItemsForBom(UUID bomId) {
+        return dslCtx.select(BOM_ITEMS.fields())
+                .select(PRODUCTS.fields())
+                .select(UNITS_OF_MEASURE.fields())
+                .from(BOM_ITEMS)
+                .leftJoin(PRODUCTS).on(BOM_ITEMS.MATERIAL_PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(UNITS_OF_MEASURE).on(BOM_ITEMS.UNIT_ID.eq(UNITS_OF_MEASURE.ID))
+                .where(BOM_ITEMS.BOM_ID.eq(bomId))
+                .fetch(r -> {
+                    BomItemsRecord itemRec = r.into(BOM_ITEMS);
+                    ProductsRecord matRec = r.into(PRODUCTS);
+                    UnitsOfMeasureRecord unitRec = r.into(UNITS_OF_MEASURE);
+                    return mapper.toDomain(itemRec, matRec, unitRec);
+                });
+    }
+
     @Override
     public Optional<Bom> findById(UUID id) {
-        BomsRecord record = dslCtx.selectFrom(BOMS)
+        Record record = dslCtx.select(BOMS.fields())
+                .select(PRODUCTS.fields())
+                .select(BOM_STATUSES.fields())
+                .from(BOMS)
+                .leftJoin(PRODUCTS).on(BOMS.FINISHED_PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(BOM_STATUSES).on(BOMS.BOM_STATUS_ID.eq(BOM_STATUSES.ID))
                 .where(BOMS.ID.eq(id))
                 .fetchOne();
 
@@ -43,11 +73,13 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
             return Optional.empty();
         }
 
-        List<BomItem> items = dslCtx.selectFrom(BOM_ITEMS)
-                .where(BOM_ITEMS.BOM_ID.eq(id))
-                .fetch(mapper::toDomain);
+        BomsRecord bomsRecord = record.into(BOMS);
+        ProductsRecord productsRecord = record.into(PRODUCTS);
+        BomStatusesRecord statusRecord = record.into(BOM_STATUSES);
 
-        return Optional.ofNullable(mapper.toDomain(record, items));
+        List<BomItem> items = fetchItemsForBom(id);
+
+        return Optional.ofNullable(mapper.toDomain(bomsRecord, items, productsRecord, statusRecord));
     }
 
     @Override
@@ -56,7 +88,13 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         if (activeStatusId.isEmpty()) {
             return Optional.empty();
         }
-        BomsRecord record = dslCtx.selectFrom(BOMS)
+
+        Record record = dslCtx.select(BOMS.fields())
+                .select(PRODUCTS.fields())
+                .select(BOM_STATUSES.fields())
+                .from(BOMS)
+                .leftJoin(PRODUCTS).on(BOMS.FINISHED_PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(BOM_STATUSES).on(BOMS.BOM_STATUS_ID.eq(BOM_STATUSES.ID))
                 .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
                 .and(BOMS.BOM_STATUS_ID.eq(activeStatusId.get()))
                 .fetchOne();
@@ -65,11 +103,13 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
             return Optional.empty();
         }
 
-        List<BomItem> items = dslCtx.selectFrom(BOM_ITEMS)
-                .where(BOM_ITEMS.BOM_ID.eq(record.getId()))
-                .fetch(r -> mapper.toDomain(r));
+        BomsRecord bomsRecord = record.into(BOMS);
+        ProductsRecord productsRecord = record.into(PRODUCTS);
+        BomStatusesRecord statusRecord = record.into(BOM_STATUSES);
 
-        return Optional.ofNullable(mapper.toDomain(record, items));
+        List<BomItem> items = fetchItemsForBom(bomsRecord.getId());
+
+        return Optional.ofNullable(mapper.toDomain(bomsRecord, items, productsRecord, statusRecord));
     }
 
     @Override
@@ -102,12 +142,26 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
         }
 
         int offset = page * size;
-        List<Bom> items = dslCtx.selectFrom(BOMS)
+        List<Record> records = dslCtx.select(BOMS.fields())
+                .select(PRODUCTS.fields())
+                .select(BOM_STATUSES.fields())
+                .from(BOMS)
+                .leftJoin(PRODUCTS).on(BOMS.FINISHED_PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(BOM_STATUSES).on(BOMS.BOM_STATUS_ID.eq(BOM_STATUSES.ID))
                 .where(condition)
                 .orderBy(BOMS.CREATED_AT.desc())
                 .limit(size)
                 .offset(offset)
-                .fetch(r -> mapper.toDomain(r));
+                .fetch();
+
+        List<Bom> items = records.stream().map(r -> {
+            BomsRecord bomsRecord = r.into(BOMS);
+            ProductsRecord productsRecord = r.into(PRODUCTS);
+            BomStatusesRecord statusRecord = r.into(BOM_STATUSES);
+            List<BomItem> bomItems = fetchItemsForBom(bomsRecord.getId());
+            return mapper.toDomain(bomsRecord, bomItems, productsRecord, statusRecord);
+        }).toList();
+
         long total = dslCtx.fetchCount(BOMS, condition);
         return PaginationResult.<Bom>builder().total(total).items(items).build();
     }
@@ -167,9 +221,23 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
 
     @Override
     public Optional<BomItem> findItemById(UUID itemId) {
-        return dslCtx.selectFrom(BOM_ITEMS)
+        Record record = dslCtx.select(BOM_ITEMS.fields())
+                .select(PRODUCTS.fields())
+                .select(UNITS_OF_MEASURE.fields())
+                .from(BOM_ITEMS)
+                .leftJoin(PRODUCTS).on(BOM_ITEMS.MATERIAL_PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(UNITS_OF_MEASURE).on(BOM_ITEMS.UNIT_ID.eq(UNITS_OF_MEASURE.ID))
                 .where(BOM_ITEMS.ID.eq(itemId))
-                .fetchOptional(mapper::toDomain);
+                .fetchOne();
+
+        if (record == null) {
+            return Optional.empty();
+        }
+
+        BomItemsRecord itemRec = record.into(BOM_ITEMS);
+        ProductsRecord matRec = record.into(PRODUCTS);
+        UnitsOfMeasureRecord unitRec = record.into(UNITS_OF_MEASURE);
+        return Optional.ofNullable(mapper.toDomain(itemRec, matRec, unitRec));
     }
 
     @Override

@@ -6,7 +6,11 @@
 > If your implementation differs from what is listed here, **update this file immediately**.
 
 **Base URL:** `/api`  
-**Auth:** All endpoints (except `POST /auth/login`) require `Authorization: Bearer <accessToken>`  
+**Auth:** All endpoints except `POST /auth/login` and `POST /auth/refresh` require
+`Authorization: Bearer <accessToken>`. Access JWTs expire after 15 minutes;
+refresh JWTs expire after 7 days. Refresh is stateless: a valid refresh JWT can
+be reused until it expires; each successful refresh issues a new access/refresh
+pair without storing either token in the database.
 **Response envelope:** All responses wrap in `ApiResponse<T>`
 
 ```json
@@ -17,7 +21,10 @@
 { "success": false, "errorCode": "NOT_FOUND", "message": "...", "timestamp": "..." }
 ```
 
-**Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `OPERATOR` · `QC_INSPECTOR` · `MAINTENANCE_ENGINEER` · `FACTORY_MANAGER` · `AUDITOR`
+**Authorization:** Role assignments are reloaded from the database for every
+request. Spring Security exposes only `ROLE_<ROLE_NAME>` authorities. User,
+role and user-role management endpoints are ADMIN-only. Authorization rules for
+each business module are owned and declared by that module's maintainers.
 
 ---
 
@@ -32,8 +39,17 @@
 ```
 **Response `200`:**
 ```json
-{ "accessToken": "string", "refreshToken": "string" }
+{
+  "userId": "uuid",
+  "username": "string",
+  "accessToken": "string",
+  "refreshToken": "string"
+}
 ```
+
+The response intentionally exposes only the authenticated identity and token
+pair. Invalid credentials always return the same `401` response; login attempts
+are not throttled by this service.
 
 ---
 
@@ -46,7 +62,12 @@
 ```
 **Response `200`:**
 ```json
-{ "accessToken": "string", "refreshToken": "string" }
+{
+  "userId": "uuid",
+  "username": "string",
+  "accessToken": "string",
+  "refreshToken": "string"
+}
 ```
 
 ---
@@ -61,8 +82,8 @@
 **Response `200`:**
 ```json
 {
-  "content": [{ "id": "uuid", "username": "string", "fullName": "string", "active": true, "createdAt": "instant" }],
-  "page": 0, "size": 20, "totalElements": 10, "totalPages": 1
+  "items": [{ "id": "uuid", "username": "string", "fullName": "string", "active": true, "createdAt": "instant" }],
+  "pageNumber": 0, "pageSize": 20, "totalElements": 10, "totalPages": 1
 }
 ```
 
@@ -114,6 +135,27 @@
 
 ---
 
+### GET `/users/{id}/roles`
+> **Roles:** `ADMIN`
+
+**Response `200`:** `List<RoleDto>`
+
+---
+
+### PUT `/users/{id}/roles`
+> **Roles:** `ADMIN`
+
+Replaces the user's complete role set atomically. Repeated valid IDs are
+deduplicated; any missing ID rejects the complete mutation.
+
+**Request body:**
+```json
+{ "roleIds": ["uuid"] }
+```
+**Response `200`:** `List<RoleDto>`
+
+---
+
 ## 3. Roles
 
 ### GET `/roles`
@@ -121,7 +163,7 @@
 
 **Response `200`:**
 ```json
-[{ "id": "uuid", "name": "string", "description": "string", "permissionNames": ["string"] }]
+[{ "id": "uuid", "name": "string", "description": "string" }]
 ```
 
 ---
@@ -162,55 +204,7 @@
 
 ---
 
-### POST `/roles/{id}/permissions`
-> **Roles:** `ADMIN`
-
-**Request body:**
-```json
-{ "permissionIds": ["uuid"] }
-```
-**Response `200`:** `RoleDto`
-
----
-
-## 4. Permissions
-
-### GET `/permissions`
-> **Roles:** `ADMIN`
-
-**Response `200`:**
-```json
-[{ "id": "uuid", "name": "string", "description": "string" }]
-```
-
----
-
-### GET `/permissions/{id}`
-> **Roles:** `ADMIN`
-
-**Response `200`:** `PermissionDto`
-
----
-
-### POST `/permissions`
-> **Roles:** `ADMIN`
-
-**Request body:**
-```json
-{ "name": "string", "description": "string" }
-```
-**Response `201`:** `PermissionDto`
-
----
-
-### DELETE `/permissions/{id}`
-> **Roles:** `ADMIN`
-
-**Response `200`:** no data
-
----
-
-## 5. Products & Materials
+## 4. Products & Materials
 
 ### GET `/products`
 > **Roles:** All authenticated
@@ -509,7 +503,7 @@
 
 **Response `200`:** `PageResponse<BomDto>`
 ```json
-{ "id": "uuid", "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid", "createdBy": "uuid", "createdAt": "instant", "items": [] }
+{ "id": "uuid", "finishedProductId": "uuid", "finishedProductCode": "string", "finishedProductName": "string", "version": 1, "bomStatusId": "uuid", "bomStatusName": "string", "createdBy": "uuid", "createdAt": "instant", "items": [] }
 ```
 
 ---
@@ -527,8 +521,218 @@
 
 **Request body:**
 ```json
-{ "finishedProductId": "uuid", "version": 1, "bomStatusId": "uuid (optional — defaults to DRAFT)" }
+{ "finishedProductId": "uuid", "version": "integer (optional — auto-calculated maxVersion + 1 if omitted/duplicate)", "bomStatusId": "uuid (optional — defaults to DRAFT)" }
 ```
+**Response `201`:** `BomDto`
+
+---
+
+### POST `/boms/{id}/activate`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
+
+**Response `200`:** `BomDto`
+
+---
+
+### POST `/boms/{id}/new-version`
+> **Roles:** `ADMIN` · `PLANNER`  
+> **SRS:** `FR-BOM-003` — Create New BOM Version (Clones BOM header with auto-incremented version and deep-copies component items in `DRAFT` status)
+
+**Response `201`:** `BomDto`
+
+---
+
+### POST `/boms/{bomId}/items`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Request body:**
+```json
+{ "materialProductId": "uuid", "quantityPerUnit": 1.5, "unit": "string", "scrapRate": 0.02 }
+```
+**Response `201`:** `BomItemDto`
+```json
+{ "id": "uuid", "bomId": "uuid", "materialProductId": "uuid", "materialProductCode": "string", "materialProductName": "string", "quantityPerUnit": 1.5, "unitId": "uuid", "unit": "string", "scrapRate": 0.02 }
+```
+
+---
+
+### PUT `/boms/{bomId}/items/{itemId}`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Request body:**
+```json
+{ "quantityPerUnit": 2.0, "unit": "string", "scrapRate": 0.05 }
+```
+**Response `200`:** `BomItemDto`
+
+---
+
+### DELETE `/boms/{bomId}/items/{itemId}`
+> **Roles:** `ADMIN` · `PLANNER`  
+> Must be in `DRAFT` status
+
+**Response `200`:** no data
+
+---
+
+### GET `/boms/statuses`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string", "description": "string" }]`
+
+---
+
+## 11. Inventory
+
+### GET `/stock-lots`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `productId`
+
+**Response `200`:** `PageResponse<StockLotDto>`
+```json
+{ "id": "uuid", "lotNumber": "string", "productId": "uuid", "lotTypeId": "uuid", "expiryDate": "date", "createdAt": "instant" }
+```
+
+---
+
+### GET `/stock-lots/{id}`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Response `200`:** `StockLotDto`
+
+---
+
+### POST `/stock-lots`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER`
+
+**Request body:**
+```json
+{ "lotNumber": "string", "productId": "uuid", "lotTypeId": "uuid", "expiryDate": "date" }
+```
+**Response `201`:** `StockLotDto`
+
+---
+
+### GET `/stock-balances`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `PLANNER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `warehouseId` · `productId` · `locationId`
+
+**Response `200`:** `PageResponse<StockBalanceDto>`
+```json
+{ "id": "uuid", "warehouseId": "uuid", "locationId": "uuid", "productId": "uuid", "lotId": "uuid", "stockStatusId": "uuid", "quantity": 100.00, "version": 1 }
+```
+
+---
+
+### GET `/stock-movements`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER` · `FACTORY_MANAGER` · `AUDITOR`
+
+**Query params:** `page` · `size` · `productId` · `warehouseId` · `movementTypeId` · `from` · `to`
+
+**Response `200`:** `PageResponse<StockMovementDto>`
+
+---
+
+### POST `/stock-movements`
+> **Roles:** `ADMIN` · `WAREHOUSE_MANAGER`
+
+**Request body:**
+```json
+{
+  "movementTypeId": "uuid", "productId": "uuid", "lotId": "uuid",
+  "warehouseId": "uuid", "locationId": "uuid", "quantity": 50.0,
+  "fromStatusId": "uuid", "toStatusId": "uuid", "reason": "string"
+}
+```
+**Response `201`:** `StockMovementDto`
+
+---
+
+### GET `/lot-types`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+### GET `/stock-statuses`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+### GET `/movement-types`
+> **Roles:** All authenticated
+
+**Response `200`:** `[{ "id": "uuid", "name": "string" }]`
+
+---
+
+## 12. Work Orders
+
+### GET `/work-orders`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR` · `FACTORY_MANAGER`
+
+**Query params:** `page` · `size` · `statusId` · `productId`
+
+**Response `200`:** `PageResponse<WorkOrderDto>`
+```json
+{
+  "id": "uuid", "code": "string", "finishedProductId": "uuid", "bomId": "uuid",
+  "plannedQuantity": 100.0, "plannedStartDate": "instant", "plannedEndDate": "instant",
+  "priorityId": "uuid", "workOrderStatusId": "uuid", "createdBy": "uuid", "createdAt": "instant"
+}
+```
+
+---
+
+### GET `/work-orders/{id}`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR` · `FACTORY_MANAGER`
+
+**Response `200`:** `WorkOrderDto`
+
+---
+
+### POST `/work-orders`
+> **Roles:** `ADMIN` · `PLANNER`
+
+**Request body:**
+```json
+{
+  "code": "string", "finishedProductId": "uuid", "bomId": "uuid",
+  "plannedQuantity": 100.0, "plannedStartDate": "instant", "plannedEndDate": "instant",
+  "priorityId": "uuid", "workOrderStatusId": "uuid"
+}
+```
+**Response `201`:** `WorkOrderDto`
+
+---
+
+### PUT `/work-orders/{id}`
+> **Roles:** `ADMIN` · `PLANNER`
+
+**Request body:**
+```json
+{
+  "code": "string", 
+  "plannedQuantity": 100.0,
+  "plannedStartDate": "instant", 
+  "plannedEndDate": "instant",
+  "priorityId": "uuid", 
+  "workOrderStatusId": "uuid"
+}
+```
+**Constraints:**
+* `plannedQuantity` must be > 0.
+* `plannedStartDate` must be before `plannedEndDate`.
+* If `workOrderStatusId` is provided, it only allows simple planning transitions `DRAFT ⇄ PLANNED`. Other states (like `IN_PROGRESS`, `CANCELLED`, etc.) passed via PUT will be rejected (HTTP 400).
+* Requires the client to use dedicated Action Endpoints (`/reserve-materials`, `/start`, `/pause`, `/resume`, `/complete`, `/cancel`) for operational status transitions.
 **Response `201`:** `BomDto`
 
 ---
@@ -729,6 +933,7 @@
 
 ---
 
+<<<<<<< HEAD
 ### POST `/api/v1/work-orders/{id}/reserve-materials`
 > **Roles:** `PLANNER`
 
@@ -762,6 +967,19 @@
     "status": "READY_TO_PRODUCE"
   }
 }
+=======
+### POST `/work-orders/{id}/reserve-materials`
+> **Roles:** `PLANNER`
+
+**Request body:** None.
+
+**Business rules:**
+* The system queries `AVAILABLE` stock balances across all `ACTIVE` warehouses in pure FIFO date order (`stock_lots.created_at ASC`).
+* The client must not provide a request body or `sourceWarehouseId`.
+* When multiple lots contain the same material, lots are selected in strict FIFO order by `stock_lots.created_at`.
+* The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
+* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available. Machine assignment and availability are validated when production starts.
+>>>>>>> origin/develop
 ```
 
 ---
@@ -1090,7 +1308,7 @@
 | Module | `ADMIN` | `WH_MGR` | `PLANNER` | `OPERATOR` | `QC` | `MAINT` | `MGR` | `AUDITOR` |
 |--------|:-------:|:---------:|:---------:|:----------:|:----:|:-------:|:-----:|:---------:|
 | Users | CRUD | — | — | — | — | — | R | — |
-| Roles / Permissions | CRUD | — | — | — | — | — | — | — |
+| Roles | CRUD | — | — | — | — | — | — | — |
 | Products | CRUD | R | R | R | R | R | R | R |
 | Warehouses | CRUD | R | R | — | — | — | R | R |
 | Locations | CRUD | CRU | R | — | — | — | R | R |

@@ -45,9 +45,13 @@
 
 ### Spring Security / JWT
 - Auth uses OAuth2 Resource Server with JWT
-- Extract current user from `@AuthenticationPrincipal Jwt jwt` in controllers
-- User ID: `UUID.fromString(jwt.getSubject())`
-- Never access `SecurityContextHolder` directly in service layer — pass userId as parameter
+- Controllers may receive `AppUserPrincipal` through `@AuthenticationPrincipal`
+  for presentation-only needs, but do not pass a user ID into use cases solely
+  for authorization or audit ownership.
+- Application services obtain the current identity through the auth-owned
+  `CurrentUserPort`.
+- Only the infrastructure adapter implementing `CurrentUserPort` may access
+  `SecurityContextHolder`; application services never access it directly.
 
 ### Validation
 - Use Jakarta Bean Validation (`@NotNull`, `@NotBlank`, `@Valid`) on request DTOs
@@ -117,3 +121,4 @@ For tables with a `code` column, include it:
 | `@Autowired` field injection | Constructor injection via `@RequiredArgsConstructor` |
 | Raw `List<Object[]>` from queries | Typed jOOQ record mappers |
 | Importing infrastructure in application | Always depend on interfaces |
+| `UUID.randomUUID()` for entity IDs | `UuidV7.generate()` from `fpt.qn.mes.common.util.UuidV7` |

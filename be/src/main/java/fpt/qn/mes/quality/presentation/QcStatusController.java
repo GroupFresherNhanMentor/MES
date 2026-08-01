@@ -38,6 +38,6 @@ public class QcStatusController {
     public ResponseEntity<ApiResponse<Void>> createQcStatus(
             @Valid @RequestBody CreateQcStatusRequest request) {
         qcStatusUseCase.createQcStatus(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Created"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
     }
 }

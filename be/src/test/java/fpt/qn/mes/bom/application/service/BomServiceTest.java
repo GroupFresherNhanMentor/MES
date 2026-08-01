@@ -26,8 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.exception.BomAlreadyExistsException;
+import fpt.qn.mes.bom.application.dto.response.BomResponse;
 import fpt.qn.mes.bom.application.exception.BomNotFoundException;
 import fpt.qn.mes.bom.application.exception.EmptyBomException;
 import fpt.qn.mes.bom.application.exception.InvalidBomStatusException;
@@ -37,7 +36,7 @@ import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.master.product.application.dto.response.ProductDto;
+import fpt.qn.mes.master.product.application.dto.product.ProductResponse;
 import fpt.qn.mes.master.product.application.exception.ProductNotFoundException;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 
@@ -112,7 +111,7 @@ class BomServiceTest {
                 .items(Collections.emptyList())
                 .build();
 
-        BomDto bomDto = BomDto.builder()
+        BomResponse bomDto = BomResponse.builder()
                 .id(bom.getId())
                 .finishedProductId(finishedProductId)
                 .version(1)
@@ -126,7 +125,7 @@ class BomServiceTest {
         when(bomRepository.findAll(0, 10, finishedProductId, activeStatusId)).thenReturn(paginationResult);
         when(mapper.toDto(bom)).thenReturn(bomDto);
 
-        PageResponse<BomDto> response = bomService.getBoms(0, 10, finishedProductId, activeStatusId);
+        PageResponse<BomResponse> response = bomService.getBoms(0, 10, finishedProductId, activeStatusId);
 
         assertNotNull(response);
         assertEquals(1, response.getTotalElements());
@@ -140,7 +139,7 @@ class BomServiceTest {
         request.setFinishedProductId(finishedProductId);
         request.setVersion(1);
 
-        ProductDto productDto = ProductDto.builder().id(finishedProductId).build();
+        ProductResponse productDto = ProductResponse.builder().id(finishedProductId).build();
         when(productUseCase.getProductById(finishedProductId)).thenReturn(productDto);
         when(bomRepository.existsByFinishedProductIdAndVersion(finishedProductId, 1)).thenReturn(false);
         when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
@@ -156,7 +155,7 @@ class BomServiceTest {
                 .items(Collections.emptyList())
                 .build();
 
-        BomDto bomDto = BomDto.builder()
+        BomResponse bomDto = BomResponse.builder()
                 .id(savedBom.getId())
                 .finishedProductId(finishedProductId)
                 .version(1)
@@ -169,7 +168,7 @@ class BomServiceTest {
         when(bomRepository.save(any(Bom.class))).thenReturn(savedBom);
         when(mapper.toDto(savedBom)).thenReturn(bomDto);
 
-        BomDto result = bomService.createBom(request);
+        BomResponse result = bomService.createBom(request);
 
         assertNotNull(result);
         assertEquals(finishedProductId, result.getFinishedProductId());
@@ -178,18 +177,46 @@ class BomServiceTest {
     }
 
     @Test
-    void createBom_DuplicateVersion_ThrowsBomAlreadyExistsException() {
+    void createBom_DuplicateVersion_AutoIncrementsVersion() {
         CreateBomRequest request = new CreateBomRequest();
         request.setFinishedProductId(finishedProductId);
         request.setVersion(1);
 
-        ProductDto productDto = ProductDto.builder().id(finishedProductId).build();
+        ProductResponse productDto = ProductResponse.builder().id(finishedProductId).build();
         when(productUseCase.getProductById(finishedProductId)).thenReturn(productDto);
+        when(bomRepository.findMaxVersionByFinishedProductId(finishedProductId)).thenReturn(1);
         when(bomRepository.existsByFinishedProductIdAndVersion(finishedProductId, 1)).thenReturn(true);
+        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
         when(currentUserPort.getCurrentUserId()).thenReturn(userId);
 
-        assertThrows(BomAlreadyExistsException.class, () -> bomService.createBom(request));
-        verify(bomRepository, never()).save(any(Bom.class));
+        Bom savedBom = Bom.builder()
+                .id(UUID.randomUUID())
+                .finishedProductId(finishedProductId)
+                .version(2)
+                .bomStatusId(draftStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(Collections.emptyList())
+                .build();
+
+        BomResponse bomDto = BomResponse.builder()
+                .id(savedBom.getId())
+                .finishedProductId(finishedProductId)
+                .version(2)
+                .bomStatusId(draftStatusId)
+                .createdBy(userId)
+                .createdAt(savedBom.getCreatedAt())
+                .items(Collections.emptyList())
+                .build();
+
+        when(bomRepository.save(any(Bom.class))).thenReturn(savedBom);
+        when(mapper.toDto(savedBom)).thenReturn(bomDto);
+
+        BomResponse result = bomService.createBom(request);
+
+        assertNotNull(result);
+        assertEquals(2, result.getVersion());
+        verify(bomRepository).save(any(Bom.class));
     }
 
     @Test
@@ -219,7 +246,7 @@ class BomServiceTest {
                 .items(Collections.emptyList())
                 .build();
 
-        BomDto bomDto = BomDto.builder()
+        BomResponse bomDto = BomResponse.builder()
                 .id(bomId)
                 .finishedProductId(finishedProductId)
                 .version(1)
@@ -232,7 +259,7 @@ class BomServiceTest {
         when(bomRepository.findById(bomId)).thenReturn(Optional.of(bom));
         when(mapper.toDto(bom)).thenReturn(bomDto);
 
-        BomDto result = bomService.getBomById(bomId);
+        BomResponse result = bomService.getBomById(bomId);
 
         assertNotNull(result);
         assertEquals(bomId, result.getId());
@@ -269,7 +296,7 @@ class BomServiceTest {
                 .items(Collections.emptyList())
                 .build();
 
-        BomDto activeBomDto = BomDto.builder()
+        BomResponse activeBomResponse = BomResponse.builder()
                 .id(bomId)
                 .finishedProductId(finishedProductId)
                 .version(1)
@@ -285,9 +312,9 @@ class BomServiceTest {
         when(bomRepository.findStatusIdByName("INACTIVE")).thenReturn(Optional.of(inactiveStatusId));
         when(bomRepository.countItemsByBomId(bomId)).thenReturn(2);
         when(bomRepository.save(any(Bom.class))).thenReturn(activeBom);
-        when(mapper.toDto(activeBom)).thenReturn(activeBomDto);
+        when(mapper.toDto(activeBom)).thenReturn(activeBomResponse);
 
-        BomDto result = bomService.activateBom(bomId);
+        BomResponse result = bomService.activateBom(bomId);
 
         assertNotNull(result);
         assertEquals(activeStatusId, result.getBomStatusId());
@@ -344,12 +371,14 @@ class BomServiceTest {
     @Test
     void createNewVersion_HappyPath_Success() {
         UUID sourceBomId = UUID.randomUUID();
+        UUID unitId = UUID.randomUUID();
         BomItem sourceItem = BomItem.builder()
                 .id(UUID.randomUUID())
                 .bomId(sourceBomId)
                 .materialProductId(UUID.randomUUID())
                 .quantityPerUnit(new BigDecimal("2.50"))
-                .unit("PCS")
+                .unitId(unitId)
+                .unitName("PCS")
                 .scrapRate(new BigDecimal("0.02"))
                 .build();
 
@@ -381,7 +410,7 @@ class BomServiceTest {
                 .items(Collections.emptyList())
                 .build();
 
-        BomDto clonedBomDto = BomDto.builder()
+        BomResponse clonedBomResponse = BomResponse.builder()
                 .id(clonedBom.getId())
                 .finishedProductId(finishedProductId)
                 .version(2)
@@ -392,9 +421,9 @@ class BomServiceTest {
                 .build();
 
         when(bomRepository.save(any(Bom.class))).thenReturn(clonedBom);
-        when(mapper.toDto(clonedBom)).thenReturn(clonedBomDto);
+        when(mapper.toDto(clonedBom)).thenReturn(clonedBomResponse);
 
-        BomDto result = bomService.createNewVersion(sourceBomId);
+        BomResponse result = bomService.createNewVersion(sourceBomId);
 
         assertNotNull(result);
         assertEquals(2, result.getVersion());
@@ -414,6 +443,7 @@ class BomServiceTest {
     @Test
     void addBomItem_HappyPath_Success() {
         UUID bomId = UUID.randomUUID();
+        UUID unitId = UUID.randomUUID();
         UUID materialProductId = UUID.randomUUID();
 
         Bom draftBom = Bom.builder()
@@ -423,43 +453,53 @@ class BomServiceTest {
                 .bomStatusId(draftStatusId)
                 .createdBy(userId)
                 .createdAt(Instant.now())
-                .items(Collections.emptyList())
+                .items(new ArrayList<>())
                 .build();
 
         CreateBomItemRequest request = new CreateBomItemRequest();
         request.setMaterialProductId(materialProductId);
-        request.setQuantityPerUnit(new BigDecimal("2.50"));
+        request.setQuantityPerUnit(new BigDecimal("1.50"));
         request.setUnit("PCS");
         request.setScrapRate(new BigDecimal("0.01"));
+
+        fpt.qn.mes.common.service.LookupEntry pcsUnit = fpt.qn.mes.common.service.LookupEntry.builder()
+                .id(unitId)
+                .name("PCS")
+                .description("Pieces")
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(draftBom));
+        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
+        when(lookupRepository.findAll("units_of_measure")).thenReturn(List.of(pcsUnit));
 
         BomItem savedItem = BomItem.builder()
                 .id(UUID.randomUUID())
                 .bomId(bomId)
                 .materialProductId(materialProductId)
-                .quantityPerUnit(new BigDecimal("2.50"))
-                .unit("PCS")
-                .scrapRate(new BigDecimal("0.01"))
+                .quantityPerUnit(request.getQuantityPerUnit())
+                .unitId(unitId)
+                .unitName("PCS")
+                .scrapRate(request.getScrapRate())
                 .build();
 
-        fpt.qn.mes.bom.application.dto.response.BomItemDto itemDto = fpt.qn.mes.bom.application.dto.response.BomItemDto.builder()
+        fpt.qn.mes.bom.application.dto.response.BomItemResponse itemResponse = fpt.qn.mes.bom.application.dto.response.BomItemResponse.builder()
                 .id(savedItem.getId())
                 .bomId(bomId)
                 .materialProductId(materialProductId)
-                .quantityPerUnit(new BigDecimal("2.50"))
+                .quantityPerUnit(request.getQuantityPerUnit())
+                .unitId(unitId)
                 .unit("PCS")
-                .scrapRate(new BigDecimal("0.01"))
+                .scrapRate(request.getScrapRate())
                 .build();
 
-        when(bomRepository.findById(bomId)).thenReturn(Optional.of(draftBom));
-        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
         when(bomRepository.saveItem(any(BomItem.class))).thenReturn(savedItem);
-        when(mapper.toDto(savedItem)).thenReturn(itemDto);
+        when(mapper.toDto(savedItem)).thenReturn(itemResponse);
 
-        fpt.qn.mes.bom.application.dto.response.BomItemDto result = bomService.addBomItem(bomId, request);
+        fpt.qn.mes.bom.application.dto.response.BomItemResponse result = bomService.addBomItem(bomId, request);
 
         assertNotNull(result);
-        assertEquals(materialProductId, result.getMaterialProductId());
-        assertEquals(new BigDecimal("2.50"), result.getQuantityPerUnit());
+        assertEquals(unitId, result.getUnitId());
+        assertEquals("PCS", result.getUnit());
         verify(bomRepository).saveItem(any(BomItem.class));
     }
 
@@ -470,6 +510,39 @@ class BomServiceTest {
         when(bomRepository.findById(randomId)).thenReturn(Optional.empty());
 
         assertThrows(BomNotFoundException.class, () -> bomService.addBomItem(randomId, request));
+        verify(bomRepository, never()).saveItem(any(BomItem.class));
+    }
+
+    @Test
+    void addBomItem_DuplicateMaterial_ThrowsDuplicateBomItemException() {
+        UUID bomId = UUID.randomUUID();
+        UUID materialProductId = UUID.randomUUID();
+
+        BomItem existingItem = BomItem.builder()
+                .id(UUID.randomUUID())
+                .bomId(bomId)
+                .materialProductId(materialProductId)
+                .quantityPerUnit(new BigDecimal("1.00"))
+                .build();
+
+        Bom draftBom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatusId(draftStatusId)
+                .createdBy(userId)
+                .createdAt(Instant.now())
+                .items(List.of(existingItem))
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(draftBom));
+        when(bomRepository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(draftStatusId));
+
+        CreateBomItemRequest request = new CreateBomItemRequest();
+        request.setMaterialProductId(materialProductId);
+
+        assertThrows(fpt.qn.mes.bom.application.exception.DuplicateBomItemException.class,
+                () -> bomService.addBomItem(bomId, request));
         verify(bomRepository, never()).saveItem(any(BomItem.class));
     }
 

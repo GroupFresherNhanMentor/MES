@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.jooq.tables.records.QcActionsRecord;
 import fpt.qn.mes.quality.domain.entities.QcAction;
@@ -53,7 +54,7 @@ public class QcActionPersistenceAdapter extends BaseRepository<QcActionsRecord> 
     @Override
     public QcAction save(QcAction action) {
         QcActionsRecord r = mapper.toRecord(action);
-        if (r.getId() == null) r.setId(UUID.randomUUID());
+        if (r.getId() == null) r.setId(UuidV7.generate());
         dslCtx.insertInto(QC_ACTIONS)
             .set(r)
             .onConflict(QC_ACTIONS.ID)

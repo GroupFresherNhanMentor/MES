@@ -3,6 +3,7 @@ package fpt.qn.mes.inventory.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,75 +21,54 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockInRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockMovementSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
-import fpt.qn.mes.inventory.application.exception.StockLotNotFoundException;
-import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
+import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
+import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
+import fpt.qn.mes.inventory.application.port.out.ProductCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseLocationCheckPort;
+import fpt.qn.mes.inventory.application.port.out.WarehouseLocationQueryPort;
 import fpt.qn.mes.inventory.application.service.InventoryService;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
-import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
+import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
-import fpt.qn.mes.inventory.domain.repository.criteria.StockLotSearchCriteria;
+import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
-import fpt.qn.mes.master.location.application.port.in.LocationUseCase;
-import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
-import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryServiceTest {
 
-    @Mock
-    StockLotRepository lotRepository;
-
-    @Mock
-    LotTypeRepository lotTypeRepository;
-
-    @Mock
-    StockMovementRepository movementRepository;
-
-    @Mock
-    StockBalanceRepository balanceRepository;
-
-    @Mock
-    InventoryDtoMapper mapper;
-
-    @Mock
-    MovementTypeRepository movementTypeRepository;
-
-    @Mock
-    StockStatusRepository stockStatusRepository;
-
-    @Mock
-    WarehouseUseCase warehouseUseCase;
-
-    @Mock
-    ProductUseCase productUseCase;
-
-    @Mock
-    LocationUseCase locationUseCase;
-
-    @Mock
-    fpt.qn.mes.user.domain.repository.UserRepository userRepository;
-
-    @Mock
-    fpt.qn.mes.user.application.mapper.UserDtoMapper userDtoMapper;
+    @Mock StockLotRepository lotRepository;
+    @Mock StockMovementRepository movementRepository;
+    @Mock StockBalanceRepository balanceRepository;
+    @Mock MovementTypeRepository movementTypeRepository;
+    @Mock StockStatusRepository stockStatusRepository;
+    @Mock StockAdjustmentApprovalRepository approvalRepository;
+    @Mock InventoryDtoMapper mapper;
+    @Mock StockAdjustmentApprovalDtoMapper approvalMapper;
+    @Mock CurrentUserPort currentUserPort;
+    @Mock ProductCheckPort productCheckPort;
+    @Mock WarehouseCheckPort warehouseCheckPort;
+    @Mock WarehouseLocationCheckPort warehouseLocationCheckPort;
+    @Mock WarehouseLocationQueryPort warehouseLocationQueryPort;
 
     @InjectMocks
     InventoryService inventoryService;
@@ -109,65 +89,9 @@ class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("createStockLot should save lot and return DTO")
-    void createStockLot_Success() {
-        CreateStockLotRequest request = new CreateStockLotRequest();
-        request.setLotNumber("LOT-2026-001");
-        request.setProductId(productId);
-        request.setExpiryDate(LocalDate.now().plusMonths(6));
-
-        StockLot savedLot = StockLot.builder()
-                .id(lotId)
-                .lotNumber("LOT-2026-001")
-                .productId(productId)
-                .expiryDate(request.getExpiryDate())
-                .build();
-
-        StockLotDto expectedDto = StockLotDto.builder()
-                .id(lotId)
-                .lotNumber("LOT-2026-001")
-                .productId(productId)
-                .build();
-
-        when(lotRepository.save(any(StockLot.class))).thenReturn(savedLot);
-        when(mapper.toDto(savedLot)).thenReturn(expectedDto);
-
-        StockLotDto result = inventoryService.createStockLot(request);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getLotNumber()).isEqualTo("LOT-2026-001");
-        verify(lotRepository).save(any(StockLot.class));
-    }
-
-    @Test
-    @DisplayName("getStockLotById should return DTO when lot exists")
-    void getStockLotById_Success() {
-        StockLot lot = StockLot.builder().id(lotId).lotNumber("LOT-001").build();
-        StockLotDto dto = StockLotDto.builder().id(lotId).lotNumber("LOT-001").build();
-
-        when(lotRepository.findById(lotId)).thenReturn(Optional.of(lot));
-        when(mapper.toDto(lot)).thenReturn(dto);
-
-        StockLotDto result = inventoryService.getStockLotById(lotId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(lotId);
-    }
-
-    @Test
-    @DisplayName("getStockLotById should throw StockLotNotFoundException when lot does not exist")
-    void getStockLotById_NotFound() {
-        when(lotRepository.findById(lotId)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> inventoryService.getStockLotById(lotId))
-                .isInstanceOf(StockLotNotFoundException.class)
-                .hasMessageContaining("Stock lot not found with ID");
-    }
-
-    @Test
     @DisplayName("recordMovement for RECEIPT should increase stock balance and log movement")
     void recordMovement_Receipt_Success() {
-        CreateMovementRequest request = new CreateMovementRequest();
+        CreateStockMovementRequest request = new CreateStockMovementRequest();
         request.setMovementTypeId(UUID.randomUUID());
         request.setProductId(productId);
         request.setWarehouseId(warehouseId);
@@ -176,29 +100,17 @@ class InventoryServiceTest {
         request.setToStatusId(UUID.randomUUID());
         request.setReferenceNo("PO-10001");
 
+        when(productCheckPort.existsById(productId)).thenReturn(true);
+        when(warehouseCheckPort.existsById(warehouseId)).thenReturn(true);
+        when(warehouseLocationCheckPort.existsById(locationId)).thenReturn(true);
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(balanceRepository.findForUpdate(warehouseId, locationId, productId, null, request.getToStatusId()))
                 .thenReturn(Optional.empty());
+        when(movementRepository.save(any(StockMovement.class)))
+                .thenAnswer(i -> i.getArgument(0));
 
-        StockMovement savedMovement = StockMovement.builder()
-                .id(UUID.randomUUID())
-                .productId(productId)
-                .quantity(new BigDecimal("50.00"))
-                .referenceNo("PO-10001")
-                .build();
+        inventoryService.recordMovement(request);
 
-        StockMovementDto dto = StockMovementDto.builder()
-                .id(savedMovement.getId())
-                .quantity(new BigDecimal("50.00"))
-                .referenceNo("PO-10001")
-                .build();
-
-        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
-
-        StockMovementDto result = inventoryService.recordMovement(request, userId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getQuantity()).isEqualTo(new BigDecimal("50.00"));
         verify(balanceRepository).save(any(StockBalance.class));
         verify(movementRepository).save(any(StockMovement.class));
     }
@@ -206,13 +118,17 @@ class InventoryServiceTest {
     @Test
     @DisplayName("recordMovement for ISSUE with insufficient stock should throw InsufficientStockException")
     void recordMovement_Issue_InsufficientStock() {
-        CreateMovementRequest request = new CreateMovementRequest();
+        CreateStockMovementRequest request = new CreateStockMovementRequest();
         request.setMovementTypeId(UUID.randomUUID());
         request.setProductId(productId);
         request.setWarehouseId(warehouseId);
         request.setLocationId(locationId);
         request.setQuantity(new BigDecimal("100.00"));
         request.setFromStatusId(UUID.randomUUID());
+
+        when(productCheckPort.existsById(productId)).thenReturn(true);
+        when(warehouseCheckPort.existsById(warehouseId)).thenReturn(true);
+        when(warehouseLocationCheckPort.existsById(locationId)).thenReturn(true);
 
         StockBalance existingBalance = StockBalance.builder()
                 .id(UUID.randomUUID())
@@ -225,13 +141,13 @@ class InventoryServiceTest {
         when(balanceRepository.findForUpdate(warehouseId, locationId, productId, null, request.getFromStatusId()))
                 .thenReturn(Optional.of(existingBalance));
 
-        assertThatThrownBy(() -> inventoryService.recordMovement(request, userId))
+        assertThatThrownBy(() -> inventoryService.recordMovement(request))
                 .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock balance");
     }
 
     @Test
-    @DisplayName("getStockBalances should return PageResponse of StockBalanceDto")
+    @DisplayName("getStockBalances should return PageResponse of StockBalanceResponse")
     void getStockBalances_Success() {
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
@@ -240,7 +156,7 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("120.00"))
                 .build();
 
-        StockBalanceDto dto = StockBalanceDto.builder()
+        StockBalanceResponse dto = StockBalanceResponse.builder()
                 .id(balance.getId())
                 .warehouseId(warehouseId)
                 .productId(productId)
@@ -252,11 +168,10 @@ class InventoryServiceTest {
         request.setProductId(productId);
 
         when(balanceRepository.count(any(StockBalanceSearchCriteria.class))).thenReturn(1L);
-        when(balanceRepository.search(any(StockBalanceSearchCriteria.class)))
-                .thenReturn(List.of(balance));
+        when(balanceRepository.search(any(StockBalanceSearchCriteria.class))).thenReturn(List.of(balance));
         when(mapper.toDto(balance)).thenReturn(dto);
 
-        PageResponse<StockBalanceDto> results = inventoryService.getStockBalances(request);
+        PageResponse<StockBalanceResponse> results = inventoryService.getStockBalances(request);
 
         assertThat(results).isNotNull();
         assertThat(results.getItems()).hasSize(1);
@@ -264,7 +179,7 @@ class InventoryServiceTest {
     }
 
     @Test
-    @DisplayName("getMovements should return paginated StockMovementDto")
+    @DisplayName("getMovements should return paginated StockMovementResponse")
     void getMovements_Success() {
         StockMovement movement = StockMovement.builder()
                 .id(UUID.randomUUID())
@@ -272,7 +187,7 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
-        StockMovementDto dto = StockMovementDto.builder()
+        StockMovementResponse dto = StockMovementResponse.builder()
                 .id(movement.getId())
                 .quantity(new BigDecimal("10.00"))
                 .build();
@@ -284,7 +199,7 @@ class InventoryServiceTest {
         StockMovementSearchRequest request = new StockMovementSearchRequest();
         request.setPage(0);
         request.setSize(10);
-        PageResponse<StockMovementDto> response = inventoryService.getMovements(request);
+        PageResponse<StockMovementResponse> response = inventoryService.getMovements(request);
 
         assertThat(response).isNotNull();
         assertThat(response.getItems()).hasSize(1);
@@ -305,29 +220,24 @@ class InventoryServiceTest {
         UUID availableStatusId = UUID.randomUUID();
         UUID purchaseInTypeId = UUID.randomUUID();
 
+        when(productCheckPort.existsById(productId)).thenReturn(true);
+        when(warehouseCheckPort.existsById(warehouseId)).thenReturn(true);
+        when(warehouseLocationCheckPort.existsById(locationId)).thenReturn(true);
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(lotRepository.findByLotNumber("LOT-NEW-001")).thenReturn(Optional.empty());
         when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(availableStatusId));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.PURCHASE_IN)).thenReturn(Optional.of(purchaseInTypeId));
-        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId, availableStatusId)).thenReturn(Optional.empty());
 
-        StockLot savedLot = StockLot.builder().id(lotId).lotNumber("LOT-NEW-001").productId(productId).build();
+        StockLot savedLot = StockLot.builder().id(lotId).lotNumber("LOT-NEW-001")
+                .product(StockLot.ProductRef.builder().id(productId).build()).build();
         when(lotRepository.save(any(StockLot.class))).thenReturn(savedLot);
 
-        StockMovement savedMovement = StockMovement.builder()
-                .id(UUID.randomUUID())
-                .productId(productId)
-                .quantity(new BigDecimal("100.00"))
-                .referenceNo("PO-2026-001")
-                .build();
-        StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("100.00")).build();
+        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId, availableStatusId))
+                .thenReturn(Optional.empty());
+        when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
 
-        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
+        inventoryService.recordStockIn(request);
 
-        StockMovementDto result = inventoryService.recordStockIn(request, userId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getQuantity()).isEqualTo(new BigDecimal("100.00"));
         verify(lotRepository).save(any(StockLot.class));
         verify(balanceRepository).save(any(StockBalance.class));
         verify(movementRepository).save(any(StockMovement.class));
@@ -348,32 +258,26 @@ class InventoryServiceTest {
         StockLot existingLot = StockLot.builder()
                 .id(lotId)
                 .lotNumber("LOT-EXISTING-001")
-                .productId(productId)
+                .product(StockLot.ProductRef.builder().id(productId).build())
                 .build();
 
         UUID availableStatusId = UUID.randomUUID();
         UUID purchaseInTypeId = UUID.randomUUID();
 
+        when(productCheckPort.existsById(productId)).thenReturn(true);
+        when(warehouseCheckPort.existsById(warehouseId)).thenReturn(true);
+        when(warehouseLocationCheckPort.existsById(locationId)).thenReturn(true);
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(lotRepository.findByLotNumber("LOT-EXISTING-001")).thenReturn(Optional.of(existingLot));
         when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(availableStatusId));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.PURCHASE_IN)).thenReturn(Optional.of(purchaseInTypeId));
-        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId, availableStatusId)).thenReturn(Optional.empty());
+        when(balanceRepository.findForUpdate(warehouseId, locationId, productId, lotId, availableStatusId))
+                .thenReturn(Optional.empty());
+        when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
 
-        StockMovement savedMovement = StockMovement.builder()
-                .id(UUID.randomUUID())
-                .productId(productId)
-                .quantity(new BigDecimal("50.00"))
-                .referenceNo("PO-2026-002")
-                .build();
-        StockMovementDto dto = StockMovementDto.builder().id(savedMovement.getId()).quantity(new BigDecimal("50.00")).build();
+        inventoryService.recordStockIn(request);
 
-        when(movementRepository.save(any(StockMovement.class))).thenReturn(savedMovement);
-        when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
-
-        StockMovementDto result = inventoryService.recordStockIn(request, userId);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getQuantity()).isEqualTo(new BigDecimal("50.00"));
+        verify(lotRepository, never()).save(any());
         verify(balanceRepository).save(any(StockBalance.class));
         verify(movementRepository).save(any(StockMovement.class));
     }
@@ -390,116 +294,26 @@ class InventoryServiceTest {
                 .referenceNo("PO-2026-002")
                 .build();
 
-        UUID existingProductOtherId = UUID.randomUUID();
         StockLot existingLot = StockLot.builder()
                 .id(lotId)
                 .lotNumber("LOT-MISMATCH")
-                .productId(existingProductOtherId)
+                .product(StockLot.ProductRef.builder().id(UUID.randomUUID()).build())
                 .build();
 
+        when(productCheckPort.existsById(productId)).thenReturn(true);
+        when(warehouseCheckPort.existsById(warehouseId)).thenReturn(true);
+        when(warehouseLocationCheckPort.existsById(locationId)).thenReturn(true);
         when(lotRepository.findByLotNumber("LOT-MISMATCH")).thenReturn(Optional.of(existingLot));
 
-        assertThatThrownBy(() -> inventoryService.recordStockIn(request, userId))
-                .isInstanceOf(fpt.qn.mes.inventory.application.exception.InvalidStockLotException.class)
+        assertThatThrownBy(() -> inventoryService.recordStockIn(request))
+                .isInstanceOf(InvalidStockLotException.class)
                 .hasMessageContaining("belongs to a different product");
-    }
-
-    @Test
-    @DisplayName("createStockLot should throw StockLotConflictException when lot already exists for product")
-    void createStockLot_Duplicate_ThrowsConflictException() {
-        CreateStockLotRequest request = new CreateStockLotRequest();
-        request.setLotNumber("LOT-EXISTS");
-        request.setProductId(productId);
-
-        StockLot existingLot = StockLot.builder()
-                .id(lotId)
-                .lotNumber("LOT-EXISTS")
-                .productId(productId)
-                .build();
-
-        when(lotRepository.findByLotNumber("LOT-EXISTS")).thenReturn(Optional.of(existingLot));
-
-        assertThatThrownBy(() -> inventoryService.createStockLot(request))
-                .isInstanceOf(fpt.qn.mes.inventory.application.exception.StockLotConflictException.class)
-                .hasMessageContaining("already exists");
-    }
-
-    @Test
-    @DisplayName("getLotTypes should return page response of lot type summary DTOs")
-    void getLotTypes_ReturnsPageResponse() {
-        fpt.qn.mes.inventory.domain.entities.LotType entity = fpt.qn.mes.inventory.domain.entities.LotType.builder()
-                .id(UUID.randomUUID())
-                .name("RAW_MATERIAL")
-                .description("Raw material lot")
-                .build();
-        fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto.builder()
-                .id(entity.getId())
-                .name("RAW_MATERIAL")
-                .description("Raw material lot")
-                .build();
-
-        when(lotTypeRepository.count(any())).thenReturn(1L);
-        when(lotTypeRepository.search(any())).thenReturn(List.of(entity));
-        when(mapper.toSummary(entity)).thenReturn(summary);
-
-        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.LotTypeSummaryDto> page = inventoryService.getLotTypes(new fpt.qn.mes.inventory.application.dto.request.LotTypeSearchRequest());
-
-        assertThat(page.getItems()).hasSize(1);
-        assertThat(page.getItems().get(0).getName()).isEqualTo("RAW_MATERIAL");
-    }
-
-    @Test
-    @DisplayName("getStockStatuses should return page response of stock status summary DTOs")
-    void getStockStatuses_ReturnsPageResponse() {
-        fpt.qn.mes.inventory.domain.entities.StockStatus entity = fpt.qn.mes.inventory.domain.entities.StockStatus.builder()
-                .id(UUID.randomUUID())
-                .name("AVAILABLE")
-                .description("Available stock")
-                .build();
-        fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto.builder()
-                .id(entity.getId())
-                .name("AVAILABLE")
-                .description("Available stock")
-                .build();
-
-        when(stockStatusRepository.count(any())).thenReturn(1L);
-        when(stockStatusRepository.search(any())).thenReturn(List.of(entity));
-        when(mapper.toSummary(entity)).thenReturn(summary);
-
-        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.StockStatusSummaryDto> page = inventoryService.getStockStatuses(new fpt.qn.mes.inventory.application.dto.request.StockStatusSearchRequest());
-
-        assertThat(page.getItems()).hasSize(1);
-        assertThat(page.getItems().get(0).getName()).isEqualTo("AVAILABLE");
-    }
-
-    @Test
-    @DisplayName("getMovementTypes should return page response of movement type summary DTOs")
-    void getMovementTypes_ReturnsPageResponse() {
-        fpt.qn.mes.inventory.domain.entities.MovementType entity = fpt.qn.mes.inventory.domain.entities.MovementType.builder()
-                .id(UUID.randomUUID())
-                .name("PURCHASE_IN")
-                .description("Purchase receipt")
-                .build();
-        fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto summary = fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto.builder()
-                .id(entity.getId())
-                .name("PURCHASE_IN")
-                .description("Purchase receipt")
-                .build();
-
-        when(movementTypeRepository.count(any())).thenReturn(1L);
-        when(movementTypeRepository.search(any())).thenReturn(List.of(entity));
-        when(mapper.toSummary(entity)).thenReturn(summary);
-
-        fpt.qn.mes.common.dto.response.PageResponse<fpt.qn.mes.inventory.application.dto.response.MovementTypeSummaryDto> page = inventoryService.getMovementTypes(new fpt.qn.mes.inventory.application.dto.request.MovementTypeSearchRequest());
-
-        assertThat(page.getItems()).hasSize(1);
-        assertThat(page.getItems().get(0).getName()).isEqualTo("PURCHASE_IN");
     }
 
     @Test
     @DisplayName("transferStock should validate non-positive quantity")
     void transferStock_NonPositiveQuantity_ThrowsException() {
-        var request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+        StockTransferRequest request = StockTransferRequest.builder()
                 .fromWarehouseId(UUID.randomUUID())
                 .fromLocationId(UUID.randomUUID())
                 .toWarehouseId(UUID.randomUUID())
@@ -509,7 +323,7 @@ class InventoryServiceTest {
                 .quantity(BigDecimal.ZERO)
                 .build();
 
-        assertThatThrownBy(() -> inventoryService.transferStock(request, UUID.randomUUID()))
+        assertThatThrownBy(() -> inventoryService.transferStock(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Quantity must be greater than zero");
     }
@@ -518,7 +332,7 @@ class InventoryServiceTest {
     @DisplayName("transferStock should validate same location transfer")
     void transferStock_SameLocation_ThrowsException() {
         UUID locId = UUID.randomUUID();
-        var request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+        StockTransferRequest request = StockTransferRequest.builder()
                 .fromWarehouseId(UUID.randomUUID())
                 .fromLocationId(locId)
                 .toWarehouseId(UUID.randomUUID())
@@ -528,58 +342,52 @@ class InventoryServiceTest {
                 .quantity(BigDecimal.TEN)
                 .build();
 
-        assertThatThrownBy(() -> inventoryService.transferStock(request, UUID.randomUUID()))
+        assertThatThrownBy(() -> inventoryService.transferStock(request))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("cannot be the same");
     }
 
     @Test
-    @DisplayName("transferStock should validate insufficient source balance")
+    @DisplayName("transferStock should throw InsufficientStockException when source balance is too low")
     void transferStock_InsufficientStock_ThrowsInsufficientStockException() {
         UUID fromWh = UUID.randomUUID();
         UUID fromLoc = UUID.randomUUID();
         UUID toWh = UUID.randomUUID();
         UUID toLoc = UUID.randomUUID();
         UUID prodId = UUID.randomUUID();
-        UUID lotId = UUID.randomUUID();
+        UUID tLotId = UUID.randomUUID();
         UUID statusId = UUID.randomUUID();
 
-        var request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+        StockTransferRequest request = StockTransferRequest.builder()
                 .fromWarehouseId(fromWh)
                 .fromLocationId(fromLoc)
                 .toWarehouseId(toWh)
                 .toLocationId(toLoc)
                 .productId(prodId)
-                .lotId(lotId)
+                .lotId(tLotId)
                 .quantity(new BigDecimal("50.00"))
                 .build();
 
-        fpt.qn.mes.inventory.domain.entities.StockStatus availStatus = fpt.qn.mes.inventory.domain.entities.StockStatus.builder()
-                .id(statusId)
-                .name(StockStatusConstants.AVAILABLE)
-                .build();
-
+        when(warehouseLocationQueryPort.belongsToWarehouse(fromLoc, fromWh)).thenReturn(true);
+        when(warehouseLocationQueryPort.belongsToWarehouse(toLoc, toWh)).thenReturn(true);
         when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(statusId));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_OUT)).thenReturn(Optional.of(UUID.randomUUID()));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_IN)).thenReturn(Optional.of(UUID.randomUUID()));
-
-        when(locationUseCase.getLocationById(fromLoc)).thenReturn(fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto.builder().id(fromLoc).warehouseId(fromWh).code("WH1/A01").build());
-        when(locationUseCase.getLocationById(toLoc)).thenReturn(fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto.builder().id(toLoc).warehouseId(toWh).code("WH1/A02").build());
 
         StockBalance sourceBal = StockBalance.builder()
                 .id(UUID.randomUUID())
                 .warehouseId(fromWh)
                 .locationId(fromLoc)
                 .productId(prodId)
-                .lotId(lotId)
+                .lotId(tLotId)
                 .stockStatusId(statusId)
                 .quantity(new BigDecimal("20.00"))
                 .build();
 
-        when(balanceRepository.findForUpdate(fromWh, fromLoc, prodId, lotId, statusId))
+        when(balanceRepository.findForUpdate(fromWh, fromLoc, prodId, tLotId, statusId))
                 .thenReturn(Optional.of(sourceBal));
 
-        assertThatThrownBy(() -> inventoryService.transferStock(request, UUID.randomUUID()))
+        assertThatThrownBy(() -> inventoryService.transferStock(request))
                 .isInstanceOf(InsufficientStockException.class);
     }
 
@@ -591,53 +399,48 @@ class InventoryServiceTest {
         UUID toWh = UUID.randomUUID();
         UUID toLoc = UUID.randomUUID();
         UUID prodId = UUID.randomUUID();
-        UUID lotId = UUID.randomUUID();
+        UUID tLotId = UUID.randomUUID();
         UUID statusId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
 
-        var request = fpt.qn.mes.inventory.application.dto.request.StockTransferRequest.builder()
+        StockTransferRequest request = StockTransferRequest.builder()
                 .fromWarehouseId(fromWh)
                 .fromLocationId(fromLoc)
                 .toWarehouseId(toWh)
                 .toLocationId(toLoc)
                 .productId(prodId)
-                .lotId(lotId)
+                .lotId(tLotId)
                 .quantity(new BigDecimal("20.00"))
                 .build();
 
+        when(warehouseLocationQueryPort.belongsToWarehouse(fromLoc, fromWh)).thenReturn(true);
+        when(warehouseLocationQueryPort.belongsToWarehouse(toLoc, toWh)).thenReturn(true);
         when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(statusId));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_OUT)).thenReturn(Optional.of(UUID.randomUUID()));
         when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_IN)).thenReturn(Optional.of(UUID.randomUUID()));
-
-        when(locationUseCase.getLocationById(fromLoc)).thenReturn(fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto.builder().id(fromLoc).warehouseId(fromWh).code("WH1/A01").build());
-        when(locationUseCase.getLocationById(toLoc)).thenReturn(fpt.qn.mes.master.location.application.dto.response.WarehouseLocationDto.builder().id(toLoc).warehouseId(toWh).code("WH1/A02").build());
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
 
         StockBalance sourceBal = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(fromWh)
-                .locationId(fromLoc)
-                .productId(prodId)
-                .lotId(lotId)
+                .warehouseId(fromWh).locationId(fromLoc)
+                .productId(prodId).lotId(tLotId)
                 .stockStatusId(statusId)
                 .quantity(new BigDecimal("50.00"))
                 .build();
 
         StockBalance destBal = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(toWh)
-                .locationId(toLoc)
-                .productId(prodId)
-                .lotId(lotId)
+                .warehouseId(toWh).locationId(toLoc)
+                .productId(prodId).lotId(tLotId)
                 .stockStatusId(statusId)
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
-        when(balanceRepository.findForUpdate(fromWh, fromLoc, prodId, lotId, statusId)).thenReturn(Optional.of(sourceBal));
-        when(balanceRepository.findForUpdate(toWh, toLoc, prodId, lotId, statusId)).thenReturn(Optional.of(destBal));
-        when(balanceRepository.save(any(StockBalance.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(movementRepository.save(any(StockMovement.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(balanceRepository.findForUpdate(fromWh, fromLoc, prodId, tLotId, statusId)).thenReturn(Optional.of(sourceBal));
+        when(balanceRepository.findForUpdate(toWh, toLoc, prodId, tLotId, statusId)).thenReturn(Optional.of(destBal));
+        when(balanceRepository.save(any(StockBalance.class))).thenAnswer(i -> i.getArgument(0));
+        when(movementRepository.save(any(StockMovement.class))).thenAnswer(i -> i.getArgument(0));
 
-        fpt.qn.mes.inventory.application.dto.response.StockTransferResponse response = inventoryService.transferStock(request, userId);
+        fpt.qn.mes.inventory.application.dto.response.StockTransferResponse response = inventoryService.transferStock(request);
 
         assertThat(response).isNotNull();
         assertThat(sourceBal.getQuantity()).isEqualByComparingTo(new BigDecimal("30.00"));
