@@ -5,6 +5,7 @@ import static fpt.qn.mes.jooq.Tables.WAREHOUSE_STATUSES;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSES;
 import static fpt.qn.mes.jooq.Tables.USERS;
 
+import java.util.Collection;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -80,6 +81,31 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
                         r.into(UPDATER),
                         r.get(managersField)
                 ));
+    }
+
+    @Override
+    public Optional<Warehouse> findByCode(String code) {
+        return ctx.select()
+                .from(WAREHOUSES)
+                .leftJoin(WAREHOUSE_STATUSES).on(WAREHOUSE_STATUSES.ID.eq(WAREHOUSES.WAREHOUSE_STATUS_ID))
+                .leftJoin(CREATOR).on(WAREHOUSES.CREATED_BY.eq(CREATOR.ID))
+                .leftJoin(UPDATER).on(WAREHOUSES.UPDATED_BY.eq(UPDATER.ID))
+                .where(WAREHOUSES.CODE.eq(code))
+                .fetchOptional(r -> mapper.toDomain(r.into(WAREHOUSES), r.into(WAREHOUSE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
+    }
+
+    @Override
+    public List<Warehouse> findByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+        return ctx.select()
+                .from(WAREHOUSES)
+                .leftJoin(WAREHOUSE_STATUSES).on(WAREHOUSE_STATUSES.ID.eq(WAREHOUSES.WAREHOUSE_STATUS_ID))
+                .leftJoin(CREATOR).on(WAREHOUSES.CREATED_BY.eq(CREATOR.ID))
+                .leftJoin(UPDATER).on(WAREHOUSES.UPDATED_BY.eq(UPDATER.ID))
+                .where(WAREHOUSES.ID.in(ids))
+                .fetch(r -> mapper.toDomain(r.into(WAREHOUSES), r.into(WAREHOUSE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override

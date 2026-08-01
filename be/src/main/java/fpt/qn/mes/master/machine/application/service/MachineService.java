@@ -71,6 +71,14 @@ public class MachineService implements MachineUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isAvailableForReservation(UUID id) {
+        machineRepository.findById(id)
+                .orElseThrow(() -> new MachineNotFoundException("Machine not found: " + id));
+        return machineRepository.isAvailableForUpdate(id);
+    }
+
+    @Override
     @Transactional
     public void createMachine(CreateMachineRequest request) {
         if (machineRepository.existsByCode(request.getCode())) {

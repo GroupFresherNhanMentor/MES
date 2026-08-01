@@ -64,6 +64,17 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
     }
 
     @Override
+    public boolean isAvailableForUpdate(UUID id) {
+        return ctx.select(MACHINES.ID)
+                .from(MACHINES)
+                .join(MACHINE_STATUSES).on(MACHINE_STATUSES.ID.eq(MACHINES.MACHINE_STATUS_ID))
+                .where(MACHINES.ID.eq(id).and(MACHINE_STATUSES.NAME.eq("AVAILABLE")))
+                .forUpdate()
+                .fetchOptional()
+                .isPresent();
+    }
+
+    @Override
     public Machine save(Machine m) {
         MachinesRecord r = mapper.toRecord(m);
         ctx.insertInto(MACHINES).set(r).onConflict(MACHINES.ID).doUpdate().set(r).execute();

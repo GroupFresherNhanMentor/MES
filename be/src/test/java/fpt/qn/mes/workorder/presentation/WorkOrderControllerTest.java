@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -169,5 +170,33 @@ class WorkOrderControllerTest {
         assertEquals("Work Order updated successfully", response.getBody().getMessage());
 
         verify(workOrderUseCase).updateWorkOrder(eq(id), any());
+    }
+    @Test
+    @DisplayName("reserveMaterials should return 200 OK with ReserveWorkOrderMaterialsResponse")
+    void reserveMaterials_shouldReturn200WithApiResponse() {
+        // Arrange
+        UUID id = sampleDto.getId();
+
+        ReserveWorkOrderMaterialsResponse expectedResponse =
+                ReserveWorkOrderMaterialsResponse.builder()
+                        .workOrderId(id)
+                        .status("READY_TO_PRODUCE")
+                        .build();
+
+        when(workOrderUseCase.reserveMaterials(eq(id))).thenReturn(expectedResponse);
+
+        // Act
+        ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> response =
+                controller.reserveMaterials(id);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(true, response.getBody().isSuccess());
+        assertEquals("Materials reserved successfully. Work Order is now READY_TO_PRODUCE.", response.getBody().getMessage());
+        assertEquals(id, response.getBody().getData().getWorkOrderId());
+
+        verify(workOrderUseCase).reserveMaterials(id);
     }
 }

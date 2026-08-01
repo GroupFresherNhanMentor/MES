@@ -300,8 +300,10 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 **Actor:** Planner.
 
 **FR-RES-001 — Reserve**
-- Đọc BOM → tính required → chỉ reserve nếu AVAILABLE đủ → chuyển AVAILABLE→RESERVED (ở `stock_balances`), tạo movement RESERVE, **WO chuyển sang `READY_TO_PRODUCE`** (đã bỏ `MATERIAL_RESERVED`, xem mục 3.6). Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
-- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at` (gap tự quyết định).
+- Đọc BOM → tính required → truy vấn và gom nguyên vật liệu khả dụng (`AVAILABLE`) từ tất cả các Kho đang hoạt động (`ACTIVE`) trong hệ thống theo thứ tự ngày nhập kho/tạo lô FIFO (`stock_lots.created_at ASC`).
+- Không yêu cầu truyền `machineId` hay Request Body tại bước reserve (kiểm tra trạng thái máy sản xuất được chuyển sang bước khởi chạy sản xuất `/start`).
+- Chuyển `AVAILABLE` → `RESERVED` (tại đúng `stock_balances` của từng Kho và Vị trí ô/kệ), cập nhật `work_order_materials.reserved_quantity`, tạo movement log `RESERVE` chi tiết cho từng kho xuất (`from_warehouse_id`, `to_warehouse_id`, `from_location_id`, `to_location_id`). Khi đủ 100% vật tư, **WO chuyển sang `READY_TO_PRODUCE`**. Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
+- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at ASC`.
 
 **FR-RES-002 — Release**
 - Chỉ release khi RESERVED; chuyển về AVAILABLE; tạo movement RELEASE_RESERVATION; không release nếu WO đã IN_PROGRESS/COMPLETED.

@@ -11,6 +11,7 @@ import fpt.qn.mes.master.machine.application.dto.machine.update.UpdateMachineReq
 public interface MachineUseCase {
     PageResponse<MachineResponse> getMachines(MachineSearchRequest request);
     MachineResponse getMachineById(UUID id);
+    boolean isAvailableForReservation(UUID id);
     void createMachine(CreateMachineRequest request);
     void updateMachine(UUID id, UpdateMachineRequest request);
     void changeMachineStatus(UUID id, UUID newStatusId);

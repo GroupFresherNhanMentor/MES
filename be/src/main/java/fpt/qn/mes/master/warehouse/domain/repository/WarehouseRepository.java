@@ -1,5 +1,6 @@
 package fpt.qn.mes.master.warehouse.domain.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,8 @@ import fpt.qn.mes.master.warehouse.domain.repository.criteria.WarehouseSearchCri
 
 public interface WarehouseRepository {
     Optional<Warehouse> findById(UUID id);
+    Optional<Warehouse> findByCode(String code);
+    List<Warehouse> findByIds(Collection<UUID> ids);
     Warehouse save(Warehouse warehouse);
     Warehouse update(Warehouse warehouse);
     PaginationResult<Warehouse> search(WarehouseSearchCriteria criteria);

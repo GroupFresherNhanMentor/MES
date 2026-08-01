@@ -1,5 +1,7 @@
 package fpt.qn.mes.master.warehouse.application.port.in;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.List;
 import java.util.UUID;
 import fpt.qn.mes.common.dto.response.PageResponse;
@@ -13,6 +15,8 @@ import fpt.qn.mes.master.warehouse.application.dto.warehouse.update.UpdateWareho
 public interface WarehouseUseCase {
     PageResponse<WarehouseResponse> getWarehouses(WarehouseSearchRequest request);
     WarehouseResponse getWarehouseById(UUID id);
+    WarehouseResponse getWarehouseByCode(String code);
+    Map<UUID, WarehouseResponse> getWarehousesByIds(Collection<UUID> ids);
     void createWarehouse(CreateWarehouseRequest request);
     void updateWarehouse(UUID id, UpdateWarehouseRequest request);
     void activateWarehouse(UUID id);

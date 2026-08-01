@@ -1,7 +1,11 @@
 package fpt.qn.mes.master.warehouse.application.service;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,6 +73,23 @@ public class WarehouseService implements WarehouseUseCase {
         return warehouseRepository.findById(id)
                 .map(w -> mapper.toDto(w))
                 .orElseThrow(() -> new WarehouseNotFoundException("Warehouse not found: " + id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WarehouseResponse getWarehouseByCode(String code) {
+        return warehouseRepository.findByCode(code)
+                .map(mapper::toDto)
+                .orElseThrow(() -> new WarehouseNotFoundException("Warehouse not found with code: " + code));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, WarehouseResponse> getWarehousesByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        var warehouses = warehouseRepository.findByIds(ids);
+        return warehouses.stream()
+                .collect(Collectors.toMap(Warehouse::getId, mapper::toDto, (w1, w2) -> w1));
     }
 
     @Override

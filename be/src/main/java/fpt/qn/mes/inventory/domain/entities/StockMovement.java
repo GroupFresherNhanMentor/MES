@@ -45,6 +45,7 @@ public class StockMovement {
     StockStatus toStatus;
 
     UUID productId;
+    UUID workOrderId;
     UUID fromWarehouseId;
     UUID fromLocationId;
     UUID toWarehouseId;

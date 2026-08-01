@@ -30,13 +30,13 @@ import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
-import fpt.qn.mes.workorder.application.exception.BomNotActiveException;
-import fpt.qn.mes.workorder.application.exception.InvalidInputException;
-import fpt.qn.mes.workorder.application.exception.InvalidWorkOrderStateException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderCodeExistsException;
-import fpt.qn.mes.workorder.application.exception.WorkOrderNotFoundException;
+import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
+import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
+import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
@@ -52,6 +52,18 @@ class WorkOrderServiceTest {
 
     @Mock
     WorkOrderDtoMapper mapper;
+
+    @Mock
+    WorkOrderReservationPort reservationPort;
+
+    @Mock
+    MachineUseCase machineUseCase;
+
+    @Mock
+    CurrentUserPort currentUserPort;
+
+    @Mock
+    AuditLogPort auditLogPort;
 
     @InjectMocks
     WorkOrderService service;
@@ -428,6 +440,22 @@ class WorkOrderServiceTest {
         org.junit.jupiter.api.Assertions.assertThrows(
                 WorkOrderCodeExistsException.class,
                 () -> service.updateWorkOrder(id, req)
+        );
+    }
+
+    @Test
+    @DisplayName("reserveMaterials with invalid WO status should throw InvalidWorkOrderReservationException")
+    void reserveMaterials_invalidStatus_shouldThrowException() {
+        // Arrange
+        UUID id = sampleEntity.getId();
+
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+
+        // Act & Assert
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderReservationException.class,
+                () -> service.reserveMaterials(id)
         );
     }
 }

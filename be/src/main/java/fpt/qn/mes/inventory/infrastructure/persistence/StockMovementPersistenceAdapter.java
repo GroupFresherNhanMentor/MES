@@ -196,6 +196,7 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
                 .id(sm.getId())
                 .movementType(movementType)
                 .productId(sm.getProductId())
+                .workOrderId(sm.getWorkOrderId())
                 .stockLot(stockLot)
                 .fromWarehouseId(sm.getFromWarehouseId())
                 .fromLocationId(sm.getFromLocationId())
