@@ -61,6 +61,8 @@ As a System Administrator, I want material release and order cancellation restri
 
 - What happens if a Work Order has partially consumed materials before cancellation? Cancellation must be blocked if any material consumption has occurred (`IN_PROGRESS` state).
 - What happens if `release-materials` is called on a Work Order that has no reserved materials (`reservedQuantity == 0`)? The endpoint completes gracefully as a no-op returning HTTP 200 with an informative message.
+- A release is idempotent: only the unreleased net quantity of each `(warehouse, location, product, lot)` reservation is returned. Previously released reservation movements are never released again.
+- If the locked `RESERVED` balance cannot cover the unreleased quantity, the request fails with HTTP 400 and the transaction rolls back without writing stock movements.
 - What happens if a referenced Work Order ID does not exist? System returns HTTP 404 Not Found (`RESOURCE_NOT_FOUND`).
 
 ## Requirements *(mandatory)*
@@ -76,6 +78,7 @@ As a System Administrator, I want material release and order cancellation restri
 - **FR-007**: System MUST automatically release all reserved materials when a Work Order is cancelled via `POST /api/v1/work-orders/{id}/cancel`.
 - **FR-008**: System MUST transition Work Order status to `CANCELLED` upon successful execution of the cancel endpoint.
 - **FR-009**: System MUST execute stock balance updates, movement logging, and status updates within a single atomic database transaction using row-level locking (`SELECT FOR UPDATE`).
+- **FR-009a**: System MUST calculate each release from the net of prior `RESERVE` and `RELEASE_RESERVATION` movements per warehouse, location, product, and lot; a repeated release MUST NOT create duplicate returns.
 - **FR-010**: System MUST record audit events in `work_order_events` for both material release and cancellation actions.
 
 ### Key Entities *(include if feature involves data)*

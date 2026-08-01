@@ -94,6 +94,8 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RELEASE_RESERVATION")).thenReturn(releaseMovementTypeId);
+        when(reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId,
+                releaseMovementTypeId, actorId)).thenReturn(true);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED)).thenReturn(Optional.of(plannedStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
@@ -104,7 +106,8 @@ class WorkOrderServiceReleaseAndCancelTest {
         assertNotNull(result);
         assertEquals("WO-001", result.getCode());
         verify(reservationPort).releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
-        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.PLANNED);
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
+                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.PLANNED, "RELEASE_MATERIAL");
     }
 
     @Test
@@ -124,6 +127,8 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RELEASE_RESERVATION")).thenReturn(releaseMovementTypeId);
+        when(reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId,
+                releaseMovementTypeId, actorId)).thenReturn(true);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED)).thenReturn(Optional.of(cancelledStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
@@ -134,7 +139,8 @@ class WorkOrderServiceReleaseAndCancelTest {
         assertNotNull(result);
         assertEquals("WO-001", result.getCode());
         verify(reservationPort).releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
-        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.CANCELLED);
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
+                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.CANCELLED, "CANCEL_WORK_ORDER");
     }
 
     @Test

@@ -393,12 +393,13 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderDto releaseMaterials(UUID workOrderId) {
+        // Serialize state transitions for this work order before touching its reservations.
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
 
         String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
-        if (WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)
-                || WorkOrderStatusConstants.COMPLETED.equals(currentStatus)) {
+        if (!WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)
+                && !WorkOrderStatusConstants.PLANNED.equals(currentStatus)) {
             throw new InvalidWorkOrderStateException(
                     "Cannot release materials for work order in " + currentStatus + " status");
         }
@@ -413,14 +414,20 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         UUID actorId = currentUserPort.getCurrentUserId();
 
-        reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
+        // Returning false means the adapter detected an unsafe balance; throw to roll back the transaction.
+        if (!reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId,
+                releaseMovementTypeId, actorId)) {
+            throw new InvalidWorkOrderStateException("Reserved material balance is inconsistent");
+        }
 
         if (WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
+            // A successful material release returns a ready work order to planning.
             UUID plannedStatusId = requireReferenceId(
                     repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED).orElse(null),
                     "PLANNED status is not configured");
             updateStatus(workOrder, plannedStatusId);
-            auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.PLANNED);
+            auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                    WorkOrderStatusConstants.PLANNED, "RELEASE_MATERIAL");
         }
 
         return getWorkOrderById(workOrderId);
@@ -429,12 +436,15 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderDto cancelWorkOrder(UUID workOrderId) {
+        // Lock first so cancellation cannot race a release or production transition.
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
 
         String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
-        if (WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)
-                || WorkOrderStatusConstants.COMPLETED.equals(currentStatus)) {
+        if (!WorkOrderStatusConstants.DRAFT.equals(currentStatus)
+                && !WorkOrderStatusConstants.PLANNED.equals(currentStatus)
+                && !WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)
+                && !WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
             throw new InvalidWorkOrderStateException(
                     "Cannot cancel work order in " + currentStatus + " status");
         }
@@ -449,15 +459,19 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         UUID actorId = currentUserPort.getCurrentUserId();
 
-        // Release any reserved materials
-        reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
+        // Cancellation must release all outstanding reservations before changing the work order state.
+        if (!reservationPort.releaseReservation(workOrderId, availableStatusId, reservedStatusId,
+                releaseMovementTypeId, actorId)) {
+            throw new InvalidWorkOrderStateException("Reserved material balance is inconsistent");
+        }
 
-        // Transition status to CANCELLED
+        // Change status only after reservation release succeeds in the same transaction.
         UUID cancelledStatusId = requireReferenceId(
                 repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED).orElse(null),
                 "CANCELLED status is not configured");
         updateStatus(workOrder, cancelledStatusId);
-        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.CANCELLED);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                WorkOrderStatusConstants.CANCELLED, "CANCEL_WORK_ORDER");
 
         return getWorkOrderById(workOrderId);
     }

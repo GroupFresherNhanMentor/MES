@@ -20,7 +20,7 @@ public class ProductRecordMapper {
                 .productTypeId(r.getProductTypeId())
                 .unitId(r.getUnitId())
                 .productStatusId(r.getProductStatusId())
-                .version(r.getVersion())
+                .version(Long.valueOf(r.getVersion()))
                 .createdAt(r.getCreatedAt().toInstant())
                 .createdBy(r.getCreatedBy())
                 .updatedAt(r.getUpdatedAt().toInstant())
@@ -36,7 +36,7 @@ public class ProductRecordMapper {
         r.setProductTypeId(p.getProductTypeId());
         r.setUnitId(p.getUnitId());
         r.setProductStatusId(p.getProductStatusId());
-        r.setVersion(p.getVersion());
+        r.setVersion(String.valueOf(p.getVersion()));
         r.setCreatedAt(OffsetDateTime.ofInstant(p.getCreatedAt(), ZoneOffset.UTC));
         r.setCreatedBy(p.getCreatedBy());
         r.setUpdatedAt(OffsetDateTime.ofInstant(p.getUpdatedAt(), ZoneOffset.UTC));
