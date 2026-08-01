@@ -5,6 +5,7 @@ import static fpt.qn.mes.jooq.Tables.AUDIT_LOGS;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.util.UuidV7;
@@ -13,7 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@Repository
+@Repository("workOrderAuditLogPersistenceAdapter")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuditLogPersistenceAdapter implements AuditLogPort {
@@ -28,8 +29,12 @@ public class AuditLogPersistenceAdapter implements AuditLogPort {
                 .set(AUDIT_LOGS.ACTION, "RESERVE_MATERIAL")
                 .set(AUDIT_LOGS.ENTITY_TYPE, "WORK_ORDER")
                 .set(AUDIT_LOGS.ENTITY_ID, workOrderId)
-                .set(AUDIT_LOGS.OLD_VALUE, oldStatus)
-                .set(AUDIT_LOGS.NEW_VALUE, newStatus)
+                .set(AUDIT_LOGS.OLD_VALUE, statusJson(oldStatus))
+                .set(AUDIT_LOGS.NEW_VALUE, statusJson(newStatus))
                 .execute();
+    }
+
+    private JSONB statusJson(String status) {
+        return status == null ? null : JSONB.valueOf("\"" + status + "\"");
     }
 }

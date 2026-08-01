@@ -37,6 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -122,8 +123,8 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                 .where(AUDIT_LOGS.ENTITY_ID.eq(fixture.getWorkOrderIds().getFirst()))
                 .and(AUDIT_LOGS.ACTOR_ID.eq(fixture.getUserId()))
                 .and(AUDIT_LOGS.ACTION.eq("RESERVE_MATERIAL"))
-                .and(AUDIT_LOGS.OLD_VALUE.eq("PLANNED"))
-                .and(AUDIT_LOGS.NEW_VALUE.eq("READY_TO_PRODUCE"))
+                .and(AUDIT_LOGS.OLD_VALUE.eq(JSONB.valueOf("\"PLANNED\"")))
+                .and(AUDIT_LOGS.NEW_VALUE.eq(JSONB.valueOf("\"READY_TO_PRODUCE\"")))
                 .fetchOne(0, Integer.class)).isEqualTo(1);
     }
 
