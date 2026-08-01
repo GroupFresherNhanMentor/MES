@@ -1,0 +1,19 @@
+.custom-wrapper{
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.custom-toolbar{
+    display: block;
+}
+
+.custom-container{
+    display: flex;
+    flex: 1;
+
+}
+
+.custom-mat-drawer{
+    width: 12rem;
+}

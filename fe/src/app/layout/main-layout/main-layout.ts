@@ -33,6 +33,7 @@ interface NavItem {
     MatProgressBarModule,
   ],
   templateUrl: './main-layout.html',
+  styleUrl: './main-layout.css',
 })
 export class MainLayout {
   private readonly authService = inject(AuthService);
