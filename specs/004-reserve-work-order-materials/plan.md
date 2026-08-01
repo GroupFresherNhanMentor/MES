@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the Planner-only `POST /api/v1/work-orders/{id}/reserve-materials` action. The service will resolve the configured `RAW_MATERIAL_WAREHOUSE`, validate the Work Order and requested `machineId`, calculate all remaining material requirements, lock the Work Order/machine/eligible stock rows pessimistically, and either atomically reserve every material and move the Work Order to `READY_TO_PRODUCE` or persist `MATERIAL_SHORTAGE` without changing stock. Every status transition will create a `RESERVE_MATERIAL` audit record.
+Implement the Planner-only `POST /api/work-orders/{id}/reserve-materials` action in `WorkOrderController`. The service calculates remaining material requirements, locks the Work Order and eligible stock rows pessimistically, selects FIFO stock from all active warehouses, and either atomically reserves every material and moves the Work Order to `READY_TO_PRODUCE` or persists `MATERIAL_SHORTAGE` without changing stock. Every status transition creates a `RESERVE_MATERIAL` audit record.
 
 The design uses a dedicated Work Order reservation use case and persistence output boundary rather than the existing generic inventory movement operation. It also closes the existing traceability and error-contract gaps by mapping `stock_movements.work_order_id`, carrying structured shortage details, and exposing `INSUFFICIENT_STOCK`.
 
@@ -26,7 +26,7 @@ The design uses a dedicated Work Order reservation use case and persistence outp
 
 **Performance Goals**: Complete a normal reservation in one database transaction without N+1 repository calls; support the required 20-request concurrency scenario with deterministic results.
 
-**Constraints**: Planner-only access; request contains only `machineId`; source warehouse is resolved by configured code `RAW_MATERIAL_WAREHOUSE`; only `AVAILABLE` stock in that warehouse is eligible; FIFO lot allocation; pessimistic locking; all-or-nothing stock mutation; auditability; standardized `ApiResponse` envelope.
+**Constraints**: Planner-only access; no request body; only `AVAILABLE` stock in active warehouses is eligible; FIFO lot allocation; pessimistic locking; all-or-nothing stock mutation; auditability; standardized `ApiResponse` envelope.
 
 **Scale/Scope**: One Work Order reservation action, its Work Order/material/stock/audit persistence paths, API contract, and required unit/integration/concurrency tests. No new UI is included.
 
@@ -42,7 +42,7 @@ The design uses a dedicated Work Order reservation use case and persistence outp
 | Service-layer exceptions | Validation and shortage exceptions originate in the application service and are handled by `GlobalExceptionHandler`; controller contains no business logic. | PASS |
 | API response consistency | Success and error responses use `ResponseEntity<ApiResponse<T>>`; request validation uses `@Valid`. | PASS |
 | Mandatory tests | Unit branches, controller authorization, full HTTP/DB integration, shortage, FIFO, warehouse isolation, audit, and required concurrency tests are included in the implementation scope. | PASS |
-| Shared mutable state | Work Order, stock balances, reservations, machine availability, and status changes are locked and covered by integration concurrency tests in `WorkOrderIntegrationTest`. | PASS |
+| Shared mutable state | Work Order, stock balances, reservations, and status changes are locked and covered by integration concurrency tests in `WorkOrderIntegrationTest`. | PASS |
 
 No constitution violations require a complexity exception.
 
@@ -67,13 +67,8 @@ specs/004-reserve-work-order-materials/
 be/src/main/java/fpt/qn/mes/
 ├── workorder/
 │   ├── application/
-│   │   ├── dto/reservation/reserve/
-│   │   │   ├── ReserveWorkOrderMaterialsRequest.java
-│   │   │   └── ReserveWorkOrderMaterialsResponse.java
-│   │   ├── exception/
-│   │   │   ├── InsufficientMaterialException.java
-│   │   │   ├── InvalidWorkOrderReservationException.java
-│   │   │   └── MachineNotAvailableException.java
+│   │   ├── dto/response/ReserveWorkOrderMaterialsResponse.java
+│   │   ├── exception/WorkOrderExceptions.java
 │   │   ├── port/in/WorkOrderUseCase.java
 │   │   ├── port/out/WorkOrderReservationPort.java
 │   │   ├── port/out/AuditLogPort.java
@@ -81,17 +76,10 @@ be/src/main/java/fpt/qn/mes/
 │   ├── domain/
 │   │   ├── constants/WorkOrderStatusConstants.java
 │   │   └── repository/WorkOrderRepository.java
-│   ├── infrastructure/persistence/
+│   ├── infrastructure/persistence/adapter/
 │   │   ├── WorkOrderReservationPersistenceAdapter.java
-│   │   ├── AuditLogPersistenceAdapter.java
-│   │   └── StockMovementRecordMapper.java
+│   │   └── AuditLogPersistenceAdapter.java
 │   └── presentation/WorkOrderController.java
-├── master/warehouse/
-│   ├── application/port/in/WarehouseUseCase.java
-│   └── infrastructure/persistence/WarehousePersistenceAdapter.java
-├── master/machine/
-│   ├── application/port/in/MachineUseCase.java
-│   └── infrastructure/persistence/MachinePersistenceAdapter.java
 └── common/exception/
     ├── AppException.java
     ├── ErrorCode.java
@@ -99,22 +87,22 @@ be/src/main/java/fpt/qn/mes/
 
 be/src/test/java/fpt/qn/mes/
 ├── workorder/presentation/WorkOrderControllerTest.java
-├── workorder/application/service/WorkOrderServiceTest.java
+├── workorder/application/service/ReserveWorkOrderMaterialsServiceTest.java
 └── workorder/integration/WorkOrderIntegrationTest.java
 ```
 
-**Structure Decision**: Extend the existing `workorder` module with an operation-specific request/response DTO package, input-port method, service orchestration, and output ports. Implement cross-table reservation and audit persistence in Work Order infrastructure adapters so the application layer does not import Inventory repositories or persistence classes, preserving the existing dependency DAG. Extend master use-case interfaces only for warehouse-code and machine-availability semantics needed by Work Order.
+**Structure Decision**: Extend the existing `workorder` module with an operation response DTO, input-port method, service orchestration, and output ports. Implement cross-table reservation and audit persistence in Work Order infrastructure adapters so the application layer does not import Inventory repositories or persistence classes, preserving the existing dependency DAG.
 
 ## Phase 0: Research Findings
 
 Research is complete in [research.md](research.md). Key resolved decisions:
 
 - Dedicated Work Order reservation orchestration instead of generic Inventory movement service.
-- Server-side warehouse resolution by `RAW_MATERIAL_WAREHOUSE`.
-- Pessimistic locks on Work Order, machine, and eligible stock balances in deterministic order.
+- Eligible stock selection across all active warehouses.
+- Pessimistic locks on Work Order and eligible stock balances in deterministic order.
 - All-or-nothing reservation with a non-rollback shortage path that persists `MATERIAL_SHORTAGE` and audit data.
 - Structured `INSUFFICIENT_STOCK` details and `stock_movements.work_order_id` traceability.
-- Versioned route exposed without removing current `/api/work-orders` routes.
+- Action route exposed by the existing `WorkOrderController` without duplicating controllers.
 
 ## Phase 1: Design Summary
 
@@ -126,7 +114,7 @@ The valid transitions are `PLANNED → READY_TO_PRODUCE` and `MATERIAL_SHORTAGE 
 
 ### API Contract
 
-The public contract is defined in [contracts/reserve-work-order-materials-api.json](contracts/reserve-work-order-materials-api.json). The request contains only `machineId`; the source warehouse is never client-controlled. Successful responses contain the Work Order ID and `READY_TO_PRODUCE` status. Shortage responses contain structured per-material details.
+The public contract is defined in [contracts/reserve-work-order-materials-api.json](contracts/reserve-work-order-materials-api.json). The request has no body and never accepts a source warehouse. Successful responses contain the Work Order ID and `READY_TO_PRODUCE` status. Shortage responses contain structured per-material details.
 
 ### Persistence and Concurrency
 

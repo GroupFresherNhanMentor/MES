@@ -49,14 +49,14 @@ The system protects shared inventory from competing reservation requests and rec
 - What happens when the Work Order ID does not exist? The system returns `404 NOT_FOUND` without changing inventory.
 - How is machine assignment handled? This operation does not accept or validate a machine; the production-start operation validates the selected machine and its availability.
 - What happens when the Work Order is in an invalid lifecycle status? The system rejects the action with `400 INVALID_INPUT` and leaves inventory unchanged.
-- What happens when the configured `RAW_MATERIAL_WAREHOUSE` cannot be resolved? The system rejects the operation with a clear configuration error and leaves inventory unchanged.
+- What happens when stock exists only in an inactive warehouse? The system excludes that stock and returns `INSUFFICIENT_STOCK` when active warehouses cannot satisfy the reservation.
 - What happens when the same request competes with another reservation? The system serializes access, rechecks the current quantity, and either completes the reservation or returns `INSUFFICIENT_STOCK`.
 - What happens when a material is split across several lots? The system uses the oldest eligible lots first and creates a movement for each lot used.
 - What happens when a retry is submitted after a successful reservation? The system rejects the request because the Work Order is no longer in a reservable status.
 
 ## Requirements *(mandatory)*
 - What happens when the Work Order is in an invalid lifecycle status? The system rejects the action with `400 INVALID_INPUT` and leaves inventory unchanged.
-- What happens when the configured `RAW_MATERIAL_WAREHOUSE` cannot be resolved? The system rejects the operation with a clear configuration error and leaves inventory unchanged.
+- What happens when stock exists only in an inactive warehouse? The system excludes that stock and returns `INSUFFICIENT_STOCK` when active warehouses cannot satisfy the reservation.
 - What happens when the same request competes with another reservation? The system serializes access, rechecks the current quantity, and either completes the reservation or returns `INSUFFICIENT_STOCK`.
 - What happens when a material is split across several lots? The system uses the oldest eligible lots first and creates a movement for each lot used.
 - What happens when a retry is submitted after a successful reservation? The system rejects the request because the Work Order is no longer in a reservable status.
@@ -86,7 +86,7 @@ The system protects shared inventory from competing reservation requests and rec
 
 - **Work Order**: The production order whose lifecycle changes from `PLANNED` or `MATERIAL_SHORTAGE` to `READY_TO_PRODUCE` after a successful reservation.
 - **Work Order Material**: The material requirement and its required, reserved, and consumed quantities for a Work Order.
-- **Raw Material Warehouse**: The warehouse identified by the configured code `RAW_MATERIAL_WAREHOUSE`; it is the only warehouse eligible for this reservation operation.
+- **Warehouse**: Any warehouse in `ACTIVE` status is eligible for this reservation operation; inactive warehouses are excluded.
 - **Stock Balance**: The current quantity of a product and lot at a warehouse location and stock status.
 - **Stock Lot**: A material lot used to apply FIFO selection during reservation.
 - **Stock Movement**: The immutable `RESERVE` record that traces each quantity moved from `AVAILABLE` to `RESERVED`.
@@ -100,13 +100,13 @@ The system protects shared inventory from competing reservation requests and rec
 - **SC-002**: 100% of shortage reservations leave all stock balances and Work Order material reservation quantities unchanged, except for the required `MATERIAL_SHORTAGE` status result.
 - **SC-003**: In the defined 20-request concurrency test with 10 available units, exactly 10 requests succeed and 10 fail, with no negative stock and no duplicate reservation movements.
 - **SC-004**: 100% of successful status transitions caused by reservation have a corresponding `RESERVE_MATERIAL` audit record.
-- **SC-005**: 100% of reservation attempts that target stock outside `RAW_MATERIAL_WAREHOUSE` exclude that stock from availability calculations.
+- **SC-005**: 100% of reservations include eligible stock from all `ACTIVE` warehouses and exclude stock from inactive warehouses.
 - **SC-006**: Planners receive a response identifying every insufficient material and its shortage quantity, allowing them to replenish stock and retry the reservation.
 
 ## Assumptions
 
 - The existing authentication system supplies the caller identity and role used for authorization.
-- The system has one resolvable configured warehouse identified by `RAW_MATERIAL_WAREHOUSE`.
+- Eligible stock may be distributed across multiple `ACTIVE` warehouses.
 - Work Order material requirements are already associated with the Work Order when this action is called.
 - The Work Order's BOM and material requirement data remain stable during reservation; changing planning quantities is handled by the Work Order update flow.
 - Machine assignment and availability are evaluated by the production-start operation, not by material reservation.

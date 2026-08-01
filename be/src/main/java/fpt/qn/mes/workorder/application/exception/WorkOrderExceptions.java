@@ -27,7 +27,7 @@ public class WorkOrderExceptions {
 
     public static class InvalidWorkOrderReservationException extends AppException {
         public InvalidWorkOrderReservationException(String message) {
-            super(400, ErrorCode.BAD_REQUEST, message);
+            super(400, ErrorCode.INVALID_INPUT, message);
         }
     }
 

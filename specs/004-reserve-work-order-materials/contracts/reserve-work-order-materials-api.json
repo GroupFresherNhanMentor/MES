@@ -1,6 +1,6 @@
 {
   "endpoint": "POST /api/work-orders/{id}/reserve-materials",
-  "description": "Reserve all required Work Order materials from the configured raw material warehouse and make the Work Order ready for production",
+  "description": "Reserve all required Work Order materials from active warehouses and make the Work Order ready for production",
   "authentication": "JWT Bearer Token",
   "authorization": ["PLANNER"],
   "pathParameters": {
@@ -59,8 +59,8 @@
     }
   },
   "businessRules": [
-    "The endpoint has no request body; resolve the source warehouse using the configured code RAW_MATERIAL_WAREHOUSE",
-    "Consider only AVAILABLE stock balances within the resolved source warehouse",
+    "The endpoint has no request body and does not accept a source warehouse parameter",
+    "Consider AVAILABLE stock balances across all ACTIVE warehouses",
     "Select eligible lots in FIFO order by stock_lots.created_at",
     "Allow reservation only from PLANNED or MATERIAL_SHORTAGE",
     "Move to READY_TO_PRODUCE only when all material requirements are satisfied",

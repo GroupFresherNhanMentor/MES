@@ -34,11 +34,10 @@ The operation must reject inconsistent negative remaining quantities. A normal r
 
 | Field | Type | Rules for this feature |
 |---|---|---|
-| `id` | UUID | Resolved internally and never supplied by the client. |
-| `code` | String | Must equal the configured `RAW_MATERIAL_WAREHOUSE` value. |
-| `warehouseStatusId` | UUID | The resolved warehouse must be usable for stock operations. |
+| `id` | UUID | Identifies an eligible stock source and is never supplied by the client. |
+| `warehouseStatusId` | UUID | Only warehouses with status `ACTIVE` are eligible for stock operations. |
 
-The request contains no `sourceWarehouseId`. The configured code is resolved for every request and the resulting warehouse ID scopes all stock queries.
+The request contains no `sourceWarehouseId`. Stock queries include all `ACTIVE` warehouses.
 
 ### StockLot
 
@@ -54,7 +53,7 @@ FIFO ordering uses `createdAt` followed by deterministic `id`/location tie-break
 
 | Field | Type | Rules for this feature |
 |---|---|---|
-| `warehouseId` | UUID | Must equal the resolved raw-material warehouse ID. |
+| `warehouseId` | UUID | Must belong to an `ACTIVE` warehouse. |
 | `locationId` | UUID | Identifies the stock location. |
 | `productId` | UUID | Matches a Work Order material. |
 | `lotId` | UUID | Joins FIFO lot ordering. |
@@ -97,7 +96,7 @@ Audit records are immutable and written in the same transaction as the correspon
 
 ## API DTOs
 
-The reservation endpoint has no request DTO or request body. The Work Order ID is supplied in the path, and the source warehouse is resolved from configuration.
+The reservation endpoint has no request DTO or request body. The Work Order ID is supplied in the path, and the source warehouse is selected from all active warehouse balances.
 
 ### ReserveWorkOrderMaterialsResponse
 

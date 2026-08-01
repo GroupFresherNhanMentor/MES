@@ -10,10 +10,10 @@ docker-compose up -d
 ```
 
 - A valid JWT for a user with the `PLANNER` role.
-- A warehouse with code `RAW_MATERIAL_WAREHOUSE` and at least one active location.
+- One or more `ACTIVE` warehouses with active locations.
 - A finished product with an active BOM and an existing Work Order in `PLANNED` status.
 - `work_order_materials` populated for the Work Order.
-- `AVAILABLE` stock balances for every required material in the configured warehouse.
+- `AVAILABLE` stock balances for every required material across active warehouses.
 
 ## Start the Backend
 
@@ -38,13 +38,13 @@ Expected result:
 - HTTP `200 OK`.
 - Response data contains the Work Order ID and `READY_TO_PRODUCE`.
 - The Work Order status is `READY_TO_PRODUCE`.
-- `AVAILABLE` balances decrease and `RESERVED` balances increase in `RAW_MATERIAL_WAREHOUSE`.
+- `AVAILABLE` balances decrease and `RESERVED` balances increase in the active warehouses and locations selected by FIFO.
 - One `RESERVE` movement exists for each selected lot allocation.
 - A `RESERVE_MATERIAL` audit record exists for the status transition.
 
 ## Insufficient Stock
 
-Use a Work Order whose required quantity exceeds the available quantity in the configured warehouse:
+Use a Work Order whose required quantity exceeds the available quantity across all active warehouses:
 
 ```bash
 curl -i -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
@@ -60,9 +60,9 @@ Expected result:
 - No `RESERVE` movement is created.
 - The Work Order status is `MATERIAL_SHORTAGE` and the transition is audited.
 
-## Scope and Warehouse Isolation
+## Active Warehouse Scope
 
-Seed sufficient stock in another warehouse but insufficient stock in `RAW_MATERIAL_WAREHOUSE`. Repeat the request and verify that the other warehouse is ignored and the response remains `INSUFFICIENT_STOCK`.
+Seed material across two active warehouses and verify the reservation succeeds when their combined quantity is sufficient. Seed adequate material only in an inactive warehouse and verify it is excluded, returning `INSUFFICIENT_STOCK`.
 
 ## Machine Assignment
 
