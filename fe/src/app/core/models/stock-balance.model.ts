@@ -1,26 +1,22 @@
 export interface StockBalanceDto {
   id: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
-  warehouseId: string;
-  warehouseName?: string;
-  locationId?: string;
-  locationCode?: string;
+  warehouse: { id: string; code: string; name: string } | null;
+  location: { id: string; code: string; name: string } | null;
+  product: { id: string; code: string; name: string } | null;
+  lot: { id: string; lotNumber: string } | null;
+  stockStatus: { id: string; name: string } | null;
   quantity: number;
-  reservedQuantity: number;
-  availableQuantity: number;
-  unitOfMeasure?: string;
-  lastMovementAt?: string;
+  version: number;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface StockBalanceListParams {
-  productId?: string;
+export interface StockBalanceSearchParams {
   warehouseId?: string;
   locationId?: string;
-  keyword?: string;
+  productId?: string;
+  lotId?: string;
+  stockStatusId?: string;
   page?: number;
   size?: number;
 }

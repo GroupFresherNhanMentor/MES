@@ -22,7 +22,7 @@ class StockBalanceTest {
         StockStatus status = StockStatus.builder().id(UUID.randomUUID()).name("AVAILABLE").build();
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .stockStatusId(status.getId())
+                .stockStatus(StockBalance.StockStatusRef.builder().id(status.getId()).build())
                 .quantity(new BigDecimal("100.00"))
                 .build();
 

@@ -1,7 +1,6 @@
 package fpt.qn.mes.inventory.application.service;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,7 +12,6 @@ import fpt.qn.mes.audit.domain.entities.AuditAction;
 import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
 import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
@@ -27,6 +25,7 @@ import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSe
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
+import fpt.qn.mes.inventory.application.exception.InvalidStockTransferException;
 import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
@@ -47,6 +46,7 @@ import fpt.qn.mes.inventory.domain.repository.StockBalanceRepository;
 import fpt.qn.mes.inventory.domain.repository.StockLotRepository;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.StockStatusRepository;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.search.StockAdjustmentApprovalSearchRequest;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
@@ -91,12 +91,13 @@ public class InventoryService implements InventoryUseCase {
                 .size(request != null ? request.getSize() : 20)
                 .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
                 .build();
-
-        long total = movementRepository.count(criteria);
-        List<StockMovementResponse> dtos = movementRepository.search(criteria).stream()
+        var result = movementRepository.search(criteria);
+        List<StockMovementResponse> dtos = result.getItems().stream()
                 .map(m -> mapper.toDto(m))
                 .collect(Collectors.toList());
-        return PageResponse.of(dtos, total, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
+        return PageResponse.of(dtos, result.getTotal(),
+                request != null ? request.getPage() : 0,
+                request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -134,18 +135,10 @@ public class InventoryService implements InventoryUseCase {
             StockBalance toBalance = optToBalance.map(b -> {
                 b.addQuantity(request.getQuantity());
                 return b;
-            }).orElse(StockBalance.builder()
-                    .id(UuidV7.generate())
-                    .warehouseId(request.getWarehouseId())
-                    .locationId(request.getLocationId())
-                    .productId(request.getProductId())
-                    .lotId(request.getLotId())
-                    .stockStatusId(request.getToStatusId())
-                    .quantity(request.getQuantity())
-                    .version(1L)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
-                    .build());
+            }).orElse(StockBalance.create(
+                    request.getWarehouseId(), request.getLocationId(),
+                    request.getProductId(), request.getLotId(),
+                    request.getToStatusId(), request.getQuantity()));
             balanceRepository.save(toBalance);
         }
 
@@ -174,11 +167,13 @@ public class InventoryService implements InventoryUseCase {
                 .size(request != null ? request.getSize() : 20)
                 .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
                 .build();
-        long total = balanceRepository.count(criteria);
-        List<StockBalanceResponse> dtos = balanceRepository.search(criteria).stream()
+        var result = balanceRepository.search(criteria);
+        List<StockBalanceResponse> dtos = result.getItems().stream()
                 .map(b -> mapper.toDto(b))
                 .collect(Collectors.toList());
-        return PageResponse.of(dtos, total, request != null ? request.getPage() : 0, request != null ? request.getSize() : 20);
+        return PageResponse.of(dtos, result.getTotal(),
+                request != null ? request.getPage() : 0,
+                request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -221,18 +216,12 @@ public class InventoryService implements InventoryUseCase {
 
         BigDecimal newQty = optBalance.map(b -> b.getQuantity()).orElse(BigDecimal.ZERO).add(request.getQuantity());
 
-        balanceRepository.save(StockBalance.builder()
-                .id(optBalance.map(b -> b.getId()).orElse(UuidV7.generate()))
-                .warehouseId(request.getWarehouseId())
-                .locationId(request.getLocationId())
-                .productId(request.getProductId())
-                .lotId(lot.getId())
-                .stockStatusId(statusId)
-                .quantity(newQty)
-                .version(optBalance.map(b -> b.getVersion() == null ? 1L : b.getVersion() + 1).orElse(1L))
-                .createdAt(optBalance.map(b -> b.getCreatedAt()).orElse(Instant.now()))
-                .updatedAt(Instant.now())
-                .build());
+        StockBalance updatedBalance = optBalance
+                .map(b -> StockBalance.update(b, newQty))
+                .orElse(StockBalance.create(
+                        request.getWarehouseId(), request.getLocationId(),
+                        request.getProductId(), lot.getId(), statusId, newQty));
+        balanceRepository.save(updatedBalance);
 
         movementRepository.save(StockMovement.create(
                 purchaseInTypeId, request.getProductId(), lot.getId(),
@@ -269,14 +258,7 @@ public class InventoryService implements InventoryUseCase {
             return;
         }
 
-        balanceRepository.save(StockBalance.builder()
-                .id(balance.getId())
-                .warehouseId(balance.getWarehouseId()).locationId(balance.getLocationId())
-                .productId(balance.getProductId()).lotId(balance.getLotId())
-                .stockStatusId(balance.getStockStatusId()).quantity(result)
-                .version(balance.getVersion() == null ? 1L : balance.getVersion() + 1)
-                .createdAt(balance.getCreatedAt()).updatedAt(Instant.now())
-                .build());
+        balanceRepository.save(StockBalance.update(balance, result));
 
         UUID adjustmentTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)
                 .orElseThrow(() -> new InventoryNotFoundException("Movement type ADJUSTMENT not found"));
@@ -301,13 +283,24 @@ public class InventoryService implements InventoryUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StockAdjustmentApprovalResponse> getPendingAdjustments(StockAdjustmentApprovalSearchCriteria criteria) {
-        if (criteria == null) criteria = StockAdjustmentApprovalSearchCriteria.builder().page(0).size(20).build();
-        long total = approvalRepository.count(criteria);
-        List<StockAdjustmentApprovalResponse> dtos = approvalRepository.search(criteria).stream()
+    public PageResponse<StockAdjustmentApprovalResponse> getPendingAdjustments(StockAdjustmentApprovalSearchRequest request) {
+        StockAdjustmentApprovalSearchCriteria criteria = StockAdjustmentApprovalSearchCriteria.builder()
+                .productId(request != null ? request.getProductId() : null)
+                .warehouseId(request != null ? request.getWarehouseId() : null)
+                .locationId(request != null ? request.getLocationId() : null)
+                .stockBalanceId(request != null ? request.getStockBalanceId() : null)
+                .createdBy(request != null ? request.getCreatedBy() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .sort(request != null && request.getSort() != null ? request.getSort() : List.of())
+                .build();
+        var result = approvalRepository.search(criteria);
+        List<StockAdjustmentApprovalResponse> dtos = result.getItems().stream()
                 .map(a -> approvalMapper.toDto(a))
                 .collect(Collectors.toList());
-        return PageResponse.of(dtos, total, criteria.getPage(), criteria.getSize());
+        return PageResponse.of(dtos, result.getTotal(),
+                request != null ? request.getPage() : 0,
+                request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -323,14 +316,7 @@ public class InventoryService implements InventoryUseCase {
         if (result.compareTo(BigDecimal.ZERO) < 0)
             throw new InvalidStockAdjustmentException("Adjustment cannot result in negative stock balance");
 
-        balanceRepository.save(StockBalance.builder()
-                .id(balance.getId())
-                .warehouseId(balance.getWarehouseId()).locationId(balance.getLocationId())
-                .productId(balance.getProductId()).lotId(balance.getLotId())
-                .stockStatusId(balance.getStockStatusId()).quantity(result)
-                .version(balance.getVersion() == null ? 1L : balance.getVersion() + 1)
-                .createdAt(balance.getCreatedAt()).updatedAt(Instant.now())
-                .build());
+        balanceRepository.save(StockBalance.update(balance, result));
 
         UUID adjustmentTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)
                 .orElseThrow(() -> new InventoryNotFoundException("Movement type ADJUSTMENT not found"));
@@ -365,16 +351,12 @@ public class InventoryService implements InventoryUseCase {
     @Override
     @Transactional
     public StockTransferResponse transferStock(StockTransferRequest request) {
-        if (request == null) throw new IllegalArgumentException("Stock transfer request cannot be null");
-        if (request.getQuantity() == null || request.getQuantity().compareTo(BigDecimal.ZERO) <= 0)
-            throw new IllegalArgumentException("Quantity must be greater than zero");
         if (request.getFromLocationId() != null && request.getFromLocationId().equals(request.getToLocationId()))
-            throw new IllegalArgumentException("Source and destination location cannot be the same");
-
+            throw new InvalidStockTransferException("Source and destination location cannot be the same");
         if (!warehouseLocationQueryPort.belongsToWarehouse(request.getFromLocationId(), request.getFromWarehouseId()))
-            throw new IllegalArgumentException("Source location does not belong to the specified source warehouse");
+            throw new InvalidStockTransferException("Source location does not belong to the specified source warehouse");
         if (!warehouseLocationQueryPort.belongsToWarehouse(request.getToLocationId(), request.getToWarehouseId()))
-            throw new IllegalArgumentException("Destination location does not belong to the specified destination warehouse");
+            throw new InvalidStockTransferException("Destination location does not belong to the specified destination warehouse");
 
         UUID availableStatusId = stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)
                 .orElseThrow(() -> new InventoryNotFoundException("Stock status AVAILABLE not found"));
@@ -393,13 +375,10 @@ public class InventoryService implements InventoryUseCase {
         StockBalance dest = balanceRepository.findForUpdate(
                 request.getToWarehouseId(), request.getToLocationId(),
                 request.getProductId(), request.getLotId(), availableStatusId)
-                .orElse(StockBalance.builder()
-                        .id(UuidV7.generate())
-                        .warehouseId(request.getToWarehouseId()).locationId(request.getToLocationId())
-                        .productId(request.getProductId()).lotId(request.getLotId())
-                        .stockStatusId(availableStatusId).quantity(BigDecimal.ZERO)
-                        .version(1L).createdAt(Instant.now()).updatedAt(Instant.now())
-                        .build());
+                .orElse(StockBalance.create(
+                        request.getToWarehouseId(), request.getToLocationId(),
+                        request.getProductId(), request.getLotId(),
+                        availableStatusId, BigDecimal.ZERO));
         dest.addQuantity(request.getQuantity());
         StockBalance updatedDest = balanceRepository.save(dest);
 

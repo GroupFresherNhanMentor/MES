@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
@@ -11,14 +13,19 @@ import type { LocationDto } from '../../../../core/models/location.model';
 
 @Component({
   selector: 'app-location-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatSnackBarModule],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, MatTooltipModule, MatDialogModule, MatSnackBarModule],
   template: `
-  <h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} Location</h2>
+  <h2 mat-dialog-title>{{ data?.id ? 'Edit' : 'Add' }} Location</h2>
   <mat-dialog-content>
     <div style="display:flex; flex-direction:column; gap:12px; padding-top:8px;">
       <mat-form-field appearance="outline">
         <mat-label>Code</mat-label>
-        <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data">
+        <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data?.id">
+        @if (!data?.id) {
+          <button matSuffix mat-icon-button type="button" (click)="genCode()" matTooltip="Auto-generate code">
+            <mat-icon>auto_awesome</mat-icon>
+          </button>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Name</mat-label>
@@ -42,10 +49,16 @@ export class LocationFormComponent {
   code = '';
   name = '';
 
+  genCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const rand = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    this.code = `LOC-${rand}`;
+  }
+
   constructor() {
     const d = this.data as any;
     if (d?.warehouseId) this.warehouseId = d.warehouseId;
-    if (this.data) {
+    if (this.data?.id) {
       this.code = this.data.code;
       this.name = this.data.name || '';
     }

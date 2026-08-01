@@ -1,52 +1,57 @@
-import type { MovementType } from '../../configs/constants';
-
 export interface StockMovementDto {
   id: string;
-  movementCode: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
-  movementType: MovementType;
+  movementType: { id: string; name: string } | null;
+  product: { id: string; code: string; name: string } | null;
+  lot: { id: string; lotNumber: string } | null;
+  fromWarehouse: { id: string; code: string; name: string } | null;
+  toWarehouse: { id: string; code: string; name: string } | null;
+  fromLocation: { id: string; code: string; name: string } | null;
+  toLocation: { id: string; code: string; name: string } | null;
   quantity: number;
-  fromWarehouseId?: string;
-  fromWarehouseName?: string;
-  fromLocationId?: string;
-  fromLocationCode?: string;
-  toWarehouseId?: string;
-  toWarehouseName?: string;
-  toLocationId?: string;
-  toLocationCode?: string;
-  referenceType?: string;
-  referenceId?: string;
-  reason?: string;
-  performedBy?: string;
-  performedByName?: string;
-  movementDate: string;
-  notes?: string;
+  fromStatus: { id: string; name: string } | null;
+  toStatus: { id: string; name: string } | null;
+  referenceNo: string | null;
+  reason: string | null;
+  createdBy: { id: string; username: string; fullName: string } | null;
   createdAt: string;
 }
 
-export interface CreateStockMovementRequest {
+export interface StockTransferRequest {
+  fromWarehouseId: string;
+  fromLocationId: string;
+  toWarehouseId: string;
+  toLocationId: string;
   productId: string;
-  movementType: MovementType;
+  lotId: string;
   quantity: number;
-  fromWarehouseId?: string;
-  fromLocationId?: string;
-  toWarehouseId?: string;
-  toLocationId?: string;
-  referenceType?: string;
-  referenceId?: string;
-  reason?: string;
-  notes?: string;
 }
 
-export interface StockMovementListParams {
+export interface StockTransferResponse {
+  transferOutMovement: StockMovementDto | null;
+  transferInMovement: StockMovementDto | null;
+  sourceBalance: {
+    id: string;
+    warehouse: { id: string; code: string; name: string } | null;
+    location: { id: string; code: string; name: string } | null;
+    product: { id: string; code: string; name: string } | null;
+    quantity: number;
+  } | null;
+  destinationBalance: {
+    id: string;
+    warehouse: { id: string; code: string; name: string } | null;
+    location: { id: string; code: string; name: string } | null;
+    product: { id: string; code: string; name: string } | null;
+    quantity: number;
+  } | null;
+}
+
+export interface StockMovementSearchParams {
+  movementTypeId?: string;
   productId?: string;
-  movementType?: MovementType;
+  lotId?: string;
   warehouseId?: string;
-  fromDate?: string;
-  toDate?: string;
-  keyword?: string;
+  locationId?: string;
+  referenceNo?: string;
   page?: number;
   size?: number;
 }

@@ -33,7 +33,7 @@ import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
-import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.search.StockAdjustmentApprovalSearchRequest;
 
 @ExtendWith(MockitoExtension.class)
 class InventoryControllerTest {
@@ -146,8 +146,9 @@ class InventoryControllerTest {
     @Test
     @DisplayName("getPendingAdjustments returns 200 OK with list")
     void getPendingAdjustments_returns200OK() {
-        StockAdjustmentApprovalSearchCriteria criteria = StockAdjustmentApprovalSearchCriteria.builder()
-                .page(0).size(20).build();
+        StockAdjustmentApprovalSearchRequest criteria = new StockAdjustmentApprovalSearchRequest();
+        criteria.setPage(0);
+        criteria.setSize(20);
 
         StockAdjustmentApprovalResponse dto = StockAdjustmentApprovalResponse.builder()
                 .id(UUID.randomUUID()).build();
@@ -157,6 +158,7 @@ class InventoryControllerTest {
 
         ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> response =
                 controller.getPendingAdjustments(criteria);
+
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getData().getItems()).hasSize(1);

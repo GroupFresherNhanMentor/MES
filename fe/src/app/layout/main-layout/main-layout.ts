@@ -68,6 +68,7 @@ export class MainLayout {
     { path: '/work-orders', label: 'Work Orders', icon: 'assignment', roles: ['ADMIN', 'PLANNER', 'PRODUCTION_OPERATOR'] },
     { path: '/stock-balances', label: 'Stock', icon: 'shelves', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
     { path: '/stock-movements', label: 'Movements', icon: 'swap_horiz', roles: ['ADMIN', 'WAREHOUSE_MANAGER', 'AUDITOR'] },
+    { path: '/stock-adjustments', label: 'Adjustments', icon: 'pending_actions', roles: ['ADMIN', 'FACTORY_MANAGER'] },
     { path: '/quality-inspections', label: 'Quality', icon: 'fact_check', roles: ['ADMIN', 'QC_INSPECTOR'] },
     { path: '/maintenance-tickets', label: 'Maintenance', icon: 'build', roles: ['ADMIN', 'MAINTENANCE_ENGINEER'] },
     { path: '/reports', label: 'Reports', icon: 'bar_chart', roles: ['ADMIN', 'FACTORY_MANAGER'] },

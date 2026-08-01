@@ -14,22 +14,18 @@ import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.Record;
 import org.jooq.SortField;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
 import fpt.qn.mes.inventory.domain.repository.StockAdjustmentApprovalRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.jooq.tables.Users;
-import fpt.qn.mes.jooq.tables.records.ProductsRecord;
 import fpt.qn.mes.jooq.tables.records.StockAdjustmentApprovalsRecord;
-import fpt.qn.mes.jooq.tables.records.UsersRecord;
-import fpt.qn.mes.jooq.tables.records.WarehouseLocationsRecord;
-import fpt.qn.mes.jooq.tables.records.WarehousesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -41,8 +37,7 @@ public class StockAdjustmentApprovalPersistenceAdapter extends BaseRepository<St
     private static final Users CREATOR = USERS.as("creator");
 
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
-            "createdAt", STOCK_ADJUSTMENT_APPROVALS.CREATED_AT
-    );
+            "created_at", STOCK_ADJUSTMENT_APPROVALS.CREATED_AT);
     private static final Field<?> DEFAULT_SORT_FIELD = STOCK_ADJUSTMENT_APPROVALS.CREATED_AT;
 
     StockAdjustmentApprovalRecordMapper mapper;
@@ -54,10 +49,9 @@ public class StockAdjustmentApprovalPersistenceAdapter extends BaseRepository<St
 
     @Override
     public Optional<StockAdjustmentApproval> findById(UUID id) {
-        StockAdjustmentApprovalsRecord record = ctx.selectFrom(STOCK_ADJUSTMENT_APPROVALS)
+        return ctx.selectFrom(STOCK_ADJUSTMENT_APPROVALS)
                 .where(STOCK_ADJUSTMENT_APPROVALS.ID.eq(id))
-                .fetchOne();
-        return Optional.ofNullable(mapper.toDomain(record));
+                .fetchOptional(r -> mapper.toDomain(r));
     }
 
     @Override
@@ -70,10 +64,11 @@ public class StockAdjustmentApprovalPersistenceAdapter extends BaseRepository<St
     }
 
     @Override
-    public List<StockAdjustmentApproval> search(StockAdjustmentApprovalSearchCriteria criteria) {
+    public PaginationResult<StockAdjustmentApproval> search(StockAdjustmentApprovalSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-        return ctx.select()
+        long total = ctx.fetchCount(STOCK_ADJUSTMENT_APPROVALS, condition);
+        List<StockAdjustmentApproval> items = ctx.select()
                 .from(STOCK_ADJUSTMENT_APPROVALS)
                 .leftJoin(PRODUCTS).on(STOCK_ADJUSTMENT_APPROVALS.PRODUCT_ID.eq(PRODUCTS.ID))
                 .leftJoin(WAREHOUSES).on(STOCK_ADJUSTMENT_APPROVALS.WAREHOUSE_ID.eq(WAREHOUSES.ID))
@@ -83,12 +78,10 @@ public class StockAdjustmentApprovalPersistenceAdapter extends BaseRepository<St
                 .orderBy(orderBy)
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
-                .fetch(r -> mapRecord(r));
-    }
-
-    @Override
-    public long count(StockAdjustmentApprovalSearchCriteria criteria) {
-        return count(buildCondition(criteria));
+                .fetch(r -> mapper.toDomain(
+                        r.into(STOCK_ADJUSTMENT_APPROVALS), r.into(PRODUCTS),
+                        r.into(WAREHOUSES), r.into(WAREHOUSE_LOCATIONS), r.into(CREATOR)));
+        return PaginationResult.<StockAdjustmentApproval>builder().total(total).items(items).build();
     }
 
     @Override
@@ -96,54 +89,6 @@ public class StockAdjustmentApprovalPersistenceAdapter extends BaseRepository<St
         ctx.deleteFrom(STOCK_ADJUSTMENT_APPROVALS)
                 .where(STOCK_ADJUSTMENT_APPROVALS.ID.eq(id))
                 .execute();
-    }
-
-    private StockAdjustmentApproval mapRecord(Record r) {
-        StockAdjustmentApprovalsRecord ap = r.into(STOCK_ADJUSTMENT_APPROVALS);
-        ProductsRecord product = r.into(PRODUCTS);
-        WarehousesRecord warehouse = r.into(WAREHOUSES);
-        WarehouseLocationsRecord location = r.into(WAREHOUSE_LOCATIONS);
-        UsersRecord creator = r.into(CREATOR);
-
-        StockAdjustmentApproval.ProductRef productRef = product.getId() != null
-                ? StockAdjustmentApproval.ProductRef.builder()
-                        .id(product.getId()).code(product.getCode()).name(product.getName()).build()
-                : null;
-
-        StockAdjustmentApproval.WarehouseRef warehouseRef = warehouse.getId() != null
-                ? StockAdjustmentApproval.WarehouseRef.builder()
-                        .id(warehouse.getId()).code(warehouse.getCode()).name(warehouse.getName()).build()
-                : null;
-
-        StockAdjustmentApproval.WarehouseLocationRef locationRef = location.getId() != null
-                ? StockAdjustmentApproval.WarehouseLocationRef.builder()
-                        .id(location.getId()).code(location.getCode()).name(location.getName()).build()
-                : null;
-
-        StockAdjustmentApproval.UserRef createdByUser = creator.getId() != null
-                ? StockAdjustmentApproval.UserRef.builder()
-                        .id(creator.getId())
-                        .username(creator.getUsername())
-                        .fullName(creator.getFullName())
-                        .build()
-                : null;
-
-        return StockAdjustmentApproval.builder()
-                .id(ap.getId())
-                .productId(ap.getProductId())
-                .warehouseId(ap.getWarehouseId())
-                .locationId(ap.getLocationId())
-                .stockBalanceId(ap.getStockBalanceId())
-                .quantityAdjustment(ap.getQuantityAdjustment())
-                .reason(ap.getReason())
-                .referenceNo(ap.getReferenceNo())
-                .createdBy(ap.getCreatedBy())
-                .createdAt(ap.getCreatedAt() != null ? ap.getCreatedAt().toInstant() : null)
-                .product(productRef)
-                .warehouse(warehouseRef)
-                .location(locationRef)
-                .createdByUser(createdByUser)
-                .build();
     }
 
     private Condition buildCondition(StockAdjustmentApprovalSearchCriteria criteria) {

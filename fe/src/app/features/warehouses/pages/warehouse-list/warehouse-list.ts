@@ -12,6 +12,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 import { ApiService } from '../../../../core/services/api';
 import type { WarehouseDto } from '../../../../core/models/warehouse.model';
@@ -33,6 +34,7 @@ export class WarehouseList {
   private api = inject(ApiService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+  private router = inject(Router);
 
   items = signal<WarehouseDto[]>([]);
   total = signal(0);
@@ -84,4 +86,8 @@ export class WarehouseList {
   }
 
   statusName(id: string) { return this.statuses().find(s => s.id === id)?.name ?? ''; }
+
+  goToLocations(w: WarehouseDto) {
+    this.router.navigate(['/warehouses', w.id, 'locations']);
+  }
 }

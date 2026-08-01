@@ -93,6 +93,14 @@ export const routes: Routes = [
         data: { title: 'Stock Movements' },
       },
       {
+        path: 'stock-adjustments',
+        loadComponent: () =>
+          import('./features/stock-adjustments/pages/stock-adjustment-list/stock-adjustment-list').then(
+            (m) => m.StockAdjustmentList,
+          ),
+        data: { title: 'Pending Adjustments' },
+      },
+      {
         path: 'quality-inspections',
         loadComponent: () =>
           import('./features/quality-inspections/pages/quality-inspection-list/quality-inspection-list').then(
