@@ -1311,6 +1311,176 @@ Completes an in-progress Work Order with a running production run. Classified go
 
 ---
 
+## 13. Reports
+
+### GET `/reports/inventory-summary`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Query params:** `warehouseId` (UUID) · `productType` (string) · `productCode` (string) · `page` (default 0) · `size` (default 20)
+
+**Response `200`:**
+```json
+{
+  "items": [
+    {
+      "productId": "uuid",
+      "productCode": "PROD-001",
+      "productName": "Widget A",
+      "productType": "FINISHED_GOOD",
+      "warehouseId": "uuid",
+      "warehouseName": "Main Warehouse",
+      "availableQuantity": 150.0,
+      "reservedQuantity": 20.0,
+      "qualityInspectionQuantity": 10.0,
+      "onHoldQuantity": 5.0,
+      "scrappedQuantity": 0.0,
+      "totalOnHand": 185.0
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20
+}
+```
+
+---
+
+### GET `/reports/material-shortage`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Response `200`:**
+```json
+[
+  {
+    "workOrderId": "uuid",
+    "workOrderCode": "WO-2026-001",
+    "materialProductId": "uuid",
+    "materialCode": "RAW-001",
+    "materialName": "Steel Sheet",
+    "requiredQuantity": 500.0,
+    "reservedQuantity": 200.0,
+    "availableQuantity": 150.0,
+    "shortageQuantity": 150.0
+  }
+]
+```
+
+---
+
+### GET `/reports/production-output`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Query params:** `fromDate` (YYYY-MM-DD) · `toDate` (YYYY-MM-DD) · `page` (default 0) · `size` (default 20)
+
+**Response `200`:**
+```json
+{
+  "items": [
+    {
+      "date": "2026-08-01",
+      "workOrderId": "uuid",
+      "workOrderCode": "WO-2026-001",
+      "productCodeId": "uuid",
+      "productCode": "PROD-001",
+      "productName": "Widget A",
+      "plannedQuantity": 100.0,
+      "actualQuantity": 95.0,
+      "goodQuantity": 90.0,
+      "defectQuantity": 5.0,
+      "scrapQuantity": 0.0,
+      "completionRate": 95.00
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20
+}
+```
+
+---
+
+### GET `/reports/defect-rate`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Query params:** `fromDate` (YYYY-MM-DD) · `toDate` (YYYY-MM-DD)
+
+**Response `200`:**
+```json
+[
+  {
+    "productId": "uuid",
+    "productCode": "PROD-001",
+    "productName": "Widget A",
+    "totalInspected": 100.0,
+    "defectQuantity": 5.0,
+    "scrapQuantity": 1.0,
+    "defectRate": 5.00,
+    "topDefectTypes": ["SCRATCH", "DIMENSION_ERROR"]
+  }
+]
+```
+
+---
+
+### GET `/reports/machine-downtime`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Query params:** `fromDate` (YYYY-MM-DD) · `toDate` (YYYY-MM-DD)
+
+**Response `200`:**
+```json
+[
+  {
+    "machineId": "uuid",
+    "machineCode": "MCH-001",
+    "machineName": "CNC Machine 1",
+    "totalDowntimeMinutes": 120,
+    "maintenanceTicketCount": 2,
+    "lastDowntimeReason": "Motor overheating"
+  }
+]
+```
+
+---
+
+### GET `/reports/stock-movement-history`
+> **Roles:** `FACTORY_MANAGER`, `ADMIN`, `AUDITOR`
+
+**Query params:** `productId` (UUID) · `warehouseId` (UUID) · `movementTypeId` (UUID) · `fromDate` (YYYY-MM-DD) · `toDate` (YYYY-MM-DD) · `page` (default 0) · `size` (default 20)
+
+**Response `200`:**
+```json
+{
+  "items": [
+    {
+      "movementId": "uuid",
+      "movementTime": "2026-08-01T10:00:00Z",
+      "movementType": "PURCHASE_IN",
+      "productId": "uuid",
+      "productCode": "RAW-001",
+      "productName": "Steel Sheet",
+      "lotNumber": "LOT-2026-001",
+      "fromWarehouse": null,
+      "fromLocation": null,
+      "toWarehouse": "Main Warehouse",
+      "toLocation": "A-01",
+      "quantity": 500.0,
+      "referenceType": "WORK_ORDER",
+      "referenceId": "uuid",
+      "createdBy": "Admin User",
+      "reason": "Stock receipt"
+    }
+  ],
+  "totalElements": 1,
+  "totalPages": 1,
+  "pageNumber": 0,
+  "pageSize": 20
+}
+```
+
+---
 
 ## Role × Endpoint Matrix
 
