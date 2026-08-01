@@ -411,7 +411,8 @@ button.btn-success:hover,
 }
 
 /* ── Select/Option ── */
-.mat-mdc-select-panel {
+.mat-mdc-select-panel,
+.mat-mdc-autocomplete-panel {
   background: #292524 !important;
   border: 1px solid #44403c;
   border-radius: 4px;

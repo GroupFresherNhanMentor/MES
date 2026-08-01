@@ -17,7 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
 import fpt.qn.mes.inventory.infrastructure.persistence.InventoryRecordMapper;
@@ -53,9 +53,9 @@ class StockMovementSearchTest {
                 .offset(anyInt())
                 .fetch()).thenReturn(mock(Result.class));
 
-        List<StockMovement> response = adapter.search(criteria);
+        PaginationResult<StockMovement> response = adapter.search(criteria);
 
         assertThat(response).isNotNull();
-        assertThat(response).isEmpty();
+        assertThat(response.getItems()).isEmpty();
     }
 }

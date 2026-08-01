@@ -4,6 +4,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
@@ -12,7 +14,7 @@ import type { MachineDto } from '../../../../core/models/machine.model';
 
 @Component({
   selector: 'app-machine-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatDialogModule, MatSnackBarModule],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatIconModule, MatTooltipModule, MatDialogModule, MatSnackBarModule],
   template: `
   <h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} Machine</h2>
   <mat-dialog-content>
@@ -20,6 +22,11 @@ import type { MachineDto } from '../../../../core/models/machine.model';
       <mat-form-field appearance="outline">
         <mat-label>Code</mat-label>
         <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data">
+        @if (!data) {
+          <button matSuffix mat-icon-button type="button" (click)="genCode()" matTooltip="Auto-generate code">
+            <mat-icon>auto_awesome</mat-icon>
+          </button>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Name</mat-label>
@@ -50,6 +57,12 @@ export class MachineFormComponent {
   productionLineId = '';
   lines: { id: string; code: string; name: string }[] = [];
   loading = true;
+
+  genCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const rand = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    this.code = `MCH-${rand}`;
+  }
 
   constructor() {
     this.api.get<{ items: { id: string; code: string; name: string }[] }>('/api/lines?page=0&size=50').subscribe({

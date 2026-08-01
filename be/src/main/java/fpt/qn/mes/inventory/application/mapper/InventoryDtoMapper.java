@@ -20,12 +20,14 @@ public interface InventoryDtoMapper {
     StockMovementResponse toDto(StockMovement movement);
 
     StockBalanceResponse toDto(StockBalance balance);
+    StockBalanceResponse.WarehouseInfo toWarehouseInfo(StockBalance.WarehouseRef ref);
+    StockBalanceResponse.LocationInfo toLocationInfo(StockBalance.LocationRef ref);
+    StockBalanceResponse.ProductInfo toProductInfo(StockBalance.ProductRef ref);
+    StockBalanceResponse.LotInfo toLotInfo(StockBalance.LotRef ref);
+    StockBalanceResponse.StockStatusInfo toStockStatusInfo(StockBalance.StockStatusRef ref);
 
     ProductResponse toProductResponse(StockMovement.ProductRef ref);
-
     WarehouseResponse toWarehouseResponse(StockMovement.WarehouseRef ref);
-
     WarehouseLocationResponse toLocationResponse(StockMovement.WarehouseLocationRef ref);
-
     UserResponse toUserResponse(StockMovement.UserRef ref);
 }

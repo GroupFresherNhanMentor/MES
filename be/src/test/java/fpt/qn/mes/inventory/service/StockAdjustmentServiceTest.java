@@ -73,9 +73,9 @@ class StockAdjustmentServiceTest {
     void adjustStock_withinThreshold_appliesBalanceAndUpdateMovement() {
         StockBalance balance = StockBalance.builder()
                 .id(balanceId)
-                .productId(productId)
-                .warehouseId(warehouseId)
-                .locationId(locationId)
+                .product(StockBalance.ProductRef.builder().id(productId).build())
+                .warehouse(StockBalance.WarehouseRef.builder().id(warehouseId).build())
+                .location(StockBalance.LocationRef.builder().id(locationId).build())
                 .quantity(new BigDecimal("50.00"))
                 .version(1L)
                 .createdAt(Instant.now())
@@ -105,9 +105,9 @@ class StockAdjustmentServiceTest {
     void adjustStock_exceedingThreshold_savesPendingApproval() {
         StockBalance balance = StockBalance.builder()
                 .id(balanceId)
-                .productId(productId)
-                .warehouseId(warehouseId)
-                .locationId(locationId)
+                .product(StockBalance.ProductRef.builder().id(productId).build())
+                .warehouse(StockBalance.WarehouseRef.builder().id(warehouseId).build())
+                .location(StockBalance.LocationRef.builder().id(locationId).build())
                 .quantity(new BigDecimal("500.00"))
                 .version(1L)
                 .createdAt(Instant.now())
@@ -183,9 +183,9 @@ class StockAdjustmentServiceTest {
 
         StockBalance balance = StockBalance.builder()
                 .id(balanceId)
-                .productId(productId)
-                .warehouseId(warehouseId)
-                .locationId(locationId)
+                .product(StockBalance.ProductRef.builder().id(productId).build())
+                .warehouse(StockBalance.WarehouseRef.builder().id(warehouseId).build())
+                .location(StockBalance.LocationRef.builder().id(locationId).build())
                 .quantity(new BigDecimal("100.00"))
                 .version(1L)
                 .build();

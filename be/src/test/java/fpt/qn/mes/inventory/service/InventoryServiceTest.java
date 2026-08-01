@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +21,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.exception.DomainException;
 import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
 import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
@@ -32,6 +33,7 @@ import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRe
 import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.exception.InsufficientStockException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
+import fpt.qn.mes.inventory.application.exception.InvalidStockTransferException;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
 import fpt.qn.mes.inventory.application.port.out.ProductCheckPort;
@@ -132,9 +134,9 @@ class InventoryServiceTest {
 
         StockBalance existingBalance = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(warehouseId)
-                .locationId(locationId)
-                .productId(productId)
+                .warehouse(StockBalance.WarehouseRef.builder().id(warehouseId).build())
+                .location(StockBalance.LocationRef.builder().id(locationId).build())
+                .product(StockBalance.ProductRef.builder().id(productId).build())
                 .quantity(new BigDecimal("30.00"))
                 .build();
 
@@ -151,15 +153,15 @@ class InventoryServiceTest {
     void getStockBalances_Success() {
         StockBalance balance = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(warehouseId)
-                .productId(productId)
+                .warehouse(StockBalance.WarehouseRef.builder().id(warehouseId).build())
+                .product(StockBalance.ProductRef.builder().id(productId).build())
                 .quantity(new BigDecimal("120.00"))
                 .build();
 
         StockBalanceResponse dto = StockBalanceResponse.builder()
                 .id(balance.getId())
-                .warehouseId(warehouseId)
-                .productId(productId)
+                .warehouse(StockBalanceResponse.WarehouseInfo.builder().id(warehouseId).build())
+                .product(StockBalanceResponse.ProductInfo.builder().id(productId).build())
                 .quantity(new BigDecimal("120.00"))
                 .build();
 
@@ -167,8 +169,8 @@ class InventoryServiceTest {
         request.setWarehouseId(warehouseId);
         request.setProductId(productId);
 
-        when(balanceRepository.count(any(StockBalanceSearchCriteria.class))).thenReturn(1L);
-        when(balanceRepository.search(any(StockBalanceSearchCriteria.class))).thenReturn(List.of(balance));
+        when(balanceRepository.search(any(StockBalanceSearchCriteria.class)))
+                .thenReturn(PaginationResult.<StockBalance>builder().total(1L).items(List.of(balance)).build());
         when(mapper.toDto(balance)).thenReturn(dto);
 
         PageResponse<StockBalanceResponse> results = inventoryService.getStockBalances(request);
@@ -192,8 +194,8 @@ class InventoryServiceTest {
                 .quantity(new BigDecimal("10.00"))
                 .build();
 
-        when(movementRepository.count(any(StockMovementSearchCriteria.class))).thenReturn(1L);
-        when(movementRepository.search(any(StockMovementSearchCriteria.class))).thenReturn(List.of(movement));
+        when(movementRepository.search(any(StockMovementSearchCriteria.class)))
+                .thenReturn(PaginationResult.<StockMovement>builder().total(1L).items(List.of(movement)).build());
         when(mapper.toDto(any(StockMovement.class))).thenReturn(dto);
 
         StockMovementSearchRequest request = new StockMovementSearchRequest();
@@ -313,19 +315,38 @@ class InventoryServiceTest {
     @Test
     @DisplayName("transferStock should validate non-positive quantity")
     void transferStock_NonPositiveQuantity_ThrowsException() {
+        UUID fromWh = UUID.randomUUID(), fromLoc = UUID.randomUUID();
+        UUID toWh = UUID.randomUUID(), toLoc = UUID.randomUUID();
+        UUID prodId = UUID.randomUUID(), tLotId = UUID.randomUUID();
+        UUID statusId = UUID.randomUUID();
+
         StockTransferRequest request = StockTransferRequest.builder()
-                .fromWarehouseId(UUID.randomUUID())
-                .fromLocationId(UUID.randomUUID())
-                .toWarehouseId(UUID.randomUUID())
-                .toLocationId(UUID.randomUUID())
-                .productId(UUID.randomUUID())
-                .lotId(UUID.randomUUID())
+                .fromWarehouseId(fromWh).fromLocationId(fromLoc)
+                .toWarehouseId(toWh).toLocationId(toLoc)
+                .productId(prodId).lotId(tLotId)
                 .quantity(BigDecimal.ZERO)
                 .build();
 
+        when(warehouseLocationQueryPort.belongsToWarehouse(fromLoc, fromWh)).thenReturn(true);
+        when(warehouseLocationQueryPort.belongsToWarehouse(toLoc, toWh)).thenReturn(true);
+        when(stockStatusRepository.findIdByName(StockStatusConstants.AVAILABLE)).thenReturn(Optional.of(statusId));
+        when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_OUT)).thenReturn(Optional.of(UUID.randomUUID()));
+        when(movementTypeRepository.findIdByName(MovementTypeConstants.TRANSFER_IN)).thenReturn(Optional.of(UUID.randomUUID()));
+
+        StockBalance sourceBal = StockBalance.builder()
+                .id(UUID.randomUUID())
+                .warehouse(StockBalance.WarehouseRef.builder().id(fromWh).build())
+                .location(StockBalance.LocationRef.builder().id(fromLoc).build())
+                .product(StockBalance.ProductRef.builder().id(prodId).build())
+                .lot(StockBalance.LotRef.builder().id(tLotId).build())
+                .stockStatus(StockBalance.StockStatusRef.builder().id(statusId).build())
+                .quantity(new BigDecimal("50.00"))
+                .build();
+        when(balanceRepository.findForUpdate(fromWh, fromLoc, prodId, tLotId, statusId)).thenReturn(Optional.of(sourceBal));
+
         assertThatThrownBy(() -> inventoryService.transferStock(request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Quantity must be greater than zero");
+                .isInstanceOf(DomainException.class)
+                .hasMessageContaining("Deduction quantity must be positive");
     }
 
     @Test
@@ -343,7 +364,7 @@ class InventoryServiceTest {
                 .build();
 
         assertThatThrownBy(() -> inventoryService.transferStock(request))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidStockTransferException.class)
                 .hasMessageContaining("cannot be the same");
     }
 
@@ -376,11 +397,11 @@ class InventoryServiceTest {
 
         StockBalance sourceBal = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(fromWh)
-                .locationId(fromLoc)
-                .productId(prodId)
-                .lotId(tLotId)
-                .stockStatusId(statusId)
+                .warehouse(StockBalance.WarehouseRef.builder().id(fromWh).build())
+                .location(StockBalance.LocationRef.builder().id(fromLoc).build())
+                .product(StockBalance.ProductRef.builder().id(prodId).build())
+                .lot(StockBalance.LotRef.builder().id(tLotId).build())
+                .stockStatus(StockBalance.StockStatusRef.builder().id(statusId).build())
                 .quantity(new BigDecimal("20.00"))
                 .build();
 
@@ -421,17 +442,21 @@ class InventoryServiceTest {
 
         StockBalance sourceBal = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(fromWh).locationId(fromLoc)
-                .productId(prodId).lotId(tLotId)
-                .stockStatusId(statusId)
+                .warehouse(StockBalance.WarehouseRef.builder().id(fromWh).build())
+                .location(StockBalance.LocationRef.builder().id(fromLoc).build())
+                .product(StockBalance.ProductRef.builder().id(prodId).build())
+                .lot(StockBalance.LotRef.builder().id(tLotId).build())
+                .stockStatus(StockBalance.StockStatusRef.builder().id(statusId).build())
                 .quantity(new BigDecimal("50.00"))
                 .build();
 
         StockBalance destBal = StockBalance.builder()
                 .id(UUID.randomUUID())
-                .warehouseId(toWh).locationId(toLoc)
-                .productId(prodId).lotId(tLotId)
-                .stockStatusId(statusId)
+                .warehouse(StockBalance.WarehouseRef.builder().id(toWh).build())
+                .location(StockBalance.LocationRef.builder().id(toLoc).build())
+                .product(StockBalance.ProductRef.builder().id(prodId).build())
+                .lot(StockBalance.LotRef.builder().id(tLotId).build())
+                .stockStatus(StockBalance.StockStatusRef.builder().id(statusId).build())
                 .quantity(new BigDecimal("10.00"))
                 .build();
 

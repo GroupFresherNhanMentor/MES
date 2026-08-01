@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,9 +23,8 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import io.swagger.v3.oas.annotations.Operation;
 
-import fpt.qn.mes.inventory.domain.repository.criteria.StockAdjustmentApprovalSearchCriteria;
 import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
-import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.search.StockAdjustmentApprovalSearchRequest;
 import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
@@ -45,7 +45,7 @@ public class InventoryController {
     @Operation(summary = "Search stock movements with pagination and criteria filtering")
     @GetMapping("/api/stock-movements")
     public ResponseEntity<ApiResponse<PageResponse<StockMovementResponse>>> getMovements(
-            @Valid StockMovementSearchRequest request) {
+            @ModelAttribute @Valid StockMovementSearchRequest request) {
         PageResponse<StockMovementResponse> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
@@ -55,12 +55,12 @@ public class InventoryController {
     public ResponseEntity<ApiResponse<Void>> recordStockIn(
             @Valid @RequestBody StockInRequest request) {
         inventoryUseCase.recordStockIn(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Stock received successfully"));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Stock received successfully"));
     }
 
     @GetMapping("/api/stock-balances")
     public ResponseEntity<ApiResponse<PageResponse<StockBalanceResponse>>> getStockBalances(
-            @Valid StockBalanceSearchRequest request) {
+            @ModelAttribute @Valid StockBalanceSearchRequest request) {
         PageResponse<StockBalanceResponse> result = inventoryUseCase.getStockBalances(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
@@ -70,16 +70,15 @@ public class InventoryController {
     public ResponseEntity<ApiResponse<Void>> adjustStock(
             @Valid @RequestBody CreateStockAdjustmentRequest request) {
         inventoryUseCase.adjustStock(request);
-        HttpStatus status = HttpStatus.OK;
-        return ResponseEntity.status(status).body(ApiResponse.success(null, "Stock adjustment processed"));
+        return ResponseEntity.ok(ApiResponse.success("Stock adjustment processed"));
     }
 
     @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager)")
     @GetMapping("/api/stock-adjustments/pending")
     // @PreAuthorize("hasRole('FACTORY_MANAGER')")
     public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> getPendingAdjustments(
-            @Valid StockAdjustmentApprovalSearchCriteria criteria) {
-        PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(criteria);
+            @ModelAttribute @Valid StockAdjustmentApprovalSearchRequest request) {
+        PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
@@ -98,7 +97,7 @@ public class InventoryController {
     public ResponseEntity<ApiResponse<Void>> rejectAdjustment(
             @PathVariable UUID id) {
         inventoryUseCase.rejectAdjustment(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Adjustment rejected and request removed"));
+        return ResponseEntity.ok(ApiResponse.success("Adjustment rejected and request removed"));
     }
 
     @Operation(summary = "Transfer available inventory between warehouse locations")

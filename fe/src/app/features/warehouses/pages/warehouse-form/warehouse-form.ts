@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
@@ -11,7 +13,7 @@ import type { WarehouseDto } from '../../../../core/models/warehouse.model';
 
 @Component({
   selector: 'app-warehouse-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatSnackBarModule],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatIconModule, MatTooltipModule, MatDialogModule, MatSnackBarModule],
   template: `
   <h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} Warehouse</h2>
   <mat-dialog-content>
@@ -19,6 +21,11 @@ import type { WarehouseDto } from '../../../../core/models/warehouse.model';
       <mat-form-field appearance="outline">
         <mat-label>Code</mat-label>
         <input matInput [(ngModel)]="code" name="code" required [disabled]="!!data">
+        @if (!data) {
+          <button matSuffix mat-icon-button type="button" (click)="genCode()" matTooltip="Auto-generate code">
+            <mat-icon>auto_awesome</mat-icon>
+          </button>
+        }
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Name</mat-label>
@@ -45,6 +52,12 @@ export class WarehouseFormComponent {
   code = '';
   name = '';
   address = '';
+
+  genCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const rand = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    this.code = `WH-${rand}`;
+  }
 
   constructor() {
     if (this.data) {

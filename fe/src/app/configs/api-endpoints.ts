@@ -64,6 +64,19 @@ export const API = {
   },
   stockMovements: {
     base: `${BASE}/stock-movements`,
+    in: `${BASE}/stock-in`,
+  },
+  stockTransfers: {
+    base: `${BASE}/stock-transfers`,
+  },
+  stockAdjustments: {
+    base: `${BASE}/stock-adjustments`,
+    pending: `${BASE}/stock-adjustments/pending`,
+    approve: (id: string) => `${BASE}/stock-adjustments/${id}/approve`,
+    reject: (id: string) => `${BASE}/stock-adjustments/${id}/reject`,
+  },
+  stockLots: {
+    base: `${BASE}/stock-lots`,
   },
   qualityInspections: {
     base: `${BASE}/quality-inspections`,
