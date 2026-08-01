@@ -92,10 +92,14 @@ public abstract class AbstractIntegrationTest {
         if (userId == null) {
             throw new IllegalStateException("Test user not found: " + username);
         }
-        return generateToken(userId, username);
+        return generateToken(userId, username, java.util.List.of(role));
     }
 
     protected String generateToken(UUID userId, String username) {
+        return generateToken(userId, username, java.util.List.of());
+    }
+
+    private String generateToken(UUID userId, String username, java.util.List<String> roles) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(userId.toString())
@@ -103,6 +107,7 @@ public abstract class AbstractIntegrationTest {
                 .expiresAt(now.plusSeconds(900))
                 .id(UUID.randomUUID().toString())
                 .claim("username", username)
+                .claim("roles", roles)
                 .claim("token_type", "access")
                 .issuer("factoryflow-test")
                 .audience(java.util.List.of("factoryflow-api-test"))
