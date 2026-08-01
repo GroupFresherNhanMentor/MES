@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement endpoint PUT /api/v1/work-orders/{id}"
+**Input**: User description: "Implement endpoint PUT /api/work-orders/{id}"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -118,7 +118,7 @@ Only users with the ADMIN or PLANNER role can update Work Orders. Users with oth
 
 ### Functional Requirements
 
-- **FR-001**: System MUST allow users with ADMIN or PLANNER role to update a Work Order via `PUT /api/v1/work-orders/{id}`.
+- **FR-001**: System MUST allow users with ADMIN or PLANNER role to update a Work Order via `PUT /api/work-orders/{id}`.
 - **FR-002**: System MUST reject the request with 404 Not Found if the Work Order ID does not exist.
 - **FR-003**: System MUST only allow updates when the Work Order is in DRAFT or PLANNED status. Any other status MUST result in 400 Bad Request.
 - **FR-004**: System MUST validate that `plannedQuantity > 0` when provided. Violation results in 400 Bad Request (`INVALID_INPUT`).

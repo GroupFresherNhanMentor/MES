@@ -53,7 +53,7 @@ class AuthorizationIntegrationTest extends AbstractIntegrationTest {
             String accessToken = tokens.path("accessToken").asText();
             assertThat(authorized("/api/stock-balances", accessToken)
                     .getStatusCode().value()).isEqualTo(200);
-            assertThat(authorized("/api/v1/work-orders", accessToken)
+            assertThat(authorized("/api/work-orders", accessToken)
                     .getStatusCode().value()).isEqualTo(200);
             assertThat(authorized("/api/users", accessToken)
                     .getStatusCode().value()).isEqualTo(403);

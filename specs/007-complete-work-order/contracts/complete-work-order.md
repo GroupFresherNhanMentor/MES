@@ -2,7 +2,7 @@
 
 ## Endpoint
 
-`POST /api/v1/work-orders/{id}/complete`
+`POST /api/work-orders/{id}/complete`
 
 Completes one in-progress Work Order. Only authenticated users with the `OPERATOR` role may call it.
 

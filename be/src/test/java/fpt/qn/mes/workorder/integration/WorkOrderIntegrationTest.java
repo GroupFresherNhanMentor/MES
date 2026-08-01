@@ -8,6 +8,7 @@ import static fpt.qn.mes.jooq.Tables.MACHINES;
 import static fpt.qn.mes.jooq.Tables.PRODUCTS;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_TYPES;
+import static fpt.qn.mes.jooq.Tables.PRODUCTION_RUNS;
 import static fpt.qn.mes.jooq.Tables.ROLES;
 import static fpt.qn.mes.jooq.Tables.STOCK_BALANCES;
 import static fpt.qn.mes.jooq.Tables.STOCK_LOTS;
@@ -19,18 +20,26 @@ import static fpt.qn.mes.jooq.Tables.USERS;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSE_LOCATIONS;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSE_STATUSES;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSES;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_EVENTS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_MATERIALS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUS_TRANSITIONS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -46,7 +55,10 @@ import org.springframework.web.client.RestTemplate;
 import fpt.qn.mes.AbstractIntegrationTest;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
+import fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.MachineNotAvailableException;
 import fpt.qn.mes.workorder.application.service.WorkOrderService;
+import fpt.qn.mes.workorder.infrastructure.seed.WorkOrderDataSeeder;
 
 class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
@@ -61,6 +73,9 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     WorkOrderService workOrderService;
 
+    @Autowired
+    WorkOrderDataSeeder workOrderDataSeeder;
+
     @BeforeEach
     void setUp() {
         restTemplate = new RestTemplate();
@@ -68,7 +83,7 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
     }
 
     private String url() {
-        return "http://localhost:" + port + "/api/v1/work-orders/"
+        return "http://localhost:" + port + "/api/work-orders/"
                 + UUID.randomUUID() + "/reserve-materials";
     }
 
@@ -92,6 +107,134 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                 .isInstanceOf(HttpStatusCodeException.class)
                 .satisfies(error -> assertThat(((HttpStatusCodeException) error).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
+    }
+
+    @Test
+    void lifecycleSeed_containsReleaseAndDraftCancellationTransitions() {
+        UUID draftStatusId = statusId("DRAFT");
+        UUID plannedStatusId = statusId("PLANNED");
+        UUID readyStatusId = statusId("READY_TO_PRODUCE");
+        UUID cancelledStatusId = statusId("CANCELLED");
+
+        assertThat(hasActiveTransition(readyStatusId, plannedStatusId)).isTrue();
+        assertThat(hasActiveTransition(draftStatusId, cancelledStatusId)).isTrue();
+    }
+
+    @Test
+    void lifecycleSeed_isIdempotent() {
+        int transitionsBefore = dsl.fetchCount(WORK_ORDER_STATUS_TRANSITIONS);
+
+        workOrderDataSeeder.run(new DefaultApplicationArguments(new String[0]));
+        workOrderDataSeeder.run(new DefaultApplicationArguments(new String[0]));
+
+        assertThat(dsl.fetchCount(WORK_ORDER_STATUS_TRANSITIONS)).isEqualTo(transitionsBefore);
+    }
+
+    @Test
+    void startWorkOrder_allowsOnlyOneAssignment_whenMachineRequestsAreConcurrent() throws InterruptedException {
+        UUID operatorId = UUID.randomUUID();
+        UUID finishedProductId = UUID.randomUUID();
+        UUID bomId = UUID.randomUUID();
+        UUID machineId = UUID.randomUUID();
+        UUID firstWorkOrderId = UUID.randomUUID();
+        UUID secondWorkOrderId = UUID.randomUUID();
+        UUID finishedTypeId = dsl.select(PRODUCT_TYPES.ID).from(PRODUCT_TYPES)
+                .where(PRODUCT_TYPES.NAME.eq("FINISHED_GOOD")).fetchOne(PRODUCT_TYPES.ID);
+        UUID unitId = dsl.select(UNITS_OF_MEASURE.ID).from(UNITS_OF_MEASURE)
+                .where(UNITS_OF_MEASURE.NAME.eq("PCS")).fetchOne(UNITS_OF_MEASURE.ID);
+        UUID productStatusId = dsl.select(PRODUCT_STATUSES.ID).from(PRODUCT_STATUSES)
+                .where(PRODUCT_STATUSES.NAME.eq("ACTIVE")).fetchOne(PRODUCT_STATUSES.ID);
+        UUID bomStatusId = dsl.select(BOM_STATUSES.ID).from(BOM_STATUSES)
+                .where(BOM_STATUSES.NAME.eq("ACTIVE")).fetchOne(BOM_STATUSES.ID);
+        UUID availableMachineStatusId = dsl.select(MACHINE_STATUSES.ID).from(MACHINE_STATUSES)
+                .where(MACHINE_STATUSES.NAME.eq("AVAILABLE")).fetchOne(MACHINE_STATUSES.ID);
+        UUID readyStatusId = statusId("READY_TO_PRODUCE");
+        UUID inProgressStatusId = statusId("IN_PROGRESS");
+
+        dsl.insertInto(USERS).columns(USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH, USERS.ACTIVE)
+                .values(operatorId, "operator_" + operatorId, "hash", true).execute();
+        dsl.insertInto(PRODUCTS).columns(PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID,
+                        PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
+                .values(finishedProductId, "FG_" + finishedProductId, "Concurrent finished product", finishedTypeId,
+                        unitId, productStatusId)
+                .execute();
+        dsl.insertInto(BOMS).columns(BOMS.ID, BOMS.FINISHED_PRODUCT_ID, BOMS.VERSION, BOMS.BOM_STATUS_ID,
+                        BOMS.CREATED_BY)
+                .values(bomId, finishedProductId, 1, bomStatusId, operatorId)
+                .execute();
+        dsl.insertInto(MACHINES).columns(MACHINES.ID, MACHINES.CODE, MACHINES.NAME, MACHINES.MACHINE_STATUS_ID)
+                .values(machineId, "M_" + machineId, "Concurrent machine", availableMachineStatusId)
+                .execute();
+        dsl.insertInto(WORK_ORDERS).columns(WORK_ORDERS.ID, WORK_ORDERS.CODE, WORK_ORDERS.FINISHED_PRODUCT_ID,
+                        WORK_ORDERS.BOM_ID, WORK_ORDERS.PLANNED_QUANTITY, WORK_ORDERS.WORK_ORDER_STATUS_ID,
+                        WORK_ORDERS.CREATED_BY)
+                .values(firstWorkOrderId, "WO_" + firstWorkOrderId, finishedProductId, bomId, BigDecimal.ONE,
+                        readyStatusId, operatorId)
+                .values(secondWorkOrderId, "WO_" + secondWorkOrderId, finishedProductId, bomId, BigDecimal.ONE,
+                        readyStatusId, operatorId)
+                .execute();
+
+        CountDownLatch start = new CountDownLatch(1);
+        CountDownLatch done = new CountDownLatch(2);
+        List<UUID> successfulWorkOrders = new CopyOnWriteArrayList<>();
+        List<Throwable> failures = new CopyOnWriteArrayList<>();
+        var executor = Executors.newFixedThreadPool(2);
+        var operatorPrincipal = AppUserPrincipal.builder()
+                .id(operatorId)
+                .username("operator_" + operatorId)
+                .roles(List.of("OPERATOR"))
+                .enabled(true)
+                .build();
+        for (UUID workOrderId : List.of(firstWorkOrderId, secondWorkOrderId)) {
+            executor.submit(() -> {
+                try {
+                    start.await();
+                    SecurityContextHolder.getContext().setAuthentication(
+                            new UsernamePasswordAuthenticationToken(operatorPrincipal, "n/a",
+                                    List.of(new SimpleGrantedAuthority("ROLE_OPERATOR"))));
+                    workOrderService.startWorkOrder(workOrderId, StartWorkOrderRequest.builder()
+                            .machineId(machineId)
+                            .operatorId(operatorId)
+                            .build());
+                    successfulWorkOrders.add(workOrderId);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    failures.add(exception);
+                } catch (RuntimeException exception) {
+                    failures.add(exception);
+                } finally {
+                    SecurityContextHolder.clearContext();
+                    done.countDown();
+                }
+            });
+        }
+
+        start.countDown();
+        boolean completed = done.await(15, TimeUnit.SECONDS);
+        executor.shutdownNow();
+
+        assertThat(completed).isTrue();
+        assertThat(successfulWorkOrders).hasSize(1);
+        assertThat(failures).hasSize(1);
+        assertThat(failures.getFirst()).isInstanceOf(MachineNotAvailableException.class);
+        assertThat(dsl.fetchCount(PRODUCTION_RUNS,
+                PRODUCTION_RUNS.MACHINE_ID.eq(machineId).and(PRODUCTION_RUNS.END_TIME.isNull()))).isEqualTo(1);
+        assertThat(dsl.fetchCount(WORK_ORDER_EVENTS,
+                WORK_ORDER_EVENTS.WORK_ORDER_ID.in(firstWorkOrderId, secondWorkOrderId))).isEqualTo(1);
+        assertThat(dsl.fetchCount(AUDIT_LOGS,
+                AUDIT_LOGS.ENTITY_ID.in(firstWorkOrderId, secondWorkOrderId)
+                        .and(AUDIT_LOGS.ACTION.eq("START_PRODUCTION")))).isEqualTo(1);
+        assertThat(dsl.fetchCount(WORK_ORDERS,
+                WORK_ORDERS.ID.in(firstWorkOrderId, secondWorkOrderId)
+                        .and(WORK_ORDERS.WORK_ORDER_STATUS_ID.eq(inProgressStatusId)))).isEqualTo(1);
+        assertThat(dsl.fetchCount(WORK_ORDERS,
+                WORK_ORDERS.ID.in(firstWorkOrderId, secondWorkOrderId)
+                        .and(WORK_ORDERS.WORK_ORDER_STATUS_ID.eq(readyStatusId)))).isEqualTo(1);
+        assertThat(dsl.select(MACHINE_STATUSES.NAME)
+                .from(MACHINES)
+                .join(MACHINE_STATUSES).on(MACHINES.MACHINE_STATUS_ID.eq(MACHINE_STATUSES.ID))
+                .where(MACHINES.ID.eq(machineId))
+                .fetchOne(MACHINE_STATUSES.NAME)).isEqualTo("RUNNING");
     }
 
     @Test
@@ -211,5 +354,19 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         return headers;
+    }
+
+    private UUID statusId(String name) {
+        return dsl.select(WORK_ORDER_STATUSES.ID)
+                .from(WORK_ORDER_STATUSES)
+                .where(WORK_ORDER_STATUSES.NAME.eq(name))
+                .fetchOne(WORK_ORDER_STATUSES.ID);
+    }
+
+    private boolean hasActiveTransition(UUID fromStatusId, UUID toStatusId) {
+        return dsl.fetchExists(WORK_ORDER_STATUS_TRANSITIONS,
+                WORK_ORDER_STATUS_TRANSITIONS.FROM_STATUS_ID.eq(fromStatusId)
+                        .and(WORK_ORDER_STATUS_TRANSITIONS.TO_STATUS_ID.eq(toStatusId))
+                        .and(WORK_ORDER_STATUS_TRANSITIONS.IS_ACTIVE.isTrue()));
     }
 }

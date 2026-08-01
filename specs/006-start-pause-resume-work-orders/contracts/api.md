@@ -2,7 +2,7 @@
 
 ## Endpoint 1: Start Production
 
-### `POST /api/v1/work-orders/{id}/start`
+### `POST /api/work-orders/{id}/start`
 
 Starts production execution on a Work Order.
 
@@ -37,7 +37,7 @@ Starts production execution on a Work Order.
 
 ## Endpoint 2: Pause Production
 
-### `POST /api/v1/work-orders/{id}/pause`
+### `POST /api/work-orders/{id}/pause`
 
 Temporarily pauses an in-progress Work Order.
 
@@ -66,7 +66,7 @@ None
 
 ## Endpoint 3: Resume Production
 
-### `POST /api/v1/work-orders/{id}/resume`
+### `POST /api/work-orders/{id}/resume`
 
 Resumes a paused Work Order.
 

@@ -933,7 +933,7 @@ deduplicated; any missing ID rejects the complete mutation.
 
 ---
 
-### POST `/api/v1/work-orders/{id}/reserve-materials`
+### POST `/work-orders/{id}/reserve-materials`
 > **Roles:** `PLANNER`
 
 **Request body:**
@@ -970,7 +970,56 @@ deduplicated; any missing ID rejects the complete mutation.
 
 ---
 
-### POST `/api/v1/work-orders/{id}/complete`
+### POST `/work-orders/{id}/release-materials`
+> **Roles:** `ADMIN` · `PLANNER`
+
+Releases outstanding reservations. A `READY_TO_PRODUCE` Work Order returns to `PLANNED`; an already `PLANNED` Work Order remains unchanged. The operation records `RELEASE_RESERVATION` movements and audit data when applicable.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>`
+
+---
+
+### POST `/work-orders/{id}/cancel`
+> **Roles:** `ADMIN` · `PLANNER`
+
+Releases outstanding reservations and moves the Work Order to `CANCELLED` only when the configured lifecycle transition is active.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>`
+
+---
+
+### POST `/work-orders/{id}/start`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR`
+
+**Request body:**
+```json
+{ "machineId": "uuid", "productionLineId": "uuid", "operatorId": "uuid" }
+```
+The Work Order must be `READY_TO_PRODUCE`. The machine row is locked before availability and active-run checks so concurrent starts cannot double-book it.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>`
+
+---
+
+### POST `/work-orders/{id}/pause`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR`
+
+Moves an `IN_PROGRESS` Work Order with an active production run to `PAUSED` and records a `PAUSE` event.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>`
+
+---
+
+### POST `/work-orders/{id}/resume`
+> **Roles:** `ADMIN` · `PLANNER` · `OPERATOR`
+
+Moves a `PAUSED` Work Order with an active production run to `IN_PROGRESS` and records a `RESUME` event.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>`
+
+---
+
+### POST `/work-orders/{id}/complete`
 > **Roles:** `OPERATOR`
 
 Completes an in-progress Work Order with a running production run. Classified good and defective output is placed in quality inspection, while raw-material reservations are consumed or released atomically.
@@ -992,6 +1041,8 @@ Completes an in-progress Work Order with a running production run. Classified go
 **Response `200`:** `ApiResponse<WorkOrderDto>` with message `Production completed successfully`.
 
 ---
+
+> **Implementation status:** The remaining Work Order routes below are planned controller stubs and currently throw `UnsupportedOperationException("Not implemented")`.
 
 ### DELETE `/work-orders/{id}`
 > **Roles:** `ADMIN` · `PLANNER`
@@ -1034,9 +1085,8 @@ Completes an in-progress Work Order with a running production run. Classified go
 **Response `200`:** `[WorkOrderEventDto]`
 ```json
 {
-  "id": "uuid", "workOrderId": "uuid", "eventTypeId": "uuid",
-  "machineId": "uuid", "productionLineId": "uuid", "operatorId": "uuid",
-  "actualQuantity": 0.0, "goodQuantity": 0.0, "defectQuantity": 0.0, "scrapQuantity": 0.0,
+  "id": "uuid", "workOrderId": "uuid", "productionRunId": "uuid",
+  "eventTypeId": "uuid", "operatorId": "uuid",
   "eventTimestamp": "instant", "note": "string"
 }
 ```
@@ -1049,8 +1099,7 @@ Completes an in-progress Work Order with a running production run. Classified go
 **Request body:**
 ```json
 {
-  "eventTypeId": "uuid", "machineId": "uuid", "productionLineId": "uuid", "operatorId": "uuid",
-  "actualQuantity": 100.0, "goodQuantity": 95.0, "defectQuantity": 3.0, "scrapQuantity": 2.0,
+  "eventTypeId": "uuid", "productionRunId": "uuid", "operatorId": "uuid",
   "note": "string"
 }
 ```

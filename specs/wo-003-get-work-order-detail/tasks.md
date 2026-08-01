@@ -1,4 +1,4 @@
-# Tasks: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Tasks: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 **Input**: Design documents from `specs/wo-003-get-work-order-detail/`
 
@@ -45,14 +45,14 @@
 ### Tests for User Story 1 (REQUIRED)
 
 - [X] T005 [P] [US1] Unit test: `WorkOrderServiceTest` happy path for `getWorkOrderById` in `be/src/test/java/fpt/qn/mes/workorder/application/service/WorkOrderServiceTest.java`
-- [X] T006 [P] [US1] Controller slice test: `WorkOrderControllerTest` HTTP 200 response for `GET /api/v1/work-orders/{id}` in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
+- [X] T006 [P] [US1] Controller slice test: `WorkOrderControllerTest` HTTP 200 response for `GET /api/work-orders/{id}` in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
 
 ### Implementation for User Story 1
 
 - [X] T007 [US1] Implement `toDomain` for `WorkOrderMaterialsRecord` and `WorkOrderEventsRecord` in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderRecordMapper.java`
 - [X] T008 [US1] Implement `findById`, `findMaterialsByWorkOrderId`, and `findEventsByWorkOrderId` in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderPersistenceAdapter.java`
 - [X] T009 [US1] Implement `getWorkOrderById` service logic mapping WorkOrder, materials, and events to WorkOrderDto in `be/src/main/java/fpt/qn/mes/workorder/application/service/WorkOrderService.java`
-- [X] T010 [US1] Expose `GET /api/v1/work-orders/{id}` endpoint with `@PreAuthorize` authorization in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`
+- [X] T010 [US1] Expose `GET /api/work-orders/{id}` endpoint with `@PreAuthorize` authorization in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 

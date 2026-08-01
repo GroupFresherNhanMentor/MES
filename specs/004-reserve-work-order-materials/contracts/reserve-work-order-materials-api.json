@@ -1,5 +1,5 @@
 {
-  "endpoint": "POST /api/v1/work-orders/{id}/reserve-materials",
+  "endpoint": "POST /api/work-orders/{id}/reserve-materials",
   "description": "Reserve all required Work Order materials from the configured raw material warehouse and make the Work Order ready for production",
   "authentication": "JWT Bearer Token",
   "authorization": ["PLANNER"],

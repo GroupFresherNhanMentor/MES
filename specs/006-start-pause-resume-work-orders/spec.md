@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement these endpoints POST /api/v1/work-orders/{id}/start; POST /api/v1/work-orders/{id}/pause; POST /api/v1/work-orders/{id}/resume"
+**Input**: User description: "Implement these endpoints POST /api/work-orders/{id}/start; POST /api/work-orders/{id}/pause; POST /api/work-orders/{id}/resume"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -16,7 +16,7 @@ As a Production Operator, I want to start production on a Work Order that has al
 
 **Why this priority**: Starting production is the fundamental trigger that transitions an order from planning to active execution on the shop floor.
 
-**Independent Test**: Can be fully tested by taking a `READY_TO_PRODUCE` Work Order and an `AVAILABLE` machine, calling `POST /api/v1/work-orders/{id}/start`, and verifying Work Order status changes to `IN_PROGRESS`, Machine status changes to `RUNNING`, a `production_runs` record is created, and a `START` event is recorded in `work_order_events`.
+**Independent Test**: Can be fully tested by taking a `READY_TO_PRODUCE` Work Order and an `AVAILABLE` machine, calling `POST /api/work-orders/{id}/start`, and verifying Work Order status changes to `IN_PROGRESS`, Machine status changes to `RUNNING`, a `production_runs` record is created, and a `START` event is recorded in `work_order_events`.
 
 **Acceptance Scenarios**:
 
@@ -32,12 +32,12 @@ As a Production Operator, I want to temporarily pause an in-progress Work Order 
 
 **Why this priority**: Production halts frequently occur during shop floor execution. Pausing and resuming captures real-time operational context while preserving machine allocations.
 
-**Independent Test**: Can be fully tested by taking an `IN_PROGRESS` Work Order, calling `POST /api/v1/work-orders/{id}/pause` (verifying status changes to `PAUSED` and a `PAUSE` event is logged), and then calling `POST /api/v1/work-orders/{id}/resume` (verifying status reverts to `IN_PROGRESS` and a `RESUME` event is logged).
+**Independent Test**: Can be fully tested by taking an `IN_PROGRESS` Work Order, calling `POST /api/work-orders/{id}/pause` (verifying status changes to `PAUSED` and a `PAUSE` event is logged), and then calling `POST /api/work-orders/{id}/resume` (verifying status reverts to `IN_PROGRESS` and a `RESUME` event is logged).
 
 **Acceptance Scenarios**:
 
-1. **Given** an `IN_PROGRESS` Work Order, **When** the Operator calls `POST /api/v1/work-orders/{id}/pause`, **Then** the Work Order status transitions to `PAUSED`, the Machine status remains `RUNNING`, no stock movements are created, and a `PAUSE` work order event is logged pointing to the active `production_run_id`.
-2. **Given** a `PAUSED` Work Order, **When** the Operator calls `POST /api/v1/work-orders/{id}/resume`, **Then** the Work Order status transitions back to `IN_PROGRESS`, the active `production_runs` record continues without modification, and a `RESUME` work order event is logged.
+1. **Given** an `IN_PROGRESS` Work Order, **When** the Operator calls `POST /api/work-orders/{id}/pause`, **Then** the Work Order status transitions to `PAUSED`, the Machine status remains `RUNNING`, no stock movements are created, and a `PAUSE` work order event is logged pointing to the active `production_run_id`.
+2. **Given** a `PAUSED` Work Order, **When** the Operator calls `POST /api/work-orders/{id}/resume`, **Then** the Work Order status transitions back to `IN_PROGRESS`, the active `production_runs` record continues without modification, and a `RESUME` work order event is logged.
 3. **Given** a Work Order that is not currently `IN_PROGRESS`, **When** the Operator attempts to call `pause`, **Then** the system rejects the request with HTTP 400 Bad Request.
 
 ---
@@ -67,9 +67,9 @@ As a System Administrator, I want to enforce that a single machine cannot run mo
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/start` accepting required `machineId` with optional `productionLineId` and `operatorId`.
-- **FR-002**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/pause` requiring no request body.
-- **FR-003**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/resume` requiring no request body.
+- **FR-001**: System MUST provide endpoint `POST /api/work-orders/{id}/start` accepting required `machineId` with optional `productionLineId` and `operatorId`.
+- **FR-002**: System MUST provide endpoint `POST /api/work-orders/{id}/pause` requiring no request body.
+- **FR-003**: System MUST provide endpoint `POST /api/work-orders/{id}/resume` requiring no request body.
 - **FR-004**: System MUST restrict endpoints to users with role `OPERATOR`, `PLANNER`, or `ADMIN`.
 - **FR-005**: System MUST allow `start` only when Work Order is in `READY_TO_PRODUCE` status and target Machine is `AVAILABLE`.
 - **FR-006**: System MUST update Work Order status to `IN_PROGRESS` and Machine status to `RUNNING` upon starting production.

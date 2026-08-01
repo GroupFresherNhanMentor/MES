@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the `PUT /api/v1/work-orders/{id}` endpoint allowing ADMIN and PLANNER roles to update planning fields (code, quantity, dates, priority) and perform simple status transitions (DRAFT ⇄ PLANNED). The endpoint enforces strict validation (positive quantity, valid date range, unique code), rejects updates on Work Orders not in DRAFT/PLANNED status, and automatically recalculates material requirements when planned quantity changes.
+Implement the `PUT /api/work-orders/{id}` endpoint allowing ADMIN and PLANNER roles to update planning fields (code, quantity, dates, priority) and perform simple status transitions (DRAFT ⇄ PLANNED). The endpoint enforces strict validation (positive quantity, valid date range, unique code), rejects updates on Work Orders not in DRAFT/PLANNED status, and automatically recalculates material requirements when planned quantity changes.
 
 ## Technical Context
 

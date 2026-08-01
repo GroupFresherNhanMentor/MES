@@ -1,4 +1,4 @@
-# Quickstart & Verification Guide: Create Work Order (`POST /api/v1/work-orders`)
+# Quickstart & Verification Guide: Create Work Order (`POST /api/work-orders`)
 
 This document describes how to execute end-to-end verification and run unit tests for the Create Work Order feature.
 
@@ -27,7 +27,7 @@ Expected output:
 2. Issue HTTP request:
 
 ```http
-POST /api/v1/work-orders
+POST /api/work-orders
 Authorization: Bearer <PLANNER_JWT_TOKEN>
 Content-Type: application/json
 
@@ -52,7 +52,7 @@ Content-Type: application/json
 1. Issue HTTP request for a product without an active BOM:
 
 ```http
-POST /api/v1/work-orders
+POST /api/work-orders
 Authorization: Bearer <PLANNER_JWT_TOKEN>
 Content-Type: application/json
 
@@ -76,7 +76,7 @@ Content-Type: application/json
 1. Issue HTTP request with a user having `ROLE_ADMIN` (or `ROLE_OPERATOR`):
 
 ```http
-POST /api/v1/work-orders
+POST /api/work-orders
 Authorization: Bearer <ADMIN_JWT_TOKEN>
 Content-Type: application/json
 

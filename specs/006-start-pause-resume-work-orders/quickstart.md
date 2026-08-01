@@ -18,7 +18,7 @@ This guide outlines end-to-end verification steps for `POST /start`, `POST /paus
 
 ### Step 2: Execute Start API
 ```bash
-curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/start \
+curl -X POST http://localhost:8080/api/work-orders/{WO_ID}/start \
   -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -39,7 +39,7 @@ curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/start \
 
 ### Step 1: Execute Pause API
 ```bash
-curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/pause \
+curl -X POST http://localhost:8080/api/work-orders/{WO_ID}/pause \
   -H "Authorization: Bearer $OPERATOR_TOKEN"
 ```
 
@@ -51,7 +51,7 @@ curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/pause \
 
 ### Step 2: Execute Resume API
 ```bash
-curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/resume \
+curl -X POST http://localhost:8080/api/work-orders/{WO_ID}/resume \
   -H "Authorization: Bearer $OPERATOR_TOKEN"
 ```
 

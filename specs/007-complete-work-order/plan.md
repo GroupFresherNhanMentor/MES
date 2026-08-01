@@ -2,7 +2,7 @@
 
 **Branch**: `feature/complete-wo` | **Date**: 2026-08-01 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification for `POST /api/v1/work-orders/{id}/complete`.
+**Input**: Feature specification for `POST /api/work-orders/{id}/complete`.
 
 ## Summary
 

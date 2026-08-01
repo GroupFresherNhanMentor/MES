@@ -81,20 +81,20 @@
 - Add a second reservation ledger table: rejected because the existing movement ledger already models this event.
 - Leave `workOrderId` unmapped: rejected because it violates auditability and the data model.
 
-## Decision 6: Implement API versioning without breaking current Work Order routes
+## Decision 6: Standardize the Work Order route
 
-**Decision**: Expose the requested `/api/v1/work-orders/{id}/reserve-materials` route while retaining the existing `/api/work-orders` route mapping for current clients.
+**Decision**: Expose Work Order operations only under `/api/work-orders`, including `/api/work-orders/{id}/reserve-materials`.
 
 **Rationale**:
 
-- The requested contract is explicitly versioned.
-- The existing controller is rooted at `/api/work-orders`; replacing it outright would break already implemented Work Order endpoints.
-- The route mapping must remain documented consistently with the requested endpoint.
+- The project-wide API convention uses unversioned `/api/{resources}` paths.
+- A single controller root keeps all Work Order operations and authorization rules consistent.
+- Tests, contracts, and client references use the same canonical route.
 
 **Alternatives considered**:
 
-- Replace `/api` with `/api/v1`: rejected because it breaks existing routes.
-- Implement only `/api/work-orders/{id}/reserve-materials`: rejected because it does not satisfy the requested endpoint.
+- Retain a versioned route alias: rejected because no shipped compatibility requirement exists and duplicate routes increase maintenance cost.
+- Version only the reserve action: rejected because one resource must not expose mixed route conventions.
 - Add a second duplicate controller with copied business logic: rejected because it creates two presentation paths for one use case.
 
 ## Decision 7: Audit status transitions in the same business transaction

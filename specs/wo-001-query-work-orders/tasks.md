@@ -1,4 +1,4 @@
-# Tasks: Query Work Orders (`GET /api/v1/work-orders`)
+# Tasks: Query Work Orders (`GET /api/work-orders`)
 
 **Input**: Design documents from `specs/wo-001-query-work-orders/`
 
@@ -42,7 +42,7 @@
 ### Tests for User Story 1 (REQUIRED)
 
 - [x] T004 [P] [US1] Unit test: `WorkOrderServiceTest` happy path & filters in `be/src/test/java/fpt/qn/mes/workorder/application/service/WorkOrderServiceTest.java`
-- [x] T005 [P] [US1] Controller test: `WorkOrderControllerTest` for `GET /api/v1/work-orders` HTTP 200 response in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
+- [x] T005 [P] [US1] Controller test: `WorkOrderControllerTest` for `GET /api/work-orders` HTTP 200 response in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
 
 ### Implementation for User Story 1
 

@@ -95,6 +95,7 @@ class ReserveWorkOrderMaterialsServiceTest {
     @Test
     void reserveMaterials_reservesFifoStockAndMovesWorkOrderToReady() {
         when(repository.findStatusIdByName("READY_TO_PRODUCE")).thenReturn(Optional.of(readyStatusId));
+        when(repository.hasActiveTransition(plannedStatusId, readyStatusId)).thenReturn(true);
         when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
                 WorkOrderMaterial.builder()
                         .workOrderId(workOrderId)
@@ -120,7 +121,8 @@ class ReserveWorkOrderMaterialsServiceTest {
         assertEquals("READY_TO_PRODUCE", result.getStatus());
         verify(reservationPort).applyReservation(eq(workOrderId), any(List.class), any(),
                 eq(availableStatusId), eq(reservedStatusId), eq(reserveMovementTypeId), eq(actorId));
-        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "READY_TO_PRODUCE");
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "READY_TO_PRODUCE",
+                "RESERVE_MATERIAL");
     }
 
     @Test
@@ -138,13 +140,16 @@ class ReserveWorkOrderMaterialsServiceTest {
         when(reservationPort.findAvailableStock(eq(warehouseId), eq(List.of(materialId)), eq(availableStatusId)))
                 .thenReturn(List.of(new ReservationStock(UUID.randomUUID(), warehouseId, UUID.randomUUID(),
                         materialId, UUID.randomUUID(), BigDecimal.ONE, null)));
-        when(repository.findStatusIdByName("MATERIAL_SHORTAGE")).thenReturn(Optional.of(UUID.randomUUID()));
+        UUID shortageStatusId = UUID.randomUUID();
+        when(repository.findStatusIdByName("MATERIAL_SHORTAGE")).thenReturn(Optional.of(shortageStatusId));
+        when(repository.hasActiveTransition(plannedStatusId, shortageStatusId)).thenReturn(true);
 
         var exception = assertThrows(InsufficientMaterialException.class,
                 () -> service.reserveMaterials(workOrderId, request));
 
         assertEquals("INSUFFICIENT_STOCK", exception.getErrorCode().getCode());
-        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "MATERIAL_SHORTAGE");
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "MATERIAL_SHORTAGE",
+                "RESERVE_MATERIAL");
         verify(reservationPort, org.mockito.Mockito.never()).applyReservation(any(), any(), any(), any(), any(), any(), any());
     }
 }

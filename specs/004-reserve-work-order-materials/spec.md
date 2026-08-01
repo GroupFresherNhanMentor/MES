@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement endpoint POST /api/v1/work-orders/{id}/reserve-materials"
+**Input**: User description: "Implement endpoint POST /api/work-orders/{id}/reserve-materials"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -20,7 +20,7 @@ A Planner reserves all materials required by a Work Order so the order can proce
 
 **Acceptance Scenarios**:
 
-1. **Given** a Work Order is in `PLANNED` status, all required materials are available in the configured raw material warehouse, and the requested machine is `AVAILABLE`, **When** the Planner calls `POST /api/v1/work-orders/{id}/reserve-materials`, **Then** the system reserves all required materials, creates the reservation movements, changes the Work Order to `READY_TO_PRODUCE`, and returns `200 OK` with the Work Order ID and `READY_TO_PRODUCE` status.
+1. **Given** a Work Order is in `PLANNED` status, all required materials are available in the configured raw material warehouse, and the requested machine is `AVAILABLE`, **When** the Planner calls `POST /api/work-orders/{id}/reserve-materials`, **Then** the system reserves all required materials, creates the reservation movements, changes the Work Order to `READY_TO_PRODUCE`, and returns `200 OK` with the Work Order ID and `READY_TO_PRODUCE` status.
 2. **Given** a Work Order is in `MATERIAL_SHORTAGE` status, stock has been replenished, and the requested machine is `AVAILABLE`, **When** the Planner calls the reserve endpoint, **Then** the system retries the reservation and changes the Work Order to `READY_TO_PRODUCE` when all requirements are met.
 3. **Given** a material is available in multiple lots, **When** the system reserves that material, **Then** it consumes lots in FIFO order by lot creation time.
 
@@ -73,7 +73,7 @@ The system protects shared inventory from competing reservation requests and rec
 
 ### Functional Requirements
 
-- **FR-001**: System MUST expose `POST /api/v1/work-orders/{id}/reserve-materials` for authenticated users with the `PLANNER` role.
+- **FR-001**: System MUST expose `POST /api/work-orders/{id}/reserve-materials` for authenticated users with the `PLANNER` role.
 - **FR-002**: The request MUST require a valid `machineId` and MUST NOT accept `sourceWarehouseId` from the client.
 - **FR-003**: System MUST resolve the source warehouse using the configured warehouse code `RAW_MATERIAL_WAREHOUSE` for every reservation request.
 - **FR-004**: System MUST consider only `AVAILABLE` stock balances for the required material products within the resolved source warehouse. Stock in all other warehouses MUST be excluded.

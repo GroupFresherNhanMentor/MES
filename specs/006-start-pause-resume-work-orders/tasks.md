@@ -40,7 +40,7 @@
 
 **Goal**: Allow operators to start production on a READY_TO_PRODUCE Work Order, updating Machine status to RUNNING, creating a production_runs record, and logging a START event.
 
-**Independent Test**: Execute `POST /api/v1/work-orders/{id}/start` with valid `machineId`, verify Work Order status is `IN_PROGRESS`, Machine is `RUNNING`, and a `production_runs` entry is created.
+**Independent Test**: Execute `POST /api/work-orders/{id}/start` with valid `machineId`, verify Work Order status is `IN_PROGRESS`, Machine is `RUNNING`, and a `production_runs` entry is created.
 
 ### Tests for User Story 1 (REQUIRED)
 
@@ -61,7 +61,7 @@
 
 **Goal**: Allow operators to pause an IN_PROGRESS order (transition to PAUSED) and resume a PAUSED order (transition back to IN_PROGRESS), logging PAUSE and RESUME events.
 
-**Independent Test**: Execute `POST /api/v1/work-orders/{id}/pause` (verify PAUSED state) and then `POST /api/v1/work-orders/{id}/resume` (verify IN_PROGRESS state).
+**Independent Test**: Execute `POST /api/work-orders/{id}/pause` (verify PAUSED state) and then `POST /api/work-orders/{id}/resume` (verify IN_PROGRESS state).
 
 ### Tests for User Story 2 (REQUIRED)
 

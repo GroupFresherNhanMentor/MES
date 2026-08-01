@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -98,6 +99,7 @@ class WorkOrderServiceReleaseAndCancelTest {
                 releaseMovementTypeId, actorId)).thenReturn(true);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED)).thenReturn(Optional.of(plannedStatusId));
+        when(repository.hasActiveTransition(readyStatusId, plannedStatusId)).thenReturn(true);
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-001").workOrderStatusId(plannedStatusId).build());
 
@@ -107,7 +109,7 @@ class WorkOrderServiceReleaseAndCancelTest {
         assertEquals("WO-001", result.getCode());
         verify(reservationPort).releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
-                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.PLANNED, "RELEASE_MATERIAL");
+                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.PLANNED, "RELEASE_RESERVATION");
     }
 
     @Test
@@ -131,6 +133,7 @@ class WorkOrderServiceReleaseAndCancelTest {
                 releaseMovementTypeId, actorId)).thenReturn(true);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED)).thenReturn(Optional.of(cancelledStatusId));
+        when(repository.hasActiveTransition(readyStatusId, cancelledStatusId)).thenReturn(true);
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-001").workOrderStatusId(cancelledStatusId).build());
 
@@ -140,7 +143,8 @@ class WorkOrderServiceReleaseAndCancelTest {
         assertEquals("WO-001", result.getCode());
         verify(reservationPort).releaseReservation(workOrderId, availableStatusId, reservedStatusId, releaseMovementTypeId, actorId);
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
-                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.CANCELLED, "CANCEL_WORK_ORDER");
+                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.CANCELLED,
+                "RELEASE_RESERVATION");
     }
 
     @Test
@@ -150,6 +154,27 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.COMPLETED));
 
         assertThrows(InvalidWorkOrderStateException.class, () -> workOrderService.cancelWorkOrder(workOrderId));
+    }
+
+    @Test
+    @DisplayName("cancelWorkOrder should reject DRAFT when no active transition exists")
+    void cancelWorkOrder_ThrowsException_WhenDraftTransitionIsInactive() {
+        UUID draftStatusId = UUID.randomUUID();
+        WorkOrder draftWorkOrder = WorkOrder.builder()
+                .id(workOrderId)
+                .code("WO-DRAFT")
+                .plannedQuantity(BigDecimal.TEN)
+                .workOrderStatusId(draftStatusId)
+                .createdAt(Instant.now())
+                .build();
+        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(draftWorkOrder));
+        when(repository.findStatusNameById(draftStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.DRAFT));
+        when(repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED)).thenReturn(Optional.of(cancelledStatusId));
+        when(repository.hasActiveTransition(draftStatusId, cancelledStatusId)).thenReturn(false);
+
+        assertThrows(InvalidWorkOrderStateException.class, () -> workOrderService.cancelWorkOrder(workOrderId));
+
+        verify(reservationPort, never()).releaseReservation(any(), any(), any(), any(), any());
     }
 
     @Test

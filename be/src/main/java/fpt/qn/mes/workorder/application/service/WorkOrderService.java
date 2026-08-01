@@ -88,7 +88,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         var result = repository.findAll(criteria);
         var dtos = result.getItems().stream()
-                .map(w -> mapper.toDto(w))
+                .map(workOrder -> mapper.toDto(workOrder))
                 .toList();
 
         return PageResponse.<WorkOrderResponse>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
@@ -101,11 +101,11 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + id));
 
         var materials = repository.findMaterialsByWorkOrderId(id).stream()
-                .map(m -> mapper.toDto(m))
+                .map(material -> mapper.toDto(material))
                 .toList();
 
         var events = repository.findEventsByWorkOrderId(id).stream()
-                .map(e -> mapper.toDto(e))
+                .map(event -> mapper.toDto(event))
                 .toList();
 
         WorkOrderResponse baseDto = mapper.toDto(workOrder);
@@ -176,7 +176,7 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidInputException("Update request body cannot be null");
         }
 
-        WorkOrder workOrder = repository.findById(id)
+        WorkOrder workOrder = repository.findForUpdate(id)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + id));
 
         String currentStatusName = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
@@ -202,11 +202,13 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         UUID targetStatusId = req.getWorkOrderStatusId() != null ? req.getWorkOrderStatusId() : workOrder.getWorkOrderStatusId();
         if (req.getWorkOrderStatusId() != null && !req.getWorkOrderStatusId().equals(workOrder.getWorkOrderStatusId())) {
-            String targetStatusName = repository.findStatusNameById(req.getWorkOrderStatusId()).orElse("");
+            String targetStatusName = repository.findStatusNameById(req.getWorkOrderStatusId())
+                    .orElseThrow(() -> new InvalidWorkOrderStateException("Target Work Order status is not configured"));
             if (!WorkOrderStatusConstants.DRAFT.equals(targetStatusName) && !WorkOrderStatusConstants.PLANNED.equals(targetStatusName)) {
                 throw new InvalidWorkOrderStateException(
                         "PUT endpoint only supports DRAFT ⇄ PLANNED transitions. Use dedicated action endpoints for other state changes.");
             }
+            requireActiveTransition(workOrder, currentStatusName, targetStatusName, targetStatusId);
         }
 
         boolean quantityChanged = req.getPlannedQuantity() != null
@@ -234,24 +236,26 @@ public class WorkOrderService implements WorkOrderUseCase {
             if (bomOptional.isPresent()) {
                 var bom = bomOptional.get();
                 if (bom.getItems() != null && !bom.getItems().isEmpty()) {
+                    Map<UUID, BigDecimal> materialFactorByProduct = new HashMap<>();
+                    for (var item : bom.getItems()) {
+                        BigDecimal scrap = item.getScrapRate() != null ? item.getScrapRate() : BigDecimal.ZERO;
+                        materialFactorByProduct.put(item.getMaterialProductId(),
+                                item.getQuantityPerUnit().multiply(BigDecimal.ONE.add(scrap)));
+                    }
                     for (var mat : existingMaterials) {
-                        for (var item : bom.getItems()) {
-                            if (item.getMaterialProductId().equals(mat.getMaterialProductId())) {
-                                BigDecimal scrap = item.getScrapRate() != null ? item.getScrapRate() : BigDecimal.ZERO;
-                                BigDecimal multiplier = BigDecimal.ONE.add(scrap);
-                                BigDecimal reqQty = saved.getPlannedQuantity().multiply(item.getQuantityPerUnit()).multiply(multiplier);
+                        BigDecimal materialFactor = materialFactorByProduct.get(mat.getMaterialProductId());
+                        if (materialFactor != null) {
+                            BigDecimal reqQty = saved.getPlannedQuantity().multiply(materialFactor);
 
-                                WorkOrderMaterial updatedMat = WorkOrderMaterial.builder()
-                                        .id(mat.getId())
-                                        .workOrderId(mat.getWorkOrderId())
-                                        .materialProductId(mat.getMaterialProductId())
-                                        .requiredQuantity(reqQty)
-                                        .reservedQuantity(mat.getReservedQuantity())
-                                        .consumedQuantity(mat.getConsumedQuantity())
-                                        .build();
-                                repository.updateMaterial(updatedMat);
-                                break;
-                            }
+                            WorkOrderMaterial updatedMat = WorkOrderMaterial.builder()
+                                    .id(mat.getId())
+                                    .workOrderId(mat.getWorkOrderId())
+                                    .materialProductId(mat.getMaterialProductId())
+                                    .requiredQuantity(reqQty)
+                                    .reservedQuantity(mat.getReservedQuantity())
+                                    .consumedQuantity(mat.getConsumedQuantity())
+                                    .build();
+                            repository.updateMaterial(updatedMat);
                         }
                     }
                 }
@@ -303,8 +307,10 @@ public class WorkOrderService implements WorkOrderUseCase {
                 warehouse.getId(), productIds, availableStatusId);
 
         Map<UUID, BigDecimal> remainingStockMap = new HashMap<>();
+        Map<UUID, List<ReservationStock>> stockByProduct = new HashMap<>();
         for (ReservationStock item : stock) {
             remainingStockMap.put(item.balanceId(), item.quantity());
+            stockByProduct.computeIfAbsent(item.productId(), ignored -> new ArrayList<>()).add(item);
         }
 
         List<ReservationAllocation> allocations = new ArrayList<>();
@@ -322,8 +328,9 @@ public class WorkOrderService implements WorkOrderUseCase {
                 continue;
             }
 
-            BigDecimal available = stock.stream()
-                    .filter(item -> item.productId().equals(material.getMaterialProductId()))
+            List<ReservationStock> productStock = stockByProduct.getOrDefault(
+                    material.getMaterialProductId(), List.of());
+            BigDecimal available = productStock.stream()
                     .map(item -> remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             if (available.compareTo(remaining) < 0) {
@@ -333,10 +340,9 @@ public class WorkOrderService implements WorkOrderUseCase {
             }
 
             BigDecimal left = remaining;
-            for (ReservationStock item : stock) {
-                if (!item.productId().equals(material.getMaterialProductId())
-                        || left.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
+            for (ReservationStock item : productStock) {
+                if (left.compareTo(BigDecimal.ZERO) <= 0) {
+                    break;
                 }
                 BigDecimal availInItem = remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO);
                 if (availInItem.compareTo(BigDecimal.ZERO) <= 0) {
@@ -353,24 +359,24 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         UUID actorId = currentUserPort.getCurrentUserId();
         if (!shortages.isEmpty()) {
-            UUID shortageStatusId = requireReferenceId(
-                    repository.findStatusIdByName(WorkOrderStatusConstants.MATERIAL_SHORTAGE).orElse(null),
-                    "MATERIAL_SHORTAGE status is not configured");
-            updateStatus(workOrder, shortageStatusId);
-            auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
-                    WorkOrderStatusConstants.MATERIAL_SHORTAGE);
+            if (!WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)) {
+                UUID shortageStatusId = requireActiveTransition(workOrder, currentStatus,
+                        WorkOrderStatusConstants.MATERIAL_SHORTAGE);
+                updateStatus(workOrder, shortageStatusId);
+                auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                        WorkOrderStatusConstants.MATERIAL_SHORTAGE, "RESERVE_MATERIAL");
+            }
             throw new InsufficientMaterialException(
                     "Insufficient stock for one or more Work Order materials", shortages);
         }
 
+        UUID readyStatusId = requireActiveTransition(workOrder, currentStatus,
+                WorkOrderStatusConstants.READY_TO_PRODUCE);
         reservationPort.applyReservation(workOrderId, allocations, reservedByProduct, availableStatusId,
                 reservedStatusId, movementTypeId, actorId);
-        UUID readyStatusId = requireReferenceId(
-                repository.findStatusIdByName(WorkOrderStatusConstants.READY_TO_PRODUCE).orElse(null),
-                "READY_TO_PRODUCE status is not configured");
         updateStatus(workOrder, readyStatusId);
         auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
-                WorkOrderStatusConstants.READY_TO_PRODUCE);
+                WorkOrderStatusConstants.READY_TO_PRODUCE, "RESERVE_MATERIAL");
         return ReserveWorkOrderMaterialsResponse.builder()
                 .workOrderId(workOrderId)
                 .status(WorkOrderStatusConstants.READY_TO_PRODUCE)
@@ -391,6 +397,21 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .createdBy(workOrder.getCreatedBy())
                 .createdAt(workOrder.getCreatedAt())
                 .build());
+    }
+
+    private UUID requireActiveTransition(WorkOrder workOrder, String currentStatus, String targetStatus) {
+        UUID targetStatusId = repository.findStatusIdByName(targetStatus)
+                .orElseThrow(() -> new InvalidWorkOrderStateException(targetStatus + " status is not configured"));
+        requireActiveTransition(workOrder, currentStatus, targetStatus, targetStatusId);
+        return targetStatusId;
+    }
+
+    private void requireActiveTransition(WorkOrder workOrder, String currentStatus, String targetStatus,
+            UUID targetStatusId) {
+        if (!repository.hasActiveTransition(workOrder.getWorkOrderStatusId(), targetStatusId)) {
+            throw new InvalidWorkOrderStateException(
+                    currentStatus + " to " + targetStatus + " transition is not active");
+        }
     }
 
     private UUID requireReferenceId(UUID id, String message) {
@@ -414,6 +435,10 @@ public class WorkOrderService implements WorkOrderUseCase {
                     "Cannot release materials for work order in " + currentStatus + " status");
         }
 
+        UUID plannedStatusId = WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)
+                ? requireActiveTransition(workOrder, currentStatus, WorkOrderStatusConstants.PLANNED)
+                : null;
+
         UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
                 "AVAILABLE stock status is not configured");
         UUID reservedStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.RESERVED),
@@ -432,12 +457,9 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         if (WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
             // A successful material release returns a ready work order to planning.
-            UUID plannedStatusId = requireReferenceId(
-                    repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED).orElse(null),
-                    "PLANNED status is not configured");
             updateStatus(workOrder, plannedStatusId);
             auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
-                    WorkOrderStatusConstants.PLANNED, "RELEASE_MATERIAL");
+                    WorkOrderStatusConstants.PLANNED, "RELEASE_RESERVATION");
         }
 
         return getWorkOrderById(workOrderId);
@@ -451,13 +473,8 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
 
         String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
-        if (!WorkOrderStatusConstants.DRAFT.equals(currentStatus)
-                && !WorkOrderStatusConstants.PLANNED.equals(currentStatus)
-                && !WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)
-                && !WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
-            throw new InvalidWorkOrderStateException(
-                    "Cannot cancel work order in " + currentStatus + " status");
-        }
+        UUID cancelledStatusId = requireActiveTransition(workOrder, currentStatus,
+                WorkOrderStatusConstants.CANCELLED);
 
         UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
                 "AVAILABLE stock status is not configured");
@@ -476,12 +493,9 @@ public class WorkOrderService implements WorkOrderUseCase {
         }
 
         // Change status only after reservation release succeeds in the same transaction.
-        UUID cancelledStatusId = requireReferenceId(
-                repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED).orElse(null),
-                "CANCELLED status is not configured");
         updateStatus(workOrder, cancelledStatusId);
         auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
-                WorkOrderStatusConstants.CANCELLED, "CANCEL_WORK_ORDER");
+                WorkOrderStatusConstants.CANCELLED, "RELEASE_RESERVATION");
 
         return getWorkOrderById(workOrderId);
     }
@@ -500,6 +514,11 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderStateException(
                     "Work Order must be in READY_TO_PRODUCE status to start production");
         }
+        UUID inProgressStatusId = requireActiveTransition(workOrder, currentStatus,
+                WorkOrderStatusConstants.IN_PROGRESS);
+        if (!productionRunPort.lockMachine(request.getMachineId())) {
+            throw new MachineNotAvailableException("Machine not found: " + request.getMachineId());
+        }
         if (!machineUseCase.isAvailableForReservation(request.getMachineId())) {
             throw new MachineNotAvailableException("Machine is not AVAILABLE for production");
         }
@@ -507,17 +526,16 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderStateException("Machine is currently running another work order");
         }
 
-        UUID operatorId = request.getOperatorId() != null ? request.getOperatorId() : currentUserPort.getCurrentUserId();
+        UUID actorId = currentUserPort.getCurrentUserId();
+        UUID operatorId = request.getOperatorId() != null ? request.getOperatorId() : actorId;
         UUID runId = productionRunPort.createProductionRun(
                 workOrderId, request.getMachineId(), request.getProductionLineId(), operatorId);
         productionRunPort.updateMachineStatus(request.getMachineId(), "RUNNING");
 
-        UUID inProgressStatusId = requireReferenceId(
-                repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS).orElse(null),
-                "IN_PROGRESS status is not configured");
         updateStatus(workOrder, inProgressStatusId);
         productionRunPort.recordWorkOrderEvent(workOrderId, runId, "START", operatorId);
-        auditLogPort.recordStatusTransition(operatorId, workOrderId, currentStatus, WorkOrderStatusConstants.IN_PROGRESS);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                WorkOrderStatusConstants.IN_PROGRESS, "START_PRODUCTION");
         return getWorkOrderById(workOrderId);
     }
 
@@ -532,13 +550,13 @@ public class WorkOrderService implements WorkOrderUseCase {
         }
 
         UUID actorId = currentUserPort.getCurrentUserId();
-        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId).orElse(null);
-        UUID pausedStatusId = requireReferenceId(
-                repository.findStatusIdByName(WorkOrderStatusConstants.PAUSED).orElse(null),
-                "PAUSED status is not configured");
+        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId)
+                .orElseThrow(() -> new InvalidWorkOrderStateException("Work Order has no active production run"));
+        UUID pausedStatusId = requireActiveTransition(workOrder, currentStatus, WorkOrderStatusConstants.PAUSED);
         updateStatus(workOrder, pausedStatusId);
         productionRunPort.recordWorkOrderEvent(workOrderId, runId, "PAUSE", actorId);
-        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.PAUSED);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                WorkOrderStatusConstants.PAUSED, "PAUSE_PRODUCTION");
         return getWorkOrderById(workOrderId);
     }
 
@@ -553,13 +571,14 @@ public class WorkOrderService implements WorkOrderUseCase {
         }
 
         UUID actorId = currentUserPort.getCurrentUserId();
-        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId).orElse(null);
-        UUID inProgressStatusId = requireReferenceId(
-                repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS).orElse(null),
-                "IN_PROGRESS status is not configured");
+        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId)
+                .orElseThrow(() -> new InvalidWorkOrderStateException("Work Order has no active production run"));
+        UUID inProgressStatusId = requireActiveTransition(workOrder, currentStatus,
+                WorkOrderStatusConstants.IN_PROGRESS);
         updateStatus(workOrder, inProgressStatusId);
         productionRunPort.recordWorkOrderEvent(workOrderId, runId, "RESUME", actorId);
-        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.IN_PROGRESS);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                WorkOrderStatusConstants.IN_PROGRESS, "RESUME_PRODUCTION");
         return getWorkOrderById(workOrderId);
     }
 
@@ -582,11 +601,8 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderStateException("Work Order must be IN_PROGRESS to complete");
         }
         // The configured transition table, rather than a hard-coded rule alone, authorizes finalization.
-        UUID completedStatusId = repository.findStatusIdByName(WorkOrderStatusConstants.COMPLETED)
-                .orElseThrow(() -> new InvalidWorkOrderStateException("COMPLETED status is not configured"));
-        if (!repository.hasActiveTransition(workOrder.getWorkOrderStatusId(), completedStatusId)) {
-            throw new InvalidWorkOrderStateException("IN_PROGRESS to COMPLETED transition is not active");
-        }
+        UUID completedStatusId = requireActiveTransition(workOrder, currentStatus,
+                WorkOrderStatusConstants.COMPLETED);
         // The active run identifies the machine that must be released and is locked for a single close.
         ActiveProductionRun productionRun = productionRunPort.findActiveProductionRunForUpdate(workOrderId)
                 .orElseThrow(() -> new InvalidWorkOrderStateException("Work Order has no active production run"));
