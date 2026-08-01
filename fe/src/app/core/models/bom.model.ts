@@ -1,12 +1,22 @@
+export interface BomStatusInfo {
+  id: string;
+  name: string;
+}
+
+export interface BomUserInfo {
+  id: string;
+  fullName: string;
+  username: string;
+}
+
 export interface BomDto {
   id: string;
   finishedProductId: string;
   finishedProductName?: string;
   finishedProductCode?: string;
   version: number;
-  bomStatusId: string;
-  bomStatusName?: string;
-  createdBy?: string;
+  bomStatus?: BomStatusInfo;
+  createdBy?: BomUserInfo;
   createdAt: string;
   items?: BomItemDto[];
 }
@@ -18,27 +28,12 @@ export interface BomItemDto {
   materialProductName?: string;
   materialProductCode?: string;
   quantityPerUnit: number;
-  unitId?: string;
-  unit?: string;
+  unitName?: string;
   scrapRate?: number;
 }
 
-export interface CreateBomRequest {
-  finishedProductId: string;
-  version?: number;
-  bomStatusId?: string;
-}
-
-export interface CreateBomItemRequest {
+export interface NewBomItemData {
   materialProductId: string;
   quantityPerUnit: number;
-  unit?: string;
-  scrapRate?: number;
-}
-
-export interface BomListParams {
-  page?: number;
-  size?: number;
-  finishedProductId?: string;
-  bomStatusId?: string;
+  scrapRate: number;
 }

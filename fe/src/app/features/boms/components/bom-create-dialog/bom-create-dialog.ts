@@ -69,11 +69,11 @@ export class BomCreateDialog implements OnInit {
     };
 
     this.errorMessage.set(null);
-    this.api.post<BomDto>(API.boms.base, payload).subscribe({
+    this.api.post<void>(API.boms.base, payload).subscribe({
       next: (r) => {
         this.loading.set(false);
-        if (r.success && r.data) {
-          this.dialogRef.close(r.data);
+        if (r.success) {
+          this.dialogRef.close(true);
         }
       },
       error: (err) => {

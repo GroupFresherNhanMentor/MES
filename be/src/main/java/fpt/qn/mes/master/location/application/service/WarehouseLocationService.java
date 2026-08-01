@@ -72,11 +72,10 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
         if (warehouseLocationRepository.existsByWarehouseIdAndCode(warehouseId, request.getCode())) {
             throw new WarehouseLocationConflictException("WarehouseLocation code already exists: " + request.getCode());
         }
-        if (!locationStatusRepository.existsById(request.getLocationStatusId())) {
-            throw new LocationStatusNotFoundException("Location status not found: " + request.getLocationStatusId());
-        }
+        var activeStatus = locationStatusRepository.findByName(LocationStatusConstants.ACTIVE)
+                .orElseThrow(() -> new LocationStatusNotFoundException("ACTIVE status not found in location_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseLocationRepository.save(WarehouseLocation.create(warehouseId, request.getCode(), request.getName(), request.getLocationStatusId(), currentUserId));
+        warehouseLocationRepository.save(WarehouseLocation.create(warehouseId, request.getCode(), request.getName(), activeStatus.getId(), currentUserId));
     }
 
     @Override

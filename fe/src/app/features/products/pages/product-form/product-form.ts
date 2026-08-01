@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -34,22 +35,20 @@ interface LookupEntry { id: string; name: string; }
         </mat-select>
       </mat-form-field>
       <mat-form-field appearance="outline">
+        <mat-label>Version</mat-label>
+        <input matInput [(ngModel)]="version" name="version" required [disabled]="!!data">
+      </mat-form-field>
+      <mat-form-field appearance="outline">
         <mat-label>Unit</mat-label>
         <mat-select [(ngModel)]="unitId" name="unit" required>
           @for (u of units; track u.id) { <mat-option [value]="u.id">{{ u.name }}</mat-option> }
-        </mat-select>
-      </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="productStatusId" name="status" required>
-          @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!isValid()">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="loading || !isValid()">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -61,72 +60,54 @@ export class ProductFormComponent {
 
   code = '';
   name = '';
+  version = '';
   productTypeId = '';
   unitId = '';
-  productStatusId = '';
-  originalStatusId = '';
 
   types: LookupEntry[] = [];
   units: LookupEntry[] = [];
-  statuses: LookupEntry[] = [];
+  loading = true;
 
   constructor() {
-    this.api.get<{ items: LookupEntry[] }>('/api/product-types?page=0&size=100').subscribe(r => {
-      if (r.success) { this.types = r.data.items; if (!this.data && this.types.length) this.productTypeId = this.types[0].id; }
-    });
-    this.api.get<{ items: LookupEntry[] }>('/api/units-of-measure?page=0&size=100').subscribe(r => {
-      if (r.success) { this.units = r.data.items; if (!this.data && this.units.length) this.unitId = this.units[0].id; }
-    });
-    this.api.get<{ items: LookupEntry[] }>('/api/product-statuses?page=0&size=100').subscribe(r => {
-      if (r.success) {
-        this.statuses = r.data.items;
-        if (!this.data && this.statuses.length) this.productStatusId = this.statuses[0].id;
-      }
+    forkJoin({
+      types: this.api.get<{ items: LookupEntry[] }>('/api/product-types?page=0&size=100'),
+      units: this.api.get<{ items: LookupEntry[] }>('/api/units-of-measure?page=0&size=100')
+    }).subscribe({
+      next: ({ types, units }) => {
+        if (types.success) { this.types = types.data.items; if (!this.data && this.types.length) this.productTypeId = this.types[0].id; }
+        if (units.success) { this.units = units.data.items; if (!this.data && this.units.length) this.unitId = this.units[0].id; }
+      },
+      complete: () => { this.loading = false; }
     });
     if (this.data) {
       const d = this.data as any;
       this.code = this.data.code;
       this.name = this.data.name;
+      this.version = String(this.data.version ?? '');
       this.productTypeId = d.productType?.id || this.data.productTypeId || '';
       this.unitId = d.unit?.id || this.data.unitId || '';
-      this.productStatusId = d.productStatus?.id || this.data.productStatusId || '';
-      this.originalStatusId = this.productStatusId;
     }
   }
 
   isValid(): boolean {
-    if (this.data) return !!this.name && !!this.unitId && !!this.productStatusId;
-    return !!this.code && !!this.name && !!this.productTypeId && !!this.unitId && !!this.productStatusId;
+    if (this.data) return !!this.name && !!this.unitId;
+    return !!this.code && !!this.name && !!this.version && !!this.productTypeId && !!this.unitId;
   }
 
   save() {
     const editId = this.data?.id;
     if (editId) {
       this.api.put(`/api/products/${editId}`, { name: this.name, unitId: this.unitId }).subscribe({
-        next: () => {
-          // Status changed? call activate/deactivate
-          if (this.productStatusId !== this.originalStatusId) {
-            const newName = this.statuses.find(s => s.id === this.productStatusId)?.name || '';
-            const ep = newName === 'ACTIVE' ? 'activate' : 'deactivate';
-            this.api.put(`/api/products/${editId}/${ep}`, {}).subscribe({
-              next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
-              error: e => this.snackBar.open(e?.error?.message || 'Error updating status', 'OK', { duration: 4000 })
-            });
-          } else {
-            this.snackBar.open('Updated', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          }
-        },
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
         error: e => this.snackBar.open(e?.error?.message || 'Error updating product', 'OK', { duration: 4000 })
       });
     } else {
       const createBody = {
         code: this.code,
         name: this.name,
-        version: String(Date.now()),
+        version: this.version,
         productTypeId: this.productTypeId,
-        unitId: this.unitId,
-        productStatusId: this.productStatusId
+        unitId: this.unitId
       };
       this.api.post('/api/products', createBody).subscribe({
         next: r => { if (r.success) { this.snackBar.open('Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },

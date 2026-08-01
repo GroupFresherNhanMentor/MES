@@ -73,11 +73,10 @@ public class LineService implements LineUseCase {
         if (lineRepository.existsByCode(request.getCode())) {
             throw new LineConflictException("Line code already exists: " + request.getCode());
         }
-        if (!lineStatusRepository.existsById(request.getLineStatusId())) {
-            throw new LineStatusNotFoundException("Line status not found: " + request.getLineStatusId());
-        }
+        var activeStatus = lineStatusRepository.findByName(LineStatusConstants.ACTIVE)
+                .orElseThrow(() -> new LineStatusNotFoundException("ACTIVE status not found in line_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        lineRepository.save(Line.create(request.getCode(), request.getName(), request.getLineStatusId(), currentUserId));
+        lineRepository.save(Line.create(request.getCode(), request.getName(), activeStatus.getId(), currentUserId));
     }
 
     @Override

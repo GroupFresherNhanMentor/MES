@@ -1,6 +1,7 @@
-package fpt.qn.mes.bom.application.dto.request;
+package fpt.qn.mes.bom.application.dto.bom.create;
 
 import java.util.UUID;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,11 +12,7 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateBomRequest {
-
-    @NotNull(message = "finishedProductId is required")
+    @NotNull
     UUID finishedProductId;
-
     Integer version;
-
-    UUID bomStatusId;
 }

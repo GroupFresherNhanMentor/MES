@@ -73,11 +73,10 @@ public class WarehouseService implements WarehouseUseCase {
         if (warehouseRepository.existsByCode(request.getCode())) {
             throw new WarehouseConflictException("Warehouse code already exists: " + request.getCode());
         }
-        if (!warehouseStatusRepository.existsById(request.getWarehouseStatusId())) {
-            throw new WarehouseStatusNotFoundException("Warehouse status not found: " + request.getWarehouseStatusId());
-        }
+        var activeStatus = warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)
+                .orElseThrow(() -> new WarehouseStatusNotFoundException("ACTIVE status not found in warehouse_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.save(Warehouse.create(request.getCode(), request.getName(), request.getAddress(), request.getWarehouseStatusId(), currentUserId));
+        warehouseRepository.save(Warehouse.create(request.getCode(), request.getName(), request.getAddress(), activeStatus.getId(), currentUserId));
     }
 
     @Override

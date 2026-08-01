@@ -21,6 +21,7 @@ import fpt.qn.mes.master.location.application.exception.LocationStatusNotFoundEx
 import fpt.qn.mes.master.location.application.exception.WarehouseLocationConflictException;
 import fpt.qn.mes.master.location.application.exception.WarehouseLocationNotFoundException;
 import fpt.qn.mes.master.location.application.mapper.WarehouseLocationDtoMapper;
+import fpt.qn.mes.master.location.domain.constants.LocationStatusConstants;
 import fpt.qn.mes.master.location.domain.entities.WarehouseLocation;
 import fpt.qn.mes.master.location.domain.entities.LocationStatus;
 import fpt.qn.mes.master.location.domain.repository.WarehouseLocationRepository;
@@ -50,15 +51,15 @@ class WarehouseLocationServiceTest {
 
     @Test
     void createWarehouseLocation_Success() {
+        LocationStatus activeStatus = LocationStatus.builder().id(statusId).name(LocationStatusConstants.ACTIVE).build();
         when(warehouseLocationRepository.existsByWarehouseIdAndCode(warehouseId, "LOC-TEST")).thenReturn(false);
-        when(locationStatusRepository.existsById(statusId)).thenReturn(true);
+        when(locationStatusRepository.findByName(LocationStatusConstants.ACTIVE)).thenReturn(Optional.of(activeStatus));
         when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(warehouseLocationRepository.save(any(WarehouseLocation.class))).thenReturn(location);
 
         var req = new CreateWarehouseLocationRequest();
         req.setCode("LOC-TEST");
         req.setName("Test");
-        req.setLocationStatusId(statusId);
 
         assertDoesNotThrow(() -> warehouseLocationService.createWarehouseLocation(warehouseId, req));
         verify(warehouseLocationRepository).save(any(WarehouseLocation.class));
@@ -70,18 +71,16 @@ class WarehouseLocationServiceTest {
         var req = new CreateWarehouseLocationRequest();
         req.setCode("LOC-TEST");
         req.setName("Test");
-        req.setLocationStatusId(statusId);
         assertThrows(WarehouseLocationConflictException.class, () -> warehouseLocationService.createWarehouseLocation(warehouseId, req));
     }
 
     @Test
-    void createWarehouseLocation_StatusNotFound_ThrowsConflict() {
+    void createWarehouseLocation_ActiveStatusNotFound_ThrowsStatusNotFoundException() {
         when(warehouseLocationRepository.existsByWarehouseIdAndCode(warehouseId, "LOC-TEST")).thenReturn(false);
-        when(locationStatusRepository.existsById(statusId)).thenReturn(false);
+        when(locationStatusRepository.findByName(LocationStatusConstants.ACTIVE)).thenReturn(Optional.empty());
         var req = new CreateWarehouseLocationRequest();
         req.setCode("LOC-TEST");
         req.setName("Test");
-        req.setLocationStatusId(statusId);
         assertThrows(LocationStatusNotFoundException.class, () -> warehouseLocationService.createWarehouseLocation(warehouseId, req));
     }
 

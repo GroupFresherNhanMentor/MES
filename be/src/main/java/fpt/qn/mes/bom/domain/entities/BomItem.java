@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,23 +19,16 @@ public class BomItem {
     String materialProductCode;
     String materialProductName;
     BigDecimal quantityPerUnit;
-    UUID unitId;
     String unitName;
     BigDecimal scrapRate;
 
-    public static BomItem create(UUID bomId, UUID materialProductId, BigDecimal quantityPerUnit, UUID unitId, String unitName, BigDecimal scrapRate) {
+    public static BomItem create(UUID bomId, UUID materialProductId, BigDecimal quantityPerUnit, BigDecimal scrapRate) {
         return BomItem.builder()
                 .id(UuidV7.generate())
                 .bomId(bomId)
                 .materialProductId(materialProductId)
                 .quantityPerUnit(quantityPerUnit)
-                .unitId(unitId)
-                .unitName(unitName)
                 .scrapRate(scrapRate != null ? scrapRate : BigDecimal.ZERO)
                 .build();
-    }
-
-    public String getUnit() {
-        return unitName;
     }
 }

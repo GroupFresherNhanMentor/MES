@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -12,7 +13,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { ApiService } from '../../../../core/services/api';
 import { API } from '../../../../configs/api-endpoints';
 import type { ProductDto } from '../../../../core/models/product.model';
-import type { BomItemDto, CreateBomItemRequest } from '../../../../core/models/bom.model';
+import type { NewBomItemData } from '../../../../core/models/bom.model';
 
 export interface BomAddItemDialogData {
   bomId: string;
@@ -41,87 +42,52 @@ export class BomAddItemDialog implements OnInit {
   private fb = inject(FormBuilder);
   private api = inject(ApiService);
 
-  loading = signal(false);
+  loading = signal(true);
   errorMessage = signal<string | null>(null);
   materialsList = signal<ProductDto[]>([]);
+  selectedUnitName = signal<string | null>(null);
 
   form = this.fb.group({
     materialProductId: ['', [Validators.required]],
     quantityPerUnit: [1, [Validators.required, Validators.min(0.0001)]],
-    unit: ['PCS'],
     scrapRate: [0, [Validators.required, Validators.min(0)]],
   });
 
   ngOnInit(): void {
-    this.loadMaterials();
-
-    // Auto-update unit when material product changes
-    this.form.get('materialProductId')?.valueChanges.subscribe((prodId) => {
-      if (prodId) {
-        const prod = this.materialsList().find((p) => p.id === prodId);
-        const unitName = prod?.unit?.name || prod?.unitName;
-        if (unitName) {
-          this.form.patchValue({ unit: unitName });
-        }
-      }
-    });
-  }
-
-  private loadMaterials(): void {
-    this.loading.set(true);
     this.api.get<any>(`${API.products.base}?size=100`).subscribe({
-      next: (r) => {
-        this.loading.set(false);
+      next: r => {
         if (r.success && r.data) {
-          const rawItems: ProductDto[] = r.data?.items || (Array.isArray(r.data) ? r.data : []);
+          const rawItems: ProductDto[] = r.data?.items || [];
           const existingIds = this.data?.existingMaterialIds || [];
-          const filtered = rawItems.filter((p) => {
+          const filtered = rawItems.filter(p => {
             if (p.id && existingIds.includes(p.id)) return false;
-            const typeName = (p.productType?.name || p.productTypeName || '').trim().toUpperCase();
-            return (
-              typeName === 'RAW_MATERIAL' ||
-              typeName === 'SEMI_FINISHED' ||
-              typeName === 'CONSUMABLE' ||
-              typeName === 'SPARE_PART'
-            );
+            const typeName = (p.productType?.name || (p as any).productTypeName || '').trim().toUpperCase();
+            return typeName === 'RAW_MATERIAL' || typeName === 'SEMI_FINISHED' || typeName === 'CONSUMABLE' || typeName === 'SPARE_PART';
           });
-          const available = filtered.length > 0 ? filtered : rawItems.filter((p) => p.id && !existingIds.includes(p.id));
-          this.materialsList.set(available);
+          this.materialsList.set(filtered.length > 0 ? filtered : rawItems.filter(p => !existingIds.includes(p.id!)));
         }
+        this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => { this.loading.set(false); this.errorMessage.set('Failed to load products.'); },
+    });
+
+    this.form.get('materialProductId')?.valueChanges.subscribe(prodId => {
+      if (!prodId) { this.selectedUnitName.set(null); return; }
+      const prod = this.materialsList().find(p => p.id === prodId);
+      const unitName = (prod as any)?.unit?.name || (prod as any)?.unitName || null;
+      this.selectedUnitName.set(unitName);
     });
   }
 
-  onCancel(): void {
-    this.dialogRef.close(null);
-  }
+  onCancel(): void { this.dialogRef.close(null); }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.data?.bomId) return;
-
-    this.loading.set(true);
-    this.errorMessage.set(null);
-
-    const payload: CreateBomItemRequest = {
+    if (this.form.invalid) return;
+    const result: NewBomItemData = {
       materialProductId: this.form.value.materialProductId!,
       quantityPerUnit: Number(this.form.value.quantityPerUnit ?? 1),
-      unit: this.form.value.unit || 'PCS',
       scrapRate: Number(this.form.value.scrapRate ?? 0),
     };
-
-    const url = `${API.boms.base}/${this.data.bomId}/items`;
-    this.api.post<BomItemDto>(url, payload).subscribe({
-      next: (r) => {
-        this.loading.set(false);
-        if (r.data) {
-          this.dialogRef.close(r.data);
-        }
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.errorMessage.set(err?.error?.message || 'Failed to add item to BOM.');
-      },
-    });
+    this.dialogRef.close(result);
   }
 }

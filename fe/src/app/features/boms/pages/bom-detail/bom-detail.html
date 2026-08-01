@@ -59,6 +59,18 @@
         </button>
       }
 
+      @if (canDeactivate()) {
+        <button
+          mat-flat-button
+          class="font-semibold !px-5 !py-2.5 shadow-md flex items-center gap-1.5 !bg-error/10 !text-error hover:!bg-error/20 border border-error/30"
+          (click)="onDeactivate()"
+          [disabled]="actionLoading()"
+          matTooltip="Mark this BOM as inactive"
+        >
+          <mat-icon class="!w-5 !h-5 text-xl">block</mat-icon> Deactivate BOM
+        </button>
+      }
+
       @if (canNewVersion()) {
         <button
           mat-flat-button
@@ -124,7 +136,7 @@
               [class.bg-warning]="isDraft()"
               [class.bg-error]="isInactive()"
             ></span>
-            {{ bom()?.bomStatusName || bom()?.bomStatusId }}
+            {{ bom()?.bomStatus?.name || '-' }}
           </span>
         </div>
         <span class="kpi-trend text-text-muted mt-2 block">
@@ -221,7 +233,7 @@
               <th mat-header-cell *matHeaderCellDef>Unit</th>
               <td mat-cell *matCellDef="let item">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-surface-elevated text-text-secondary border border-border-light">
-                  {{ item.unit || 'PCS' }}
+                  {{ item.unitName || 'PCS' }}
                 </span>
               </td>
             </ng-container>

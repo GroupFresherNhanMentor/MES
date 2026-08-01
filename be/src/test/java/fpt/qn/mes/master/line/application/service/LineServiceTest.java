@@ -52,15 +52,15 @@ class LineServiceTest {
 
     @Test
     void createLine_Success() {
+        LineStatus activeStatus = LineStatus.builder().id(statusId).name(LineStatusConstants.ACTIVE).build();
         when(lineRepository.existsByCode("LN-TEST")).thenReturn(false);
-        when(lineStatusRepository.existsById(statusId)).thenReturn(true);
+        when(lineStatusRepository.findByName(LineStatusConstants.ACTIVE)).thenReturn(Optional.of(activeStatus));
         when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(lineRepository.save(any(Line.class))).thenReturn(line);
 
         var req = new CreateLineRequest();
         req.setCode("LN-TEST");
         req.setName("Test");
-        req.setLineStatusId(statusId);
 
         assertDoesNotThrow(() -> lineService.createLine(req));
         verify(lineRepository).save(any(Line.class));
@@ -72,18 +72,16 @@ class LineServiceTest {
         var req = new CreateLineRequest();
         req.setCode("LN-TEST");
         req.setName("Test");
-        req.setLineStatusId(statusId);
         assertThrows(LineConflictException.class, () -> lineService.createLine(req));
     }
 
     @Test
-    void createLine_StatusNotFound_ThrowsConflict() {
+    void createLine_ActiveStatusNotFound_ThrowsStatusNotFoundException() {
         when(lineRepository.existsByCode("LN-TEST")).thenReturn(false);
-        when(lineStatusRepository.existsById(statusId)).thenReturn(false);
+        when(lineStatusRepository.findByName(LineStatusConstants.ACTIVE)).thenReturn(Optional.empty());
         var req = new CreateLineRequest();
         req.setCode("LN-TEST");
         req.setName("Test");
-        req.setLineStatusId(statusId);
         assertThrows(LineStatusNotFoundException.class, () -> lineService.createLine(req));
     }
 
