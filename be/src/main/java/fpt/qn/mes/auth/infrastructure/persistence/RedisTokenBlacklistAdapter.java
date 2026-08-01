@@ -48,4 +48,3 @@ public class RedisTokenBlacklistAdapter implements TokenBlacklistPort {
         }
     }
 }
-

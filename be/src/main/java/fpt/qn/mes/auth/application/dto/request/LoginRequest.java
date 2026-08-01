@@ -16,16 +16,16 @@ public class LoginRequest {
 
     @NotBlank
     @Schema(
-        description = "Tên đăng nhập của người dùng", 
-        example = "admin", 
+        description = "Tên đăng nhập của người dùng",
+        example = "admin",
         defaultValue = "admin"
     )
     String username;
 
     @NotBlank
     @Schema(
-        description = "Mật khẩu người dùng", 
-        example = "Admin@1234", 
+        description = "Mật khẩu người dùng",
+        example = "Admin@1234",
         defaultValue = "Admin@1234"
     )
     String password;

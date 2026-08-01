@@ -39,28 +39,28 @@ class LocationStatusServiceTest {
         when(mapper.toDto(status)).thenReturn(response);
 
         var result = locationstatusService.getLocationStatuses(new LocationStatusSearchRequest());
-        
+
         assertEquals(1, result.getItems().size());
         assertEquals("ACTIVE", result.getItems().get(0).getName());
     }
-    
+
     @Test
     void createLocationStatus_Success() {
         when(locationstatusRepository.existsByName("ACTIVE")).thenReturn(false);
         var req = new CreateLocationStatusRequest();
         req.setName("ACTIVE");
         req.setDescription("Desc");
-        
+
         assertDoesNotThrow(() -> locationstatusService.createLocationStatus(req));
         verify(locationstatusRepository).save(any());
     }
-    
+
     @Test
     void createLocationStatus_Duplicate_ThrowsConflict() {
         when(locationstatusRepository.existsByName("ACTIVE")).thenReturn(true);
         var req = new CreateLocationStatusRequest();
         req.setName("ACTIVE");
-        
+
         assertThrows(LocationStatusConflictException.class, () -> locationstatusService.createLocationStatus(req));
     }
 }

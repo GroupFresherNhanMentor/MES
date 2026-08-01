@@ -45,4 +45,3 @@ public class UserRoleController {
                 userRoleUseCase.replaceUserRoles(userId, request), "User roles replaced"));
     }
 }
-

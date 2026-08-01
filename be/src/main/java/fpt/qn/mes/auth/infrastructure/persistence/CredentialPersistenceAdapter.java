@@ -76,7 +76,3 @@ public class CredentialPersistenceAdapter implements CredentialQueryPort {
                 .build());
     }
 }
-
-
-
-

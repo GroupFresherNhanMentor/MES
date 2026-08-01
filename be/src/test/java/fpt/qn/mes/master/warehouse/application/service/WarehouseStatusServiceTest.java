@@ -39,28 +39,28 @@ class WarehouseStatusServiceTest {
         when(mapper.toDto(status)).thenReturn(response);
 
         var result = warehousestatusService.getWarehouseStatuses(new WarehouseStatusSearchRequest());
-        
+
         assertEquals(1, result.getItems().size());
         assertEquals("ACTIVE", result.getItems().get(0).getName());
     }
-    
+
     @Test
     void createWarehouseStatus_Success() {
         when(warehousestatusRepository.existsByName("ACTIVE")).thenReturn(false);
         var req = new CreateWarehouseStatusRequest();
         req.setName("ACTIVE");
         req.setDescription("Desc");
-        
+
         assertDoesNotThrow(() -> warehousestatusService.createWarehouseStatus(req));
         verify(warehousestatusRepository).save(any());
     }
-    
+
     @Test
     void createWarehouseStatus_Duplicate_ThrowsConflict() {
         when(warehousestatusRepository.existsByName("ACTIVE")).thenReturn(true);
         var req = new CreateWarehouseStatusRequest();
         req.setName("ACTIVE");
-        
+
         assertThrows(WarehouseStatusConflictException.class, () -> warehousestatusService.createWarehouseStatus(req));
     }
 }

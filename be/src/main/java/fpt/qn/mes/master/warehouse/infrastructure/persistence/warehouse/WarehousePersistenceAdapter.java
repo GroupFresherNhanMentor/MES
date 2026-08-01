@@ -138,7 +138,7 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
     public PaginationResult<Warehouse> search(WarehouseSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-        
+
         long total = ctx.fetchCount(WAREHOUSES, condition);
         List<Warehouse> items = ctx.select()
                 .from(WAREHOUSES)
@@ -150,7 +150,7 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
                 .fetch(r -> mapper.toDomain(r.into(WAREHOUSES), r.into(WAREHOUSE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
-                
+
         return PaginationResult.<Warehouse>builder().total(total).items(items).build();
     }
 

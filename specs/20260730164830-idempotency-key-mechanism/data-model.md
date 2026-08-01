@@ -21,7 +21,7 @@ CREATE TABLE idempotency_keys (
     updated_at         TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_idemp_unauthen 
+CREATE UNIQUE INDEX idx_idemp_unauthen
 ON idempotency_keys(key, COALESCE(user_id::text, client_identifier));
 ```
 

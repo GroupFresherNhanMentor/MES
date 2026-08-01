@@ -516,7 +516,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### POST `/boms`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > **SRS:** `FR-BOM-001` — Create BOM Header (Status: `DRAFT`)
 
 **Request body:**
@@ -528,7 +528,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### POST `/boms/{id}/activate`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
 
 **Response `200`:** `BomDto`
@@ -559,7 +559,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### PUT `/boms/{bomId}/items/{itemId}`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > Must be in `DRAFT` status
 
 **Request body:**
@@ -571,7 +571,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### DELETE `/boms/{bomId}/items/{itemId}`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > Must be in `DRAFT` status
 
 **Response `200`:** no data
@@ -720,11 +720,11 @@ deduplicated; any missing ID rejects the complete mutation.
 **Request body:**
 ```json
 {
-  "code": "string", 
+  "code": "string",
   "plannedQuantity": 100.0,
-  "plannedStartDate": "instant", 
+  "plannedStartDate": "instant",
   "plannedEndDate": "instant",
-  "priorityId": "uuid", 
+  "priorityId": "uuid",
   "workOrderStatusId": "uuid"
 }
 ```
@@ -738,7 +738,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### POST `/boms/{id}/activate`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > **SRS:** `FR-BOM-002` — Activate BOM (Deactivates current ACTIVE BOM for product; sets target to `ACTIVE`)
 
 **Response `200`:** `BomDto`
@@ -746,7 +746,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### POST `/boms/{id}/new-version`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > **SRS:** `FR-BOM-003` — Create New BOM Version (Clones BOM header with auto-incremented version and deep-copies component items in `DRAFT` status)
 
 **Response `201`:** `BomDto`
@@ -754,7 +754,7 @@ deduplicated; any missing ID rejects the complete mutation.
 ---
 
 ### POST `/boms/{bomId}/items`
-> **Roles:** `ADMIN` · `PLANNER`  
+> **Roles:** `ADMIN` · `PLANNER`
 > Must be in `DRAFT` status
 
 **Request body:**
@@ -933,7 +933,6 @@ deduplicated; any missing ID rejects the complete mutation.
 
 ---
 
-<<<<<<< HEAD
 ### POST `/api/v1/work-orders/{id}/reserve-materials`
 > **Roles:** `PLANNER`
 
@@ -967,19 +966,6 @@ deduplicated; any missing ID rejects the complete mutation.
     "status": "READY_TO_PRODUCE"
   }
 }
-=======
-### POST `/work-orders/{id}/reserve-materials`
-> **Roles:** `PLANNER`
-
-**Request body:** None.
-
-**Business rules:**
-* The system queries `AVAILABLE` stock balances across all `ACTIVE` warehouses in pure FIFO date order (`stock_lots.created_at ASC`).
-* The client must not provide a request body or `sourceWarehouseId`.
-* When multiple lots contain the same material, lots are selected in strict FIFO order by `stock_lots.created_at`.
-* The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
-* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available. Machine assignment and availability are validated when production starts.
->>>>>>> origin/develop
 ```
 
 ---

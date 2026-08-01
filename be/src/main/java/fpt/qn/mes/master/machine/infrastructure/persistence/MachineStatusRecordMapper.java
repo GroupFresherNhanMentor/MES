@@ -34,4 +34,3 @@ public class MachineStatusRecordMapper {
         return r;
     }
 }
-

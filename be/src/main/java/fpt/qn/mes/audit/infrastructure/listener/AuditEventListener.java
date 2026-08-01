@@ -46,7 +46,7 @@ public class AuditEventListener {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
-    		HttpServletRequest request = attributes.getRequest();
+                HttpServletRequest request = attributes.getRequest();
                 return request.getRemoteAddr(); // ◄◄ Direct TCP socket IP (non-spoofable)
             }
         } catch (Exception ignored) {

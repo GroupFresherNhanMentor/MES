@@ -14,7 +14,7 @@ public class LineStatus {
     UUID id;
     String name;
     String description;
-    
+
     public static LineStatus create(String name, String description) {
         return LineStatus.builder()
             .id(UuidV7.generate())

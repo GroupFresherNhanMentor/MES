@@ -77,4 +77,3 @@ class AuthorizationPolicyContractTest extends AbstractIntegrationTest {
                 : EndpointRoleCatalog.ROLE_PROTECTED;
     }
 }
-

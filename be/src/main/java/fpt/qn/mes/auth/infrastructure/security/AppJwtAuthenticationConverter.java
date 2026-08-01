@@ -56,7 +56,3 @@ public class AppJwtAuthenticationConverter
         return new OAuth2AuthenticationException(new OAuth2Error("invalid_token"), "Invalid access token");
     }
 }
-
-
-
-
