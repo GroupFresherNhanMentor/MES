@@ -1,10 +1,13 @@
 package fpt.qn.mes.master.warehouse.infrastructure.persistence.warehouse;
 
+import static fpt.qn.mes.jooq.Tables.WAREHOUSE_MANAGERS;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSE_STATUSES;
 import static fpt.qn.mes.jooq.Tables.WAREHOUSES;
 import static fpt.qn.mes.jooq.Tables.USERS;
 
 import java.util.Collection;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +37,7 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
 
     private static final Users CREATOR = USERS.as("creator");
     private static final Users UPDATER = USERS.as("updater");
+    private static final Users MANAGER = USERS.as("manager");
 
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
         "name", WAREHOUSES.NAME,
@@ -51,13 +55,32 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
 
     @Override
     public Optional<Warehouse> findById(UUID id) {
-        return ctx.select()
+        var managersField = DSL.multiset(
+                DSL.select(MANAGER.ID, MANAGER.FULL_NAME, MANAGER.USERNAME, WAREHOUSE_MANAGERS.ASSIGNED_AT)
+                        .from(WAREHOUSE_MANAGERS)
+                        .join(MANAGER).on(MANAGER.ID.eq(WAREHOUSE_MANAGERS.USER_ID))
+                        .where(WAREHOUSE_MANAGERS.WAREHOUSE_ID.eq(WAREHOUSES.ID))
+                        .orderBy(WAREHOUSE_MANAGERS.ASSIGNED_AT.asc())
+        ).convertFrom(records -> records.map(mr -> Warehouse.ManagerRef.builder()
+                .id(mr.get(MANAGER.ID))
+                .fullName(mr.get(MANAGER.FULL_NAME))
+                .username(mr.get(MANAGER.USERNAME))
+                .assignedAt(mr.get(WAREHOUSE_MANAGERS.ASSIGNED_AT).toInstant())
+                .build()));
+
+        return ctx.select(DSL.asterisk(), managersField)
                 .from(WAREHOUSES)
                 .leftJoin(WAREHOUSE_STATUSES).on(WAREHOUSE_STATUSES.ID.eq(WAREHOUSES.WAREHOUSE_STATUS_ID))
                 .leftJoin(CREATOR).on(WAREHOUSES.CREATED_BY.eq(CREATOR.ID))
                 .leftJoin(UPDATER).on(WAREHOUSES.UPDATED_BY.eq(UPDATER.ID))
                 .where(WAREHOUSES.ID.eq(id))
-                .fetchOptional(r -> mapper.toDomain(r.into(WAREHOUSES), r.into(WAREHOUSE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
+                .fetchOptional(r -> mapper.toDomain(
+                        r.into(WAREHOUSES),
+                        r.into(WAREHOUSE_STATUSES),
+                        r.into(CREATOR),
+                        r.into(UPDATER),
+                        r.get(managersField)
+                ));
     }
 
     @Override
@@ -129,6 +152,46 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
                 .fetch(r -> mapper.toDomain(r.into(WAREHOUSES), r.into(WAREHOUSE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
                 
         return PaginationResult.<Warehouse>builder().total(total).items(items).build();
+    }
+
+    @Override
+    public void assignManager(UUID warehouseId, UUID userId, UUID assignedBy) {
+        ctx.insertInto(WAREHOUSE_MANAGERS)
+                .set(WAREHOUSE_MANAGERS.WAREHOUSE_ID, warehouseId)
+                .set(WAREHOUSE_MANAGERS.USER_ID, userId)
+                .set(WAREHOUSE_MANAGERS.ASSIGNED_AT, OffsetDateTime.now(ZoneOffset.UTC))
+                .set(WAREHOUSE_MANAGERS.ASSIGNED_BY, assignedBy)
+                .execute();
+    }
+
+    @Override
+    public void removeManager(UUID warehouseId, UUID userId) {
+        ctx.deleteFrom(WAREHOUSE_MANAGERS)
+                .where(WAREHOUSE_MANAGERS.WAREHOUSE_ID.eq(warehouseId))
+                .and(WAREHOUSE_MANAGERS.USER_ID.eq(userId))
+                .execute();
+    }
+
+    @Override
+    public List<Warehouse.ManagerRef> findManagersByWarehouseId(UUID warehouseId) {
+        return ctx.select()
+                .from(WAREHOUSE_MANAGERS)
+                .join(MANAGER).on(MANAGER.ID.eq(WAREHOUSE_MANAGERS.USER_ID))
+                .where(WAREHOUSE_MANAGERS.WAREHOUSE_ID.eq(warehouseId))
+                .orderBy(WAREHOUSE_MANAGERS.ASSIGNED_AT.asc())
+                .fetch(r -> Warehouse.ManagerRef.builder()
+                        .id(r.get(MANAGER.ID))
+                        .fullName(r.get(MANAGER.FULL_NAME))
+                        .username(r.get(MANAGER.USERNAME))
+                        .assignedAt(r.get(WAREHOUSE_MANAGERS.ASSIGNED_AT).toInstant())
+                        .build());
+    }
+
+    @Override
+    public boolean isManagerAssigned(UUID warehouseId, UUID userId) {
+        return ctx.fetchExists(WAREHOUSE_MANAGERS,
+                WAREHOUSE_MANAGERS.WAREHOUSE_ID.eq(warehouseId)
+                        .and(WAREHOUSE_MANAGERS.USER_ID.eq(userId)));
     }
 
     private Condition buildCondition(WarehouseSearchCriteria criteria) {

@@ -17,4 +17,9 @@ public interface WarehouseRepository {
     PaginationResult<Warehouse> search(WarehouseSearchCriteria criteria);
     boolean existsByCode(String code);
     boolean existsById(UUID id);
+
+    void assignManager(UUID warehouseId, UUID userId, UUID assignedBy);
+    void removeManager(UUID warehouseId, UUID userId);
+    List<Warehouse.ManagerRef> findManagersByWarehouseId(UUID warehouseId);
+    boolean isManagerAssigned(UUID warehouseId, UUID userId);
 }

@@ -8,4 +8,5 @@ import fpt.qn.mes.inventory.domain.entities.MovementType;
 @Mapper(componentModel = "spring")
 public interface MovementTypeDtoMapper {
     MovementTypeResponse toDto(MovementType entity);
+    MovementTypeResponse.UserInfo toUserInfo(MovementType.UserRef ref);
 }

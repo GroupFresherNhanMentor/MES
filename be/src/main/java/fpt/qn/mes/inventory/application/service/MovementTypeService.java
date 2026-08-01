@@ -10,6 +10,7 @@ import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.inventory.application.dto.movementtype.MovementTypeResponse;
 import fpt.qn.mes.inventory.application.dto.movementtype.create.CreateMovementTypeRequest;
 import fpt.qn.mes.inventory.application.dto.movementtype.search.MovementTypeSearchRequest;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.inventory.application.exception.MovementTypeConflictException;
 import fpt.qn.mes.inventory.application.mapper.MovementTypeDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.MovementTypeUseCase;
@@ -27,6 +28,7 @@ public class MovementTypeService implements MovementTypeUseCase {
 
     MovementTypeRepository movementTypeRepository;
     MovementTypeDtoMapper mapper;
+    CurrentUserPort currentUserPort;
 
     @Override
     @Transactional(readOnly = true)
@@ -53,7 +55,7 @@ public class MovementTypeService implements MovementTypeUseCase {
         if (movementTypeRepository.existsByName(request.getName())) {
             throw new MovementTypeConflictException("MovementType with name already exists: " + request.getName());
         }
-        movementTypeRepository.save(MovementType.create(request.getName(), request.getDescription()));
+        movementTypeRepository.save(MovementType.create(request.getName(), request.getDescription(), currentUserPort.getCurrentUserId()));
     }
 
     @Override

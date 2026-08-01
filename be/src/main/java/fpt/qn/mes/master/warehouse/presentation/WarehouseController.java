@@ -1,9 +1,11 @@
 package fpt.qn.mes.master.warehouse.presentation;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseManagerResponse;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.assign.AssignManagerRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.create.CreateWarehouseRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.search.WarehouseSearchRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.update.UpdateWarehouseRequest;
@@ -68,5 +72,24 @@ public class WarehouseController {
     public ResponseEntity<ApiResponse<Void>> deactivateWarehouse(@PathVariable UUID id) {
         warehouseUseCase.deactivateWarehouse(id);
         return ResponseEntity.ok(ApiResponse.success("Deactivated"));
+    }
+
+    @GetMapping("/{id}/managers")
+    public ResponseEntity<ApiResponse<List<WarehouseManagerResponse>>> getManagers(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getManagers(id), "OK"));
+    }
+
+    @PostMapping("/{id}/managers")
+    public ResponseEntity<ApiResponse<Void>> assignManager(
+            @PathVariable UUID id, @Valid @RequestBody AssignManagerRequest request) {
+        warehouseUseCase.assignManager(id, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Manager assigned"));
+    }
+
+    @DeleteMapping("/{id}/managers/{userId}")
+    public ResponseEntity<ApiResponse<Void>> removeManager(
+            @PathVariable UUID id, @PathVariable UUID userId) {
+        warehouseUseCase.removeManager(id, userId);
+        return ResponseEntity.ok(ApiResponse.success("Manager removed"));
     }
 }

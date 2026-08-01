@@ -1,6 +1,7 @@
 package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.MOVEMENT_TYPES;
+import static fpt.qn.mes.jooq.Tables.USERS;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.repository.MovementTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.MovementTypeSearchCriteria;
+import fpt.qn.mes.jooq.tables.Users;
 import fpt.qn.mes.jooq.tables.records.MovementTypesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -27,6 +29,9 @@ import lombok.experimental.FieldDefaults;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypesRecord> implements MovementTypeRepository {
+
+    private static final Users CREATOR = USERS.as("creator");
+    private static final Users UPDATER = USERS.as("updater");
 
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
             "name", MOVEMENT_TYPES.NAME,
@@ -43,16 +48,22 @@ public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypes
 
     @Override
     public Optional<MovementType> findById(UUID id) {
-        return ctx.selectFrom(MOVEMENT_TYPES)
+        return ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
                 .where(MOVEMENT_TYPES.ID.eq(id))
-                .fetchOptional(r -> mapper.toDomain(r));
+                .fetchOptional(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
     public Optional<MovementType> findByName(String name) {
-        return ctx.selectFrom(MOVEMENT_TYPES)
+        return ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
                 .where(MOVEMENT_TYPES.NAME.eq(name))
-                .fetchOptional(r -> mapper.toDomain(r));
+                .fetchOptional(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
@@ -88,12 +99,15 @@ public class MovementTypePersistenceAdapter extends BaseRepository<MovementTypes
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
         long total = ctx.fetchCount(MOVEMENT_TYPES, condition);
-        List<MovementType> items = ctx.selectFrom(MOVEMENT_TYPES)
+        List<MovementType> items = ctx.select()
+                .from(MOVEMENT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(MOVEMENT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(MOVEMENT_TYPES.UPDATED_BY))
                 .where(condition)
                 .orderBy(orderBy)
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
-                .fetch(r -> mapper.toDomain(r));
+                .fetch(r -> mapper.toDomain(r.into(MOVEMENT_TYPES), r.into(CREATOR), r.into(UPDATER)));
         return PaginationResult.<MovementType>builder().total(total).items(items).build();
     }
 

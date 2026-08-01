@@ -1,6 +1,7 @@
 package fpt.qn.mes.master.warehouse.domain.entities;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
@@ -21,11 +22,21 @@ public class Warehouse {
         private String username;
     }
 
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ManagerRef {
+        UUID id;
+        String fullName;
+        String username;
+        Instant assignedAt;
+    }
+
     UUID id;
     String code;
     String name;
     String address;
     WarehouseStatus warehouseStatus;
+    List<ManagerRef> managers;
     Instant createdAt;
     UserRef createdBy;
     Instant updatedAt;

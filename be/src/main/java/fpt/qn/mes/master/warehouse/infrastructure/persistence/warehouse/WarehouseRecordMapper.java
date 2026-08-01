@@ -2,6 +2,7 @@ package fpt.qn.mes.master.warehouse.infrastructure.persistence.warehouse;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
 
 import org.springframework.stereotype.Component;
 
@@ -15,8 +16,12 @@ import fpt.qn.mes.master.warehouse.domain.entities.WarehouseStatus;
 public class WarehouseRecordMapper {
 
     public Warehouse toDomain(WarehousesRecord r, WarehouseStatusesRecord status, UsersRecord creator, UsersRecord updater) {
+        return toDomain(r, status, creator, updater, null);
+    }
+
+    public Warehouse toDomain(WarehousesRecord r, WarehouseStatusesRecord status, UsersRecord creator, UsersRecord updater, List<Warehouse.ManagerRef> managers) {
         if (r == null || r.getId() == null) return null;
-        
+
         return Warehouse.builder()
                 .id(r.getId())
                 .code(r.getCode())
@@ -27,6 +32,7 @@ public class WarehouseRecordMapper {
                         .name(status.getName())
                         .description(status.getDescription())
                         .build() : null)
+                .managers(managers)
                 .createdAt(r.getCreatedAt().toInstant())
                 .updatedAt(r.getUpdatedAt() != null ? r.getUpdatedAt().toInstant() : null)
                 .createdBy(creator.getId() != null
