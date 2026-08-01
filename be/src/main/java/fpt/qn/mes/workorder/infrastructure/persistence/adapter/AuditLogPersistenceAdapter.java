@@ -14,7 +14,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@Repository
+@Repository("workOrderAuditLogPersistenceAdapter")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuditLogPersistenceAdapter implements AuditLogPort {
