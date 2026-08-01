@@ -5,7 +5,6 @@ import static fpt.qn.mes.jooq.Tables.ROLES;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
@@ -13,6 +12,7 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +33,7 @@ public class RoleDataSeeder implements ApplicationRunner {
     ObjectMapper objectMapper;
 
     @Override
+    @Transactional
     public void run(ApplicationArguments args) {
         List<Map<String, Object>> rows = loadJson("roles.json");
         if (rows.isEmpty()) return;
@@ -54,4 +55,5 @@ public class RoleDataSeeder implements ApplicationRunner {
             throw new IllegalStateException("Failed to load seed file: " + file, e);
         }
     }
+
 }

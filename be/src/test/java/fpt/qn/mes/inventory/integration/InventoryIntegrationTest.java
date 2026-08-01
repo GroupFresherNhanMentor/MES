@@ -95,55 +95,55 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
 
         // Seed master data required by foreign keys
         dsl.insertInto(USERS, USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH)
-                .values(userId, "user_" + userId.toString().substring(0, 8), "hash")
+                .values(userId, "user_" + userId.toString().substring(28), "hash")
                 .execute();
 
         dsl.insertInto(PRODUCT_TYPES, PRODUCT_TYPES.ID, PRODUCT_TYPES.NAME)
-                .values(productTypeId, "TYPE_" + productTypeId.toString().substring(0, 8))
+                .values(productTypeId, "TYPE_" + productTypeId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(UNITS_OF_MEASURE, UNITS_OF_MEASURE.ID, UNITS_OF_MEASURE.NAME)
-                .values(unitId, "UOM_" + unitId.toString().substring(0, 8))
+                .values(unitId, "UOM_" + unitId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(PRODUCT_STATUSES, PRODUCT_STATUSES.ID, PRODUCT_STATUSES.NAME)
-                .values(productStatusId, "STAT_" + productStatusId.toString().substring(0, 8))
+                .values(productStatusId, "STAT_" + productStatusId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(PRODUCTS, PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID, PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
-                .values(productId, "PROD_" + productId.toString().substring(0, 8), "Test Product", productTypeId, unitId, productStatusId)
+                .values(productId, "PROD_" + productId.toString().substring(28), "Test Product", productTypeId, unitId, productStatusId)
                 .execute();
 
         dsl.insertInto(WAREHOUSE_STATUSES, WAREHOUSE_STATUSES.ID, WAREHOUSE_STATUSES.NAME)
-                .values(warehouseStatusId, "WSTAT_" + warehouseStatusId.toString().substring(0, 8))
+                .values(warehouseStatusId, "WSTAT_" + warehouseStatusId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(WAREHOUSES, WAREHOUSES.ID, WAREHOUSES.CODE, WAREHOUSES.NAME, WAREHOUSES.WAREHOUSE_STATUS_ID)
-                .values(warehouseId, "WH_" + warehouseId.toString().substring(0, 8), "Test Warehouse", warehouseStatusId)
+                .values(warehouseId, "WH_" + warehouseId.toString().substring(28), "Test Warehouse", warehouseStatusId)
                 .execute();
 
         dsl.insertInto(LOCATION_STATUSES, LOCATION_STATUSES.ID, LOCATION_STATUSES.NAME)
-                .values(locationStatusId, "LSTAT_" + locationStatusId.toString().substring(0, 8))
+                .values(locationStatusId, "LSTAT_" + locationStatusId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(WAREHOUSE_LOCATIONS, WAREHOUSE_LOCATIONS.ID, WAREHOUSE_LOCATIONS.WAREHOUSE_ID, WAREHOUSE_LOCATIONS.CODE, WAREHOUSE_LOCATIONS.NAME, WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID)
-                .values(locationId, warehouseId, "LOC_" + locationId.toString().substring(0, 8), "Test Location", locationStatusId)
+                .values(locationId, warehouseId, "LOC_" + locationId.toString().substring(28), "Test Location", locationStatusId)
                 .execute();
 
         dsl.insertInto(LOT_TYPES, LOT_TYPES.ID, LOT_TYPES.NAME)
-                .values(lotTypeId, "LTYPE_" + lotTypeId.toString().substring(0, 8))
+                .values(lotTypeId, "LTYPE_" + lotTypeId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(STOCK_LOTS, STOCK_LOTS.ID, STOCK_LOTS.LOT_NUMBER, STOCK_LOTS.PRODUCT_ID, STOCK_LOTS.LOT_TYPE_ID)
-                .values(lotId, "LOT_" + lotId.toString().substring(0, 8), productId, lotTypeId)
+                .values(lotId, "LOT_" + lotId.toString().substring(28), productId, lotTypeId)
                 .execute();
 
         dsl.insertInto(STOCK_STATUSES, STOCK_STATUSES.ID, STOCK_STATUSES.NAME)
-                .values(stockStatusId, "SSTAT_" + stockStatusId.toString().substring(0, 8))
+                .values(stockStatusId, "SSTAT_" + stockStatusId.toString().substring(28))
                 .execute();
 
         dsl.insertInto(MOVEMENT_TYPES, MOVEMENT_TYPES.ID, MOVEMENT_TYPES.NAME)
-                .values(movementTypeId, "MTYPE_" + movementTypeId.toString().substring(0, 8))
+                .values(movementTypeId, "MTYPE_" + movementTypeId.toString().substring(28))
                 .execute();
 
         AppUserPrincipal principal = AppUserPrincipal.builder()
@@ -234,43 +234,43 @@ class InventoryIntegrationTest extends AbstractIntegrationTest {
 
         txTemplate.executeWithoutResult(status -> {
             dsl.insertInto(USERS, USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH)
-                    .values(cUserId, "user_" + cUserId.toString().substring(0, 8), "hash")
+                    .values(cUserId, "user_" + cUserId.toString().substring(28), "hash")
                     .execute();
             dsl.insertInto(PRODUCT_TYPES, PRODUCT_TYPES.ID, PRODUCT_TYPES.NAME)
-                    .values(cProductTypeId, "TYPE_" + cProductTypeId.toString().substring(0, 8))
+                    .values(cProductTypeId, "TYPE_" + cProductTypeId.toString().substring(28))
                     .execute();
             dsl.insertInto(UNITS_OF_MEASURE, UNITS_OF_MEASURE.ID, UNITS_OF_MEASURE.NAME)
-                    .values(cUnitId, "UOM_" + cUnitId.toString().substring(0, 8))
+                    .values(cUnitId, "UOM_" + cUnitId.toString().substring(28))
                     .execute();
             dsl.insertInto(PRODUCT_STATUSES, PRODUCT_STATUSES.ID, PRODUCT_STATUSES.NAME)
-                    .values(cProductStatusId, "STAT_" + cProductStatusId.toString().substring(0, 8))
+                    .values(cProductStatusId, "STAT_" + cProductStatusId.toString().substring(28))
                     .execute();
             dsl.insertInto(PRODUCTS, PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID, PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
-                    .values(cProductId, "PROD_" + cProductId.toString().substring(0, 8), "Test Product", cProductTypeId, cUnitId, cProductStatusId)
+                    .values(cProductId, "PROD_" + cProductId.toString().substring(28), "Test Product", cProductTypeId, cUnitId, cProductStatusId)
                     .execute();
             dsl.insertInto(WAREHOUSE_STATUSES, WAREHOUSE_STATUSES.ID, WAREHOUSE_STATUSES.NAME)
-                    .values(cWarehouseStatusId, "WSTAT_" + cWarehouseStatusId.toString().substring(0, 8))
+                    .values(cWarehouseStatusId, "WSTAT_" + cWarehouseStatusId.toString().substring(28))
                     .execute();
             dsl.insertInto(WAREHOUSES, WAREHOUSES.ID, WAREHOUSES.CODE, WAREHOUSES.NAME, WAREHOUSES.WAREHOUSE_STATUS_ID)
-                    .values(cWarehouseId, "WH_" + cWarehouseId.toString().substring(0, 8), "Test Warehouse", cWarehouseStatusId)
+                    .values(cWarehouseId, "WH_" + cWarehouseId.toString().substring(28), "Test Warehouse", cWarehouseStatusId)
                     .execute();
             dsl.insertInto(LOCATION_STATUSES, LOCATION_STATUSES.ID, LOCATION_STATUSES.NAME)
-                    .values(cLocationStatusId, "LSTAT_" + cLocationStatusId.toString().substring(0, 8))
+                    .values(cLocationStatusId, "LSTAT_" + cLocationStatusId.toString().substring(28))
                     .execute();
             dsl.insertInto(WAREHOUSE_LOCATIONS, WAREHOUSE_LOCATIONS.ID, WAREHOUSE_LOCATIONS.WAREHOUSE_ID, WAREHOUSE_LOCATIONS.CODE, WAREHOUSE_LOCATIONS.NAME, WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID)
-                    .values(cLocationId, cWarehouseId, "LOC_" + cLocationId.toString().substring(0, 8), "Test Location", cLocationStatusId)
+                    .values(cLocationId, cWarehouseId, "LOC_" + cLocationId.toString().substring(28), "Test Location", cLocationStatusId)
                     .execute();
             dsl.insertInto(LOT_TYPES, LOT_TYPES.ID, LOT_TYPES.NAME)
-                    .values(cLotTypeId, "LTYPE_" + cLotTypeId.toString().substring(0, 8))
+                    .values(cLotTypeId, "LTYPE_" + cLotTypeId.toString().substring(28))
                     .execute();
             dsl.insertInto(STOCK_LOTS, STOCK_LOTS.ID, STOCK_LOTS.LOT_NUMBER, STOCK_LOTS.PRODUCT_ID, STOCK_LOTS.LOT_TYPE_ID)
-                    .values(cLotId, "LOT_" + cLotId.toString().substring(0, 8), cProductId, cLotTypeId)
+                    .values(cLotId, "LOT_" + cLotId.toString().substring(28), cProductId, cLotTypeId)
                     .execute();
             dsl.insertInto(STOCK_STATUSES, STOCK_STATUSES.ID, STOCK_STATUSES.NAME)
-                    .values(cStockStatusId, "SSTAT_" + cStockStatusId.toString().substring(0, 8))
+                    .values(cStockStatusId, "SSTAT_" + cStockStatusId.toString().substring(28))
                     .execute();
             dsl.insertInto(MOVEMENT_TYPES, MOVEMENT_TYPES.ID, MOVEMENT_TYPES.NAME)
-                    .values(cMovementTypeId, "MTYPE_" + cMovementTypeId.toString().substring(0, 8))
+                    .values(cMovementTypeId, "MTYPE_" + cMovementTypeId.toString().substring(28))
                     .execute();
         });
 

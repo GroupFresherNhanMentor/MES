@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.bind.annotation.PutMapping;
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
+import fpt.qn.mes.bom.application.dto.request.UpdateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.response.BomResponse;
 import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
@@ -80,6 +82,13 @@ public class BomController {
             @PathVariable UUID bomId, @Valid @RequestBody CreateBomItemRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(bomUseCase.addBomItem(bomId, request), "Created"));
+    }
+
+    @PutMapping("/{bomId}/items/{itemId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    public ResponseEntity<ApiResponse<BomItemResponse>> updateBomItem(
+            @PathVariable UUID bomId, @PathVariable UUID itemId, @Valid @RequestBody UpdateBomItemRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(bomUseCase.updateBomItem(bomId, itemId, request), "OK"));
     }
 
     @DeleteMapping("/{bomId}/items/{itemId}")

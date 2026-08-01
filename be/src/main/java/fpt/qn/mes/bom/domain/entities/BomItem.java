@@ -17,18 +17,26 @@ public class BomItem {
     UUID id;
     UUID bomId;
     UUID materialProductId;
+    String materialProductCode;
+    String materialProductName;
     BigDecimal quantityPerUnit;
-    String unit;
+    UUID unitId;
+    String unitName;
     BigDecimal scrapRate;
 
-    public static BomItem create(UUID bomId, UUID materialProductId, BigDecimal quantityPerUnit, String unit, BigDecimal scrapRate) {
+    public static BomItem create(UUID bomId, UUID materialProductId, BigDecimal quantityPerUnit, UUID unitId, String unitName, BigDecimal scrapRate) {
         return BomItem.builder()
                 .id(UuidV7.generate())
                 .bomId(bomId)
                 .materialProductId(materialProductId)
                 .quantityPerUnit(quantityPerUnit)
-                .unit(unit)
+                .unitId(unitId)
+                .unitName(unitName)
                 .scrapRate(scrapRate != null ? scrapRate : BigDecimal.ZERO)
                 .build();
+    }
+
+    public String getUnit() {
+        return unitName;
     }
 }

@@ -331,11 +331,12 @@ src/test/java/fpt/qn/mes/
 | Rule | Why |
 |------|-----|
 | Unit tests must not start a Spring context | Speed — Spring Boot adds 2–10 seconds per class |
-| Integration tests use `@Transactional @Rollback` | No test-order dependencies, no cleanup scripts |
+| Functional-only integration tests may use `@Transactional @Rollback` | Do not place class-level `@Transactional` on an integration class that also contains concurrency methods; use explicit database cleanup there |
 | Concurrency tests must NOT use `@Transactional` | Transactions must commit for locks to be visible across threads |
 | Never call a real repository in a unit test | Use mocks; real DB belongs in integration tests |
 | Test exception paths, not just happy paths | `*NotFoundException`, `400`, `401`, `403` |
 | `assertThat` from AssertJ — not `assertEquals` from JUnit | More readable failure messages |
 | Use `CopyOnWriteArrayList` to collect results from threads | Thread-safe collection across concurrent test threads |
-| Always paginate list queries in tests | Match production behavior — never fetch unbounded |
+| Test pagination for every paginated list | Assert page, size, totals, and database ordering |
+| Test approved legacy catalogs as bounded compatibility contracts | Only the exceptions listed in `backend-api.md` may return `List<T>`; assert unchanged response shape and deterministic ordering |
 | Concurrency tests: use `CountDownLatch` for simultaneous start | Without it, threads run sequentially — the race never happens |

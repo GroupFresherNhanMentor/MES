@@ -109,10 +109,14 @@ export class BomList implements OnInit {
   }
 
   loadDropdowns(): void {
-    const productTypeIds = ['PT-FIN', 'PT-SUB'];
-    this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${productTypeIds.join(',')}`).subscribe((r) => {
-      if (r.success && r.data?.items) {
-        this.productsList.set(r.data.items);
+    this.api.get<any>(`${API.products.base}?size=100`).subscribe((r) => {
+      if (r.success && r.data) {
+        const rawItems: ProductDto[] = r.data?.items || (Array.isArray(r.data) ? r.data : []);
+        const filtered = rawItems.filter((p) => {
+          const typeName = (p.productType?.name || p.productTypeName || '').trim().toUpperCase();
+          return typeName === 'FINISHED_GOOD' || typeName === 'SEMI_FINISHED';
+        });
+        this.productsList.set(filtered.length > 0 ? filtered : rawItems);
       }
     });
 

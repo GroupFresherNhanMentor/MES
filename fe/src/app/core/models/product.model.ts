@@ -1,18 +1,39 @@
+export interface ProductTypeLookup {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface UnitOfMeasureLookup {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ProductStatusLookup {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 export interface ProductDto {
   id: string;
   code: string;
   name: string;
-  productTypeId: string;
-  productTypeName: string | null;
-  unitId: string;
-  unitName: string | null;
-  productStatusId: string;
-  productStatusName: string | null;
-  version: number;
+  productType?: ProductTypeLookup | null;
+  productTypeId?: string;
+  productTypeName?: string | null;
+  unit?: UnitOfMeasureLookup | null;
+  unitId?: string;
+  unitName?: string | null;
+  productStatus?: ProductStatusLookup | null;
+  productStatusId?: string;
+  productStatusName?: string | null;
+  version?: number | string;
   createdAt: string;
-  createdBy: string | null;
+  createdBy?: any;
   updatedAt: string;
-  updatedBy: string | null;
+  updatedBy?: any;
 }
 
 export interface CreateProductRequest {

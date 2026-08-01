@@ -18,10 +18,12 @@ import type { LocationDto } from "../../../../core/models/location.model";
 import { LOCATION_STATUSES } from '../../../../configs/constants';
 import { LocationFormComponent } from '../location-form/location-form';
 
+import { DatePipe, NgClass } from '@angular/common';
+
 @Component({
   selector: 'app-location-list',
   imports: [
-    FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
@@ -43,7 +45,7 @@ export class LocationList {
   filterStatus = signal('');
 
   statuses = LOCATION_STATUSES;
-  displayedColumns = ['code', 'name', 'status', 'actions'];
+  displayedColumns = ['code', 'name', 'warehouse', 'status', 'createdAt', 'actions'];
 
   constructor() {
     this.warehouseId = this.route.snapshot.paramMap.get('warehouseId') || '';

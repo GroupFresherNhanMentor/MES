@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -19,7 +19,7 @@ import { MachineFormComponent } from '../machine-form/machine-form';
 @Component({
   selector: 'app-machine-list',
   imports: [
-    NgClass, FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
@@ -36,7 +36,7 @@ export class MachineList {
   page = signal(0);
   size = signal(20);
   keyword = signal('');
-  displayedColumns = ['code', 'name', 'machineStatusName', 'actions'];
+  displayedColumns = ['code', 'name', 'line', 'machineStatusName', 'createdAt', 'actions'];
 
   constructor() { this.load(); }
 

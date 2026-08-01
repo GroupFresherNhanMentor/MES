@@ -6,10 +6,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.UuidV7;
@@ -71,6 +72,8 @@ public class InventoryService implements InventoryUseCase {
     WarehouseCheckPort warehouseCheckPort;
     WarehouseLocationCheckPort warehouseLocationCheckPort;
     WarehouseLocationQueryPort warehouseLocationQueryPort;
+    ApplicationEventPublisher eventPublisher;
+
 
     private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
 
@@ -288,6 +291,12 @@ public class InventoryService implements InventoryUseCase {
                 positive ? balance.getLocationId() : null,
                 abs, balance.getStockStatusId(), balance.getStockStatusId(),
                 request.getReferenceNo(), request.getReason(), currentUserId));
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ADJUST_STOCK, "STOCK_BALANCE", balance.getId(),
+                    "{\"quantity\":" + balance.getQuantity() + "}",
+                    "{\"quantity\":" + result + "}", null));
+        }
+        return;
     }
 
     @Override
