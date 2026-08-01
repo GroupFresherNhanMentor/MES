@@ -44,7 +44,7 @@ export class ProductListComponent {
 
   types = signal<LookupEntry[]>([]);
   statuses = signal<LookupEntry[]>([]);
-  displayedColumns = ['code', 'name', 'type', 'unit', 'status', 'createdAt', 'actions'];
+  displayedColumns = ['code', 'name', 'type', 'unit', 'version', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
     this.api.get<any>(API.products.productTypes + '?size=100').subscribe(r => {
@@ -64,6 +64,7 @@ export class ProductListComponent {
 
   load() {
     let url = `${API.products.base}?page=${this.page()}&size=${this.size()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
     if (this.filterStatusId()) url += `&productStatusId=${encodeURIComponent(this.filterStatusId())}`;
     this.api.get<{ items: ProductDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success && r.data) {
@@ -81,6 +82,13 @@ export class ProductListComponent {
       if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
   }
+
+  activate(p: ProductDto) {
+    this.api.put(`/api/products/${p.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
 
   openCreate() {
     this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });

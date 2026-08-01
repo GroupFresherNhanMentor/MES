@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,10 +15,9 @@ import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
 import type { WarehouseDto } from '../../../../core/models/warehouse.model';
-import { WAREHOUSE_STATUSES } from '../../../../configs/constants';
 import { WarehouseFormComponent } from '../warehouse-form/warehouse-form';
 
-import { DatePipe, NgClass } from '@angular/common';
+interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-warehouse-list',
@@ -39,17 +39,22 @@ export class WarehouseList {
   page = signal(0);
   size = signal(20);
   keyword = signal('');
-  filterStatus = signal('');
+  filterStatusId = signal('');
+  statuses = signal<LookupEntry[]>([]);
 
-  statuses = WAREHOUSE_STATUSES;
-  displayedColumns = ['code', 'name', 'address', 'status', 'createdAt', 'actions'];
+  displayedColumns = ['code', 'name', 'address', 'status', 'createdBy', 'createdAt', 'actions'];
 
-  constructor() { this.load(); }
+  constructor() {
+    this.api.get<{ items: LookupEntry[] }>('/api/warehouse-statuses?page=0&size=50').subscribe(r => {
+      if (r.success) this.statuses.set(r.data.items);
+    });
+    this.load();
+  }
 
   load() {
     let url = `/api/warehouses?page=${this.page()}&size=${this.size()}`;
-    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
-    if (this.filterStatus()) url += `&statusName=${encodeURIComponent(this.filterStatus())}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&warehouseStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: WarehouseDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -68,9 +73,15 @@ export class WarehouseList {
 
   deactivate(w: WarehouseDto) {
     this.api.put(`/api/warehouses/${w.id}/deactivate`, {}).subscribe(r => {
-      if (r.success) { this.snackBar.open('Warehouse deactivated', 'OK', { duration: 2000 }); this.load(); }
+      if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
   }
 
-  isActive(s: string) { return s === 'ACTIVE'; }
+  activate(w: WarehouseDto) {
+    this.api.put(`/api/warehouses/${w.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
+  statusName(id: string) { return this.statuses().find(s => s.id === id)?.name ?? ''; }
 }

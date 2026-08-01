@@ -2,87 +2,76 @@
   <mat-card>
     <mat-card-header class="!flex !items-center !justify-between !pb-4">
       <mat-card-title class="!text-xl !font-semibold !text-text-primary">Machine Management</mat-card-title>
-
       <div class="toolbar flex items-center gap-3">
         <button mat-raised-button class="ff-btn-primary" (click)="openCreate()">
           <mat-icon>add</mat-icon> Add Machine
         </button>
-
         <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-64">
           <mat-label>Search</mat-label>
           <input matInput [(ngModel)]="keyword" (keyup.enter)="search()" placeholder="code or name">
           <mat-icon matSuffix class="text-text-muted">search</mat-icon>
         </mat-form-field>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-48">
+          <mat-label>Status</mat-label>
+          <mat-select [(ngModel)]="filterStatusId" (selectionChange)="search()">
+            <mat-option value="">All</mat-option>
+            @for (s of statuses(); track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
+          </mat-select>
+        </mat-form-field>
       </div>
     </mat-card-header>
-
     <mat-card-content>
       <table mat-table [dataSource]="items()" class="full-width">
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef>Code</th>
           <td mat-cell *matCellDef="let m" class="font-mono text-sm font-medium text-text-primary">{{ m.code }}</td>
         </ng-container>
-
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Name</th>
           <td mat-cell *matCellDef="let m" class="font-medium">{{ m.name }}</td>
         </ng-container>
-
-        <ng-container matColumnDef="line">
-          <th mat-header-cell *matHeaderCellDef>Production Line</th>
-          <td mat-cell *matCellDef="let m" class="text-text-secondary">{{ m.productionLineName || m.productionLineId || '-' }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="machineStatusName">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
-          <td mat-cell *matCellDef="let m">
-            @let rawName = m.machineStatusName || m.status || '';
-            @let sName = rawName.toUpperCase();
-            <span class="ff-badge" [ngClass]="{
-              'ff-badge--running': sName === 'RUNNING',
-              'ff-badge--active': sName === 'ACTIVE',
-              'ff-badge--available': sName === 'AVAILABLE',
-              'ff-badge--idle': sName === 'IDLE',
-              'ff-badge--onhold': sName === 'UNDER_MAINTENANCE' || sName === 'MAINTENANCE',
-              'ff-badge--cancelled': sName === 'INACTIVE' || sName === 'RETIRED' || sName === 'BREAKDOWN' || sName === 'DEACTIVATED'
-            }">
-              {{ rawName || 'INACTIVE' }}
-            </span>
+        <ng-container matColumnDef="productionLine">
+          <th mat-header-cell *matHeaderCellDef>Line</th>
+          <td mat-cell *matCellDef="let m" class="text-text-secondary">
+            {{ m.productionLine?.code || m.productionLineName || '-' }}
           </td>
         </ng-container>
-
-        <ng-container matColumnDef="createdAt">
-          <th mat-header-cell *matHeaderCellDef>Created Date</th>
-          <td mat-cell *matCellDef="let m" class="text-text-secondary text-sm">{{ m.createdAt ? (m.createdAt | date:'dd/MM/yyyy HH:mm') : '-' }}</td>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let m">
+            @let raw = m.machineStatus?.name || m.machineStatusName || statusName(m.machineStatusId) || '';
+            <span class="ff-badge"
+              [class.ff-badge--active]="raw === 'AVAILABLE' || raw === 'RUNNING' || raw === 'IN_USE'"
+              [class.ff-badge--pending]="raw === 'UNDER_MAINTENANCE'"
+              [class.ff-badge--cancelled]="raw === 'BROKEN' || raw === 'DOWN' || raw === 'RETIRED' || raw === 'INACTIVE'"
+              [class.ff-badge--idle]="raw === 'MAINTENANCE'">{{ raw }}</span>
+          </td>
         </ng-container>
-
+        <ng-container matColumnDef="createdBy">
+          <th mat-header-cell *matHeaderCellDef>Created By</th>
+          <td mat-cell *matCellDef="let m" class="text-text-secondary">{{ m.createdBy?.fullName || '-' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Created</th>
+          <td mat-cell *matCellDef="let m" class="text-text-secondary">{{ m.createdAt | date:'dd/MM/yyyy' }}</td>
+        </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef class="!text-right">Actions</th>
           <td mat-cell *matCellDef="let m" class="!text-right">
             <div class="flex items-center justify-end gap-1">
-              <button mat-icon-button class="ff-action-btn-edit" (click)="openEdit(m)" matTooltip="Edit machine">
-                <mat-icon>edit</mat-icon>
-              </button>
-              <button mat-icon-button class="ff-action-btn-delete" (click)="deactivate(m)" matTooltip="Deactivate">
-                <mat-icon>block</mat-icon>
-              </button>
+              <button mat-icon-button class="ff-action-btn-edit" (click)="openEdit(m)" matTooltip="Edit"><mat-icon>edit</mat-icon></button>
+              @if ((m.machineStatus?.name || m.machineStatusName) === 'RETIRED') {
+              <button mat-icon-button class="ff-action-btn-edit" (click)="toggleStatus(m)" matTooltip="Activate"><mat-icon>check_circle</mat-icon></button>
+              } @else {
+              <button mat-icon-button class="ff-action-btn-delete" (click)="toggleStatus(m)" matTooltip="Deactivate"><mat-icon>block</mat-icon></button>
+              }
             </div>
           </td>
         </ng-container>
-
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
-
-      @if (items().length === 0) {
-        <div class="flex flex-col items-center justify-center py-12 text-text-muted">
-          <mat-icon class="!w-12 !h-12 !text-5xl mb-2 opacity-30">settings</mat-icon>
-          <span class="text-sm">No machines found</span>
-        </div>
-      }
-
-      <mat-paginator [length]="total()" [pageSize]="size()" [pageIndex]="page()"
-        (page)="onPage($event)" [pageSizeOptions]="[10, 20, 50]"></mat-paginator>
+      <mat-paginator [length]="total()" [pageSize]="size()" [pageIndex]="page()" (page)="onPage($event)" [pageSizeOptions]="[10,20,50]"></mat-paginator>
     </mat-card-content>
   </mat-card>
 </div>
