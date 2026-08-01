@@ -18,11 +18,13 @@ import { API } from '../../../../configs/api-endpoints';
 import type { StockBalanceDto } from '../../../../core/models/stock-balance.model';
 import type { PageResponse } from '../../../../core/models/api.model';
 import { StockInFormComponent } from '../../components/stock-in-form/stock-in-form';
+import { StockAdjustmentFormComponent } from '../../components/stock-adjustment-form/stock-adjustment-form';
 
 interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-stock-balance-list',
+  standalone: true,
   imports: [
     DatePipe, DecimalPipe, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
@@ -135,6 +137,15 @@ interface LookupEntry { id: string; name: string; }
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="!text-center">Action</th>
+              <td mat-cell *matCellDef="let s" class="!text-center">
+                <button mat-stroked-button color="primary" class="!text-xs" (click)="openStockAdjustment(s)" matTooltip="Adjust this stock balance">
+                  <mat-icon class="!text-base">tune</mat-icon> Adjust
+                </button>
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="cursor-default"></tr>
 
@@ -177,7 +188,7 @@ export class StockBalanceList {
   warehouses = signal<LookupEntry[]>([]);
   stockStatuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt'];
+  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt', 'actions'];
 
   constructor() {
     this.loadLookups();
@@ -234,6 +245,16 @@ export class StockBalanceList {
     this.dialog.open(StockInFormComponent, {
       width: '600px',
       panelClass: 'ff-dialog-panel',
+    }).afterClosed().subscribe(res => {
+      if (res) this.load();
+    });
+  }
+
+  openStockAdjustment(stockBalance: StockBalanceDto) {
+    this.dialog.open(StockAdjustmentFormComponent, {
+      width: '500px',
+      panelClass: 'ff-dialog-panel',
+      data: { stockBalance }
     }).afterClosed().subscribe(res => {
       if (res) this.load();
     });

@@ -6,7 +6,6 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
@@ -16,10 +15,11 @@ import type { PageResponse } from '../../../../core/models/api.model';
 
 @Component({
   selector: 'app-stock-adjustment-list',
+  standalone: true,
   imports: [
     DatePipe, DecimalPipe,
     MatTableModule, MatButtonModule, MatIconModule, MatCardModule,
-    MatPaginatorModule, MatProgressBarModule, MatTooltipModule, MatSnackBarModule,
+    MatPaginatorModule, MatProgressBarModule, MatSnackBarModule,
   ],
   template: `
     <div class="page-container ff-fade-in">
@@ -78,8 +78,7 @@ import type { PageResponse } from '../../../../core/models/api.model';
 
             <ng-container matColumnDef="reason">
               <th mat-header-cell *matHeaderCellDef>Reason</th>
-              <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm max-w-48 truncate"
-                  [matTooltip]="a.reason || ''">
+              <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm max-w-48 truncate">
                 {{ a.reason || '—' }}
               </td>
             </ng-container>
@@ -115,16 +114,14 @@ import type { PageResponse } from '../../../../core/models/api.model';
                   <button mat-stroked-button
                           class="!border-success !text-success"
                           [disabled]="actionInProgress()"
-                          (click)="approve(a.id)"
-                          matTooltip="Approve this adjustment">
+                          (click)="approve(a.id)">
                     <mat-icon class="!text-base">check_circle</mat-icon>
                     Approve
                   </button>
                   <button mat-stroked-button
                           class="!border-error !text-error"
                           [disabled]="actionInProgress()"
-                          (click)="reject(a.id)"
-                          matTooltip="Reject and remove this adjustment">
+                          (click)="reject(a.id)">
                     <mat-icon class="!text-base">cancel</mat-icon>
                     Reject
                   </button>
@@ -187,13 +184,15 @@ export class StockAdjustmentList {
 
   approve(id: string) {
     this.actionInProgress.set(true);
-    this.api.post<unknown>(API.stockAdjustments.approve(id), {}).subscribe({
-      next: () => {
-        this.snackBar.open('Adjustment approved and stock updated.', 'OK', { duration: 3000 });
+    this.api.post<any>(API.stockAdjustments.approve(id), {}).subscribe({
+      next: (r: any) => {
+        const message = r?.message || 'Adjustment approved successfully';
+        this.snackBar.open(message, 'OK', { duration: 3000 });
         this.load();
       },
-      error: () => {
-        this.snackBar.open('Failed to approve adjustment.', 'Dismiss', { duration: 4000 });
+      error: (e: any) => {
+        const errorMessage = e?.error?.message || e?.message || 'Failed to approve adjustment.';
+        this.snackBar.open(errorMessage, 'Dismiss', { duration: 4000 });
         this.actionInProgress.set(false);
       },
       complete: () => this.actionInProgress.set(false),
@@ -202,13 +201,15 @@ export class StockAdjustmentList {
 
   reject(id: string) {
     this.actionInProgress.set(true);
-    this.api.post<unknown>(API.stockAdjustments.reject(id), {}).subscribe({
-      next: () => {
-        this.snackBar.open('Adjustment rejected and removed.', 'OK', { duration: 3000 });
+    this.api.post<any>(API.stockAdjustments.reject(id), {}).subscribe({
+      next: (r: any) => {
+        const message = r?.message || 'Adjustment rejected and removed';
+        this.snackBar.open(message, 'OK', { duration: 3000 });
         this.load();
       },
-      error: () => {
-        this.snackBar.open('Failed to reject adjustment.', 'Dismiss', { duration: 4000 });
+      error: (e: any) => {
+        const errorMessage = e?.error?.message || e?.message || 'Failed to reject adjustment.';
+        this.snackBar.open(errorMessage, 'Dismiss', { duration: 4000 });
         this.actionInProgress.set(false);
       },
       complete: () => this.actionInProgress.set(false),

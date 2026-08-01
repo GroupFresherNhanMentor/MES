@@ -71,13 +71,24 @@ import type { LocationDto } from '../../../../core/models/location.model';
           </mat-form-field>
         </div>
 
-        <div style="display:flex; gap:12px;">
-          <mat-form-field appearance="outline" style="flex:1">
-            <mat-label>Quantity</mat-label>
-            <input matInput type="number" formControlName="quantity" required step="0.01">
-          </mat-form-field>
+        <div style="display:flex; gap:12px; align-items: flex-end;">
+          <div style="display:flex; flex-direction:column; flex:1;">
+            @if (selectedUnitName()) {
+              <div style="font-size: 12px; font-weight: 500; color: #475569; display: flex; align-items: center; gap: 4px; margin-bottom: 4px; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; border: 1px solid #e2e8f0;">
+                <mat-icon style="font-size: 14px; width: 14px; height: 14px; color: #3b82f6;">straighten</mat-icon>
+                <span>Unit: <strong>{{ selectedUnitName() }}</strong></span>
+                @if (selectedUnitDescription()) {
+                  <span style="color: #64748b; font-weight: normal;">— {{ selectedUnitDescription() }}</span>
+                }
+              </div>
+            }
+            <mat-form-field appearance="outline" style="width:100%;">
+              <mat-label>Quantity</mat-label>
+              <input matInput type="number" formControlName="quantity" required step="0.01">
+            </mat-form-field>
+          </div>
 
-          <mat-form-field appearance="outline" style="flex:1">
+          <mat-form-field appearance="outline" style="flex:1;">
             <mat-label>Lot Number</mat-label>
             <input matInput formControlName="lotNumber" [matAutocomplete]="lotAuto" required>
             <button matSuffix mat-icon-button type="button" (click)="genLotNumber()" matTooltip="Auto-generate lot number">
@@ -123,6 +134,8 @@ export class StockInFormComponent implements OnInit {
   locationsList = signal<LocationDto[]>([]);
   lotNumbersList = signal<any[]>([]);
   filteredLotNumbersList = signal<any[]>([]);
+  selectedUnitName = signal<string | null>(null);
+  selectedUnitDescription = signal<string | null>(null);
 
   form = this.fb.group({
     productId: ['', [Validators.required]],
@@ -142,7 +155,11 @@ export class StockInFormComponent implements OnInit {
       );
     });
 
-    // Load products, warehouses, and lots in parallel
+    this.form.get('productId')?.valueChanges.subscribe(val => {
+      this.updateSelectedUnit(val);
+      this.loadStockLots(val);
+    });
+
     let loadedCount = 0;
     const checkLoading = () => {
       loadedCount++;
@@ -150,7 +167,13 @@ export class StockInFormComponent implements OnInit {
     };
 
     this.api.get<any>(`${API.products.base}?size=100`).subscribe({
-      next: r => { if (r.success && r.data) this.productsList.set(r.data.items || []); checkLoading(); },
+      next: r => { 
+        if (r.success && r.data) {
+          this.productsList.set(r.data.items || []);
+          this.updateSelectedUnit(this.form.get('productId')?.value);
+        } 
+        checkLoading(); 
+      },
       error: () => checkLoading()
     });
 
@@ -159,16 +182,44 @@ export class StockInFormComponent implements OnInit {
       error: () => checkLoading()
     });
 
-    this.api.get<any>(`${(API as any).stockLots.base}?size=100`).subscribe({
+    this.loadStockLots(null, checkLoading);
+  }
+
+  loadStockLots(productId?: string | null, onComplete?: () => void) {
+    let url = `${(API as any).stockLots.base}?size=100`;
+    if (productId) {
+      url += `&productId=${encodeURIComponent(productId)}`;
+    }
+    this.api.get<any>(url).subscribe({
       next: r => { 
         if (r.success && r.data) {
-          this.lotNumbersList.set(r.data.items || []); 
-          this.filteredLotNumbersList.set(this.lotNumbersList());
+          const items = r.data.items || [];
+          this.lotNumbersList.set(items);
+          const search = (this.form.get('lotNumber')?.value || '').toLowerCase();
+          this.filteredLotNumbersList.set(
+            items.filter((lot: any) => lot.lotNumber?.toLowerCase().includes(search))
+          );
         }
-        checkLoading(); 
+        if (onComplete) onComplete();
       },
-      error: () => checkLoading()
+      error: () => {
+        if (onComplete) onComplete();
+      }
     });
+  }
+
+  updateSelectedUnit(prodId: string | null | undefined) {
+    if (!prodId) {
+      this.selectedUnitName.set(null);
+      this.selectedUnitDescription.set(null);
+      return;
+    }
+    const prod = this.productsList().find(p => p.id === prodId);
+    const unitObj = (prod as any)?.unit;
+    const unitName = unitObj?.name || (prod as any)?.unitName || null;
+    const unitDesc = unitObj?.description || null;
+    this.selectedUnitName.set(unitName);
+    this.selectedUnitDescription.set(unitDesc);
   }
 
   genLotNumber() {
