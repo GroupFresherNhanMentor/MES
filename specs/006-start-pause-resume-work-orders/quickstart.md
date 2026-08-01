@@ -22,8 +22,7 @@ curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/start \
   -H "Authorization: Bearer $OPERATOR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "machineId": "'$MACHINE_ID'",
-    "productionLineId": "'$LINE_ID'"
+    "machineId": "'$MACHINE_ID'"
   }'
 ```
 

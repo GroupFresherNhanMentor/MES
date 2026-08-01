@@ -482,8 +482,8 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderResponse startWorkOrder(UUID workOrderId, StartWorkOrderRequest request) {
-        if (request == null || request.getMachineId() == null || request.getProductionLineId() == null) {
-            throw new InvalidInputException("machineId and productionLineId are required to start production");
+        if (request == null || request.getMachineId() == null) {
+            throw new InvalidInputException("machineId is required to start production");
         }
 
         WorkOrder workOrder = repository.findForUpdate(workOrderId)

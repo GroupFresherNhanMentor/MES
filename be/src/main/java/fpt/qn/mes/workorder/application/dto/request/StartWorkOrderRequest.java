@@ -22,7 +22,6 @@ public class StartWorkOrderRequest {
     @NotNull(message = "machineId is required")
     UUID machineId;
 
-    @NotNull(message = "productionLineId is required")
     UUID productionLineId;
 
     UUID operatorId;

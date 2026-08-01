@@ -13,11 +13,11 @@ Starts production execution on a Work Order.
 #### Request Body
 ```json
 {
-  "machineId": "019facbf-7000-7000-8000-000000000001",
-  "productionLineId": "019facbf-7000-7000-8000-000000000002",
-  "operatorId": "019facbf-7000-7000-8000-000000000003"
+  "machineId": "019facbf-7000-7000-8000-000000000001"
 }
 ```
+
+`productionLineId` and `operatorId` are optional. When `operatorId` is omitted, the authenticated user is recorded as the operator.
 
 #### Success Response (`200 OK`)
 ```json

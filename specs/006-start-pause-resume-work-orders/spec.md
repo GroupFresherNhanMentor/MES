@@ -12,7 +12,7 @@
 
 ### User Story 1 - Start Production Run (Priority: P1)
 
-As a Production Operator, I want to start production on a Work Order that has all raw materials reserved, specifying the target machine and production line, so that the Work Order state transitions to `IN_PROGRESS` and machine status changes to `RUNNING`.
+As a Production Operator, I want to start production on a Work Order that has all raw materials reserved, specifying the target machine and optionally the production line, so that the Work Order state transitions to `IN_PROGRESS` and machine status changes to `RUNNING`.
 
 **Why this priority**: Starting production is the fundamental trigger that transitions an order from planning to active execution on the shop floor.
 
@@ -20,7 +20,7 @@ As a Production Operator, I want to start production on a Work Order that has al
 
 **Acceptance Scenarios**:
 
-1. **Given** a Work Order in `READY_TO_PRODUCE` status and an `AVAILABLE` Machine, **When** the Operator submits a start request with valid `machineId` and `productionLineId`, **Then** the Work Order status becomes `IN_PROGRESS`, the Machine status becomes `RUNNING`, a new record in `production_runs` is created with `start_time = now()`, and a `START` work order event is logged.
+1. **Given** a Work Order in `READY_TO_PRODUCE` status and an `AVAILABLE` Machine, **When** the Operator submits a start request with valid `machineId` and optional `productionLineId`, **Then** the Work Order status becomes `IN_PROGRESS`, the Machine status becomes `RUNNING`, a new record in `production_runs` is created with `start_time = now()`, and a `START` work order event is logged.
 2. **Given** a Machine currently in `DOWN` or `UNDER_MAINTENANCE` status, **When** the Operator attempts to start a Work Order on this machine, **Then** the system rejects the request with an error indicating the machine is not available.
 3. **Given** a Work Order in `DRAFT`, `PLANNED`, or `COMPLETED` status, **When** the Operator attempts to start production, **Then** the system rejects the request with an invalid status transition error.
 
@@ -60,14 +60,14 @@ As a System Administrator, I want to enforce that a single machine cannot run mo
 ### Edge Cases
 
 - What happens if `operatorId` is omitted from the start request body? The system defaults `operatorId` to the UUID of the currently authenticated user.
-- What happens if the referenced `machineId` or `productionLineId` does not exist? System returns HTTP 404 Not Found (`RESOURCE_NOT_FOUND`).
+- What happens if the referenced `machineId` does not exist? System returns HTTP 404 Not Found (`RESOURCE_NOT_FOUND`).
 - What happens if a machine experiences a breakdown while a Work Order is `IN_PROGRESS`? Machine maintenance tickets handle breakdowns separately; `pause` endpoint remains focused on operational halts.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/start` accepting `machineId` and `productionLineId` (with optional `operatorId`).
+- **FR-001**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/start` accepting required `machineId` with optional `productionLineId` and `operatorId`.
 - **FR-002**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/pause` requiring no request body.
 - **FR-003**: System MUST provide endpoint `POST /api/v1/work-orders/{id}/resume` requiring no request body.
 - **FR-004**: System MUST restrict endpoints to users with role `OPERATOR`, `PLANNER`, or `ADMIN`.
@@ -98,4 +98,4 @@ As a System Administrator, I want to enforce that a single machine cannot run mo
 
 - Machine status `AVAILABLE` and `RUNNING` exist in master data.
 - Event types `START`, `PAUSE`, `RESUME` exist in `work_order_event_types`.
-- `production_line_id` belongs to an active production line configured in master data.
+- `production_line_id`, when supplied, belongs to an active production line configured in master data.

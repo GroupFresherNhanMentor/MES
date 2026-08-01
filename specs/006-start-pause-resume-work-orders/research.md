@@ -41,6 +41,6 @@ Yes, follow SRS specification:
 ## Research Topic 3: REST Payload & DTO Structure
 
 ### Decision
-- `POST /api/v1/work-orders/{id}/start` -> Accepts `StartWorkOrderRequest` body (`machineId`, `productionLineId`, optional `operatorId`). Returns `ApiResponse<WorkOrderDto>`.
+- `POST /api/v1/work-orders/{id}/start` -> Accepts `StartWorkOrderRequest` body with required `machineId` and optional `productionLineId` and `operatorId`. Returns `ApiResponse<WorkOrderDto>`.
 - `POST /api/v1/work-orders/{id}/pause` -> No request body. Returns `ApiResponse<WorkOrderDto>`.
 - `POST /api/v1/work-orders/{id}/resume` -> No request body. Returns `ApiResponse<WorkOrderDto>`.

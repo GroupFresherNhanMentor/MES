@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
+import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.InvalidInputException;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.InvalidWorkOrderStateException;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.MachineNotAvailableException;
@@ -93,7 +94,6 @@ class WorkOrderServiceStartPauseResumeTest {
     void startWorkOrder_Success() {
         StartWorkOrderRequest req = StartWorkOrderRequest.builder()
                 .machineId(machineId)
-                .productionLineId(lineId)
                 .build();
 
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
@@ -101,7 +101,7 @@ class WorkOrderServiceStartPauseResumeTest {
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(productionRunPort.isMachineRunning(machineId)).thenReturn(false);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
-        when(productionRunPort.createProductionRun(workOrderId, machineId, lineId, actorId)).thenReturn(runId);
+        when(productionRunPort.createProductionRun(workOrderId, machineId, null, actorId)).thenReturn(runId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
@@ -110,8 +110,19 @@ class WorkOrderServiceStartPauseResumeTest {
 
         assertNotNull(result);
         assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
+        verify(productionRunPort).createProductionRun(workOrderId, machineId, null, actorId);
         verify(productionRunPort).updateMachineStatus(machineId, "RUNNING");
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "START", actorId);
+    }
+
+    @Test
+    @DisplayName("startWorkOrder should reject a request without machineId")
+    void startWorkOrder_MachineIdMissing() {
+        StartWorkOrderRequest req = StartWorkOrderRequest.builder()
+                .productionLineId(lineId)
+                .build();
+
+        assertThrows(InvalidInputException.class, () -> workOrderService.startWorkOrder(workOrderId, req));
     }
 
     @Test
