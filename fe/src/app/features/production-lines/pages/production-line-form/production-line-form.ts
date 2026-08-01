@@ -50,7 +50,6 @@ export class ProductionLineFormComponent {
   code = '';
   name = '';
   statusId = '';
-  originalStatusId = '';
   statuses: Status[] = [];
 
   constructor() {
@@ -64,27 +63,13 @@ export class ProductionLineFormComponent {
       this.code = this.data.code;
       this.name = this.data.name;
       this.statusId = (this.data as any).lineStatus?.id || this.data.lineStatusId || '';
-      this.originalStatusId = this.statusId;
     }
   }
 
   save() {
-    const editId = this.data?.id;
-    if (editId) {
-      this.api.put(`/api/lines/${editId}`, { name: this.name }).subscribe({
-        next: () => {
-          if (this.statusId !== this.originalStatusId) {
-            const newName = this.statuses.find(s => s.id === this.statusId)?.name || '';
-            const ep = newName === 'ACTIVE' ? 'activate' : 'deactivate';
-            this.api.put(`/api/lines/${editId}/${ep}`, {}).subscribe({
-              next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
-              error: e => this.snackBar.open(e?.error?.message || 'Error updating status', 'OK', { duration: 4000 })
-            });
-          } else {
-            this.snackBar.open('Updated', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          }
-        },
+    if (this.data) {
+      this.api.put(`/api/lines/${this.data.id}`, { name: this.name, lineStatusId: this.statusId }).subscribe({
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
         error: e => this.snackBar.open(e?.error?.message || 'Error updating line', 'OK', { duration: 4000 })
       });
     } else {

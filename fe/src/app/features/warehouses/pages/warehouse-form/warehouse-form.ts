@@ -77,20 +77,8 @@ export class WarehouseFormComponent {
   save() {
     const editId = this.data?.id;
     if (editId) {
-      this.api.put(`/api/warehouses/${editId}`, { name: this.name, address: this.address }).subscribe({
-        next: () => {
-          if (this.statusId !== this.originalStatusId) {
-            const newName = this.statuses.find(s => s.id === this.statusId)?.name || '';
-            const ep = newName === 'ACTIVE' ? 'activate' : 'deactivate';
-            this.api.put(`/api/warehouses/${editId}/${ep}`, {}).subscribe({
-              next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
-              error: e => this.snackBar.open(e?.error?.message || 'Error updating status', 'OK', { duration: 4000 })
-            });
-          } else {
-            this.snackBar.open('Updated', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          }
-        },
+      this.api.put(`/api/warehouses/${editId}`, { name: this.name, address: this.address, warehouseStatusId: this.statusId }).subscribe({
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
         error: e => this.snackBar.open(e?.error?.message || 'Error updating warehouse', 'OK', { duration: 4000 })
       });
     } else {
