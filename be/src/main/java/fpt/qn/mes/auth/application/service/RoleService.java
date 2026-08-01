@@ -14,7 +14,7 @@ import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.auth.application.port.in.RoleUseCase;
 import fpt.qn.mes.auth.domain.entities.Role;
 import fpt.qn.mes.auth.domain.repository.RoleRepository;
-import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.auth.application.exception.RoleConflictException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -49,7 +49,7 @@ public class RoleService implements RoleUseCase {
     @Transactional
     public RoleResponse createRole(CreateRoleRequest request) {
         if (roleRepository.existsByName(request.getName())) {
-            throw new ConflictException("Role name already exists");
+            throw new RoleConflictException("Role name already exists");
         }
         return toDto(roleRepository.save(Role.create(
                 request.getName(), request.getDescription())));
@@ -65,10 +65,10 @@ public class RoleService implements RoleUseCase {
                 ? current.getName()
                 : Role.normalizeName(request.getName());
         if ("ADMIN".equals(current.getName()) && !"ADMIN".equals(normalized)) {
-            throw new ConflictException("System role ADMIN cannot be renamed");
+            throw new RoleConflictException("System role ADMIN cannot be renamed");
         }
         if (!current.getName().equals(normalized) && roleRepository.existsByName(normalized)) {
-            throw new ConflictException("Role name already exists");
+            throw new RoleConflictException("Role name already exists");
         }
         return toDto(roleRepository.update(
                 current.update(request.getName(), request.getDescription())));
@@ -81,7 +81,7 @@ public class RoleService implements RoleUseCase {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new RoleNotFoundException("Role not found"));
         if ("ADMIN".equals(role.getName()) || roleRepository.isAssigned(id)) {
-            throw new ConflictException("Assigned or system role cannot be deleted");
+            throw new RoleConflictException("Assigned or system role cannot be deleted");
         }
         roleRepository.deleteById(id);
         administrativeAccessGuard.assertAdministrativeAccessRemains();

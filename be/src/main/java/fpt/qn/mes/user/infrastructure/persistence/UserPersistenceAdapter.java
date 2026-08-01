@@ -13,7 +13,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
-import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.user.application.exception.UsernameAlreadyExistsException;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.UsersRecord;
 import fpt.qn.mes.user.domain.entities.User;
@@ -50,7 +50,7 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
         try {
             return userMapper.toDomain(create(userMapper.toRecord(user)));
         } catch (DataAccessException | DuplicateKeyException ex) {
-            throw new ConflictException("Username already exists");
+            throw new UsernameAlreadyExistsException("Username already exists");
         }
     }
 

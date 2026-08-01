@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.user.application.exception.UsernameAlreadyExistsException;
 import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
@@ -62,7 +62,7 @@ public class UserService implements UserUseCase {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new ConflictException("Username already exists");
+            throw new UsernameAlreadyExistsException("Username already exists");
         }
         User user = User.create(
                 request.getUsername(),

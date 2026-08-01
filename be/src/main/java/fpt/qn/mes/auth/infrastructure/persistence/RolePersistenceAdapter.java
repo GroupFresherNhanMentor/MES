@@ -16,7 +16,7 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.auth.domain.entities.Role;
 import fpt.qn.mes.auth.domain.repository.RoleRepository;
-import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.auth.application.exception.RoleConflictException;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.jooq.tables.records.RolesRecord;
 import lombok.AccessLevel;
@@ -52,7 +52,7 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
         try {
             return mapper.toDomain(create(mapper.toRecord(role)));
         } catch (DataAccessException | DuplicateKeyException ex) {
-            throw new ConflictException("Role name already exists");
+            throw new RoleConflictException("Role name already exists");
         }
     }
 
@@ -66,7 +66,7 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
                     .fetchOne();
             return mapper.toDomain(stored);
         } catch (DataAccessException | DuplicateKeyException ex) {
-            throw new ConflictException("Role name already exists");
+            throw new RoleConflictException("Role name already exists");
         }
     }
 
@@ -75,7 +75,7 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
         try {
             hardDeleteById(id);
         } catch (DataAccessException | DataIntegrityViolationException ex) {
-            throw new ConflictException("Assigned role cannot be deleted");
+            throw new RoleConflictException("Assigned role cannot be deleted");
         }
     }
 

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Service;
 
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
 import fpt.qn.mes.auth.application.port.out.RbacMutationGuardPort;
-import fpt.qn.mes.common.exception.ConflictException;
+import fpt.qn.mes.auth.application.exception.RoleConflictException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -24,7 +24,7 @@ public class AdministrativeAccessGuard implements AdministrativeAccessGuardUseCa
     @Override
     public void assertAdministrativeAccessRemains() {
         if (!guardPort.hasActiveAdministrator()) {
-            throw new ConflictException("Operation would remove the final effective administrator");
+            throw new RoleConflictException("Operation would remove the final effective administrator");
         }
     }
 }

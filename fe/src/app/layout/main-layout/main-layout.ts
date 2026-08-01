@@ -1,7 +1,8 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, effect } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map, startWith } from 'rxjs';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -38,12 +39,27 @@ export class MainLayout {
   private readonly loadingService = inject(LoadingService);
   private readonly router = inject(Router);
   private readonly activatedRoute = inject(ActivatedRoute);
+  private readonly breakpointObserver = inject(BreakpointObserver);
 
   readonly currentUser = this.authService.getCurrentUser();
   readonly isAdmin = this.currentUser?.role === 'ADMIN';
   readonly isLoading = this.loadingService.isLoading;
 
+  readonly isMobile = toSignal(
+    this.breakpointObserver.observe([Breakpoints.Handset, Breakpoints.TabletPortrait]).pipe(
+      map(result => result.matches)
+    ),
+    { initialValue: false }
+  );
+
   readonly sidenavOpened = signal(true);
+
+  constructor() {
+    effect(() => {
+      // Automatically close sidenav on mobile, open on desktop
+      this.sidenavOpened.set(!this.isMobile());
+    }, { allowSignalWrites: true });
+  }
 
   readonly pageTitle = toSignal(
     this.router.events.pipe(
@@ -80,6 +96,12 @@ export class MainLayout {
 
   toggleSidenav(): void {
     this.sidenavOpened.update((v) => !v);
+  }
+
+  closeSidenavOnMobile(): void {
+    if (this.isMobile()) {
+      this.sidenavOpened.set(false);
+    }
   }
 
   logout(): void {
