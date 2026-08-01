@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,13 +17,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
@@ -32,18 +36,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import org.springframework.security.access.prepost.PreAuthorize;
-
-import fpt.qn.mes.auth.application.security.AppUserPrincipal;
-
-import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
-
-/**
- * Controller providing REST API endpoints for Work Order management.
- * Base path standardized to /api/work-orders.
- */
 @RestController
-@RequestMapping("/api/work-orders")
+@RequestMapping("/api/v1/work-orders")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkOrderController {
@@ -84,20 +78,28 @@ public class WorkOrderController {
         return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
     }
 
-    /**
-     * Reserves raw materials for a Work Order using FIFO allocation.
-     * No request body is required as machine assignment takes place during production start.
-     *
-     * @param id Work Order UUID
-     * @return ApiResponse containing ReserveWorkOrderMaterialsResponse DTO
-     */
     @PreAuthorize("hasRole('PLANNER')")
     @PostMapping("/{id}/reserve-materials")
     public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(
-            @PathVariable UUID id) {
-        var result = workOrderUseCase.reserveMaterials(id);
+            @PathVariable UUID id,
+            @Valid @RequestBody ReserveWorkOrderMaterialsRequest req) {
+        var result = workOrderUseCase.reserveMaterials(id, req);
         return ResponseEntity.ok(ApiResponse.success(result,
                 "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/release-materials")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> releaseMaterials(@PathVariable UUID id) {
+        var response = workOrderUseCase.releaseMaterials(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Materials released successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> cancel(@PathVariable UUID id) {
+        var response = workOrderUseCase.cancelWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Work order cancelled successfully"));
     }
 
     @DeleteMapping("/{id}")

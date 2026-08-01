@@ -933,6 +933,41 @@ deduplicated; any missing ID rejects the complete mutation.
 
 ---
 
+<<<<<<< HEAD
+### POST `/api/v1/work-orders/{id}/reserve-materials`
+> **Roles:** `PLANNER`
+
+**Request body:**
+```json
+{
+  "machineId": "uuid"
+}
+```
+
+**Business rules:**
+* The system resolves the source warehouse configured with code `RAW_MATERIAL_WAREHOUSE`. The client must not provide `sourceWarehouseId`.
+* Only `AVAILABLE` stock balances within the resolved source warehouse may be considered for reservation.
+* When multiple lots contain the same material, lots must be selected in FIFO order by `stock_lots.created_at`.
+* The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
+* The specified machine must exist and have status `AVAILABLE`.
+* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available and the specified machine is available.
+* Reservation uses pessimistic locking (`SELECT FOR UPDATE`) for the relevant stock balances.
+* The operation must run in one transaction. Partial reservation is not allowed and stock quantity must never become negative.
+* On success, `AVAILABLE` quantities are moved to `RESERVED`, `work_order_materials.reserved_quantity` is updated, and `RESERVE` stock movements are created for the selected lots.
+* Every important status transition must create an audit log with action `RESERVE_MATERIAL`.
+* If any material is insufficient, no stock balance or reservation quantity is changed. The Work Order moves to `MATERIAL_SHORTAGE` and the API returns `INSUFFICIENT_STOCK` with the missing materials and quantities.
+
+**Response `200`:**
+```json
+{
+  "success": true,
+  "message": "Materials reserved successfully. Work Order is now READY_TO_PRODUCE.",
+  "data": {
+    "workOrderId": "uuid-lệnh-sản-xuất",
+    "status": "READY_TO_PRODUCE"
+  }
+}
+=======
 ### POST `/work-orders/{id}/reserve-materials`
 > **Roles:** `PLANNER`
 
@@ -944,6 +979,7 @@ deduplicated; any missing ID rejects the complete mutation.
 * When multiple lots contain the same material, lots are selected in strict FIFO order by `stock_lots.created_at`.
 * The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
 * The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available. Machine assignment and availability are validated when production starts.
+>>>>>>> origin/develop
 ```
 
 ---

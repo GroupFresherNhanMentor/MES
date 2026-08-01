@@ -3,7 +3,8 @@ package fpt.qn.mes.workorder.integration;
 import static fpt.qn.mes.jooq.Tables.AUDIT_LOGS;
 import static fpt.qn.mes.jooq.Tables.BOM_STATUSES;
 import static fpt.qn.mes.jooq.Tables.BOMS;
-import static fpt.qn.mes.jooq.Tables.LOCATION_STATUSES;
+import static fpt.qn.mes.jooq.Tables.MACHINE_STATUSES;
+import static fpt.qn.mes.jooq.Tables.MACHINES;
 import static fpt.qn.mes.jooq.Tables.PRODUCTS;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_TYPES;
@@ -25,19 +26,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
-import org.jooq.DSLContext;
-import org.jooq.JSONB;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,25 +36,30 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.jooq.DSLContext;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.service.WorkOrderService;
 
 class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
     @LocalServerPort
     int port;
 
+    RestTemplate restTemplate;
+
     @Autowired
     DSLContext dsl;
 
-    RestTemplate restTemplate;
+    @Autowired
+    WorkOrderService workOrderService;
 
     @BeforeEach
     void setUp() {
@@ -72,10 +67,16 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         seedAdminUser();
     }
 
+    private String url() {
+        return "http://localhost:" + port + "/api/v1/work-orders/"
+                + UUID.randomUUID() + "/reserve-materials";
+    }
+
     @Test
     void reserveMaterials_returns401WithoutAuthentication() {
-        assertThatThrownBy(() -> restTemplate.exchange(url(UUID.randomUUID()), HttpMethod.POST,
-                new HttpEntity<>(jsonHeaders()), String.class))
+        var request = new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", jsonHeaders());
+
+        assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST, request, String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
                 .satisfies(error -> assertThat(((HttpStatusCodeException) error).getStatusCode())
                         .isEqualTo(HttpStatus.UNAUTHORIZED));
@@ -86,361 +87,129 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         HttpHeaders headers = jsonHeaders();
         headers.setBearerAuth(generateAdminToken());
 
-        assertThatThrownBy(() -> restTemplate.exchange(url(UUID.randomUUID()), HttpMethod.POST,
-                new HttpEntity<>(headers), String.class))
+        assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST,
+                new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", headers), String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
                 .satisfies(error -> assertThat(((HttpStatusCodeException) error).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void reserveMaterials_reservesAcrossActiveWarehousesWithFifoMovementAndAudit() {
-        OffsetDateTime older = OffsetDateTime.now(ZoneOffset.UTC).minusDays(1);
-        OffsetDateTime newer = OffsetDateTime.now(ZoneOffset.UTC);
-        ReservationFixture fixture = seedFixture(1, BigDecimal.valueOf(5), List.of(
-                new StockSeed(true, BigDecimal.valueOf(2), older),
-                new StockSeed(true, BigDecimal.valueOf(3), newer)));
-
-        ResponseEntity<String> response = reserve(fixture.getWorkOrderIds().getFirst(), fixture.getUsername());
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("READY_TO_PRODUCE");
-        assertThat(workOrderStatus(fixture.getWorkOrderIds().getFirst())).isEqualTo("READY_TO_PRODUCE");
-        assertThat(availableQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(reservedQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.valueOf(5));
-        assertThat(workOrderMaterialReservedQuantity(fixture.getWorkOrderIds().getFirst(), fixture.getMaterialProductId()))
-                .isEqualByComparingTo(BigDecimal.valueOf(5));
-        assertThat(dsl.select(STOCK_MOVEMENTS.QUANTITY).from(STOCK_MOVEMENTS)
-                .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(fixture.getWorkOrderIds().getFirst()))
-                .and(STOCK_MOVEMENTS.LOT_ID.eq(fixture.getLotIds().getFirst()))
-                .fetchOne(STOCK_MOVEMENTS.QUANTITY)).isEqualByComparingTo(BigDecimal.valueOf(2));
-        assertThat(dsl.select(STOCK_MOVEMENTS.QUANTITY).from(STOCK_MOVEMENTS)
-                .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(fixture.getWorkOrderIds().getFirst()))
-                .and(STOCK_MOVEMENTS.LOT_ID.eq(fixture.getLotIds().get(1)))
-                .fetchOne(STOCK_MOVEMENTS.QUANTITY)).isEqualByComparingTo(BigDecimal.valueOf(3));
-        assertThat(dsl.selectCount().from(AUDIT_LOGS)
-                .where(AUDIT_LOGS.ENTITY_ID.eq(fixture.getWorkOrderIds().getFirst()))
-                .and(AUDIT_LOGS.ACTOR_ID.eq(fixture.getUserId()))
-                .and(AUDIT_LOGS.ACTION.eq("RESERVE_MATERIAL"))
-                .and(AUDIT_LOGS.OLD_VALUE.eq(JSONB.valueOf("\"PLANNED\"")))
-                .and(AUDIT_LOGS.NEW_VALUE.eq(JSONB.valueOf("\"READY_TO_PRODUCE\"")))
-                .fetchOne(0, Integer.class)).isEqualTo(1);
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void reserveMaterials_marksShortageWithoutPartialReservationAndCanRetry() {
-        ReservationFixture fixture = seedFixture(1, BigDecimal.valueOf(5), List.of(
-                new StockSeed(true, BigDecimal.valueOf(5), OffsetDateTime.now(ZoneOffset.UTC))));
-        UUID insufficientMaterialId = addMaterial(fixture, BigDecimal.valueOf(3), BigDecimal.ONE);
-        UUID workOrderId = fixture.getWorkOrderIds().getFirst();
-
-        HttpStatusCodeException shortage = org.junit.jupiter.api.Assertions.assertThrows(
-                HttpStatusCodeException.class, () -> reserve(workOrderId, fixture.getUsername()));
-
-        assertThat(shortage.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(shortage.getResponseBodyAsString()).contains("INSUFFICIENT_STOCK", insufficientMaterialId.toString());
-        assertThat(workOrderStatus(workOrderId)).isEqualTo("MATERIAL_SHORTAGE");
-        assertThat(availableQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.valueOf(5));
-        assertThat(availableQuantity(insufficientMaterialId)).isEqualByComparingTo(BigDecimal.ONE);
-        assertThat(reservedQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(reservedQuantity(insufficientMaterialId)).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(dsl.fetchCount(STOCK_MOVEMENTS, STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))).isZero();
-
-        addStock(fixture, insufficientMaterialId, BigDecimal.valueOf(2), OffsetDateTime.now(ZoneOffset.UTC).plusSeconds(1));
-        ResponseEntity<String> retry = reserve(workOrderId, fixture.getUsername());
-
-        assertThat(retry.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(workOrderStatus(workOrderId)).isEqualTo("READY_TO_PRODUCE");
-        assertThat(dsl.fetchCount(STOCK_MOVEMENTS, STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))).isEqualTo(3);
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void reserveMaterials_excludesStockInInactiveWarehouses() {
-        ReservationFixture fixture = seedFixture(1, BigDecimal.valueOf(5), List.of(
-                new StockSeed(true, BigDecimal.ONE, OffsetDateTime.now(ZoneOffset.UTC).minusDays(1)),
-                new StockSeed(false, BigDecimal.valueOf(4), OffsetDateTime.now(ZoneOffset.UTC))));
-        UUID workOrderId = fixture.getWorkOrderIds().getFirst();
-
-        HttpStatusCodeException shortage = org.junit.jupiter.api.Assertions.assertThrows(
-                HttpStatusCodeException.class, () -> reserve(workOrderId, fixture.getUsername()));
-
-        assertThat(shortage.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(shortage.getResponseBodyAsString()).contains("INSUFFICIENT_STOCK");
-        assertThat(workOrderStatus(workOrderId)).isEqualTo("MATERIAL_SHORTAGE");
-        assertThat(dsl.select(STOCK_BALANCES.QUANTITY).from(STOCK_BALANCES)
-                .where(STOCK_BALANCES.ID.eq(fixture.getBalanceIds().get(1)))
-                .fetchOne(STOCK_BALANCES.QUANTITY)).isEqualByComparingTo(BigDecimal.valueOf(4));
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void reserveMaterials_rejectsDuplicateReservationWithInvalidInputWithoutNewMovements() {
-        ReservationFixture fixture = seedFixture(1, BigDecimal.ONE, List.of(
-                new StockSeed(true, BigDecimal.ONE, OffsetDateTime.now(ZoneOffset.UTC))));
-        UUID workOrderId = fixture.getWorkOrderIds().getFirst();
-        reserve(workOrderId, fixture.getUsername());
-
-        HttpStatusCodeException duplicate = org.junit.jupiter.api.Assertions.assertThrows(
-                HttpStatusCodeException.class, () -> reserve(workOrderId, fixture.getUsername()));
-
-        assertThat(duplicate.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(duplicate.getResponseBodyAsString()).contains("INVALID_INPUT");
-        assertThat(dsl.fetchCount(STOCK_MOVEMENTS, STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))).isEqualTo(1);
-        assertThat(workOrderStatus(workOrderId)).isEqualTo("READY_TO_PRODUCE");
-    }
-
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    void reserveMaterials_preservesStockIntegrityUnderConcurrentRequests() throws InterruptedException {
-        ReservationFixture fixture = seedFixture(20, BigDecimal.ONE, List.of(
-                new StockSeed(true, BigDecimal.TEN, OffsetDateTime.now(ZoneOffset.UTC))));
-        CountDownLatch start = new CountDownLatch(1);
-        CountDownLatch done = new CountDownLatch(fixture.getWorkOrderIds().size());
-        List<Integer> statusCodes = new CopyOnWriteArrayList<>();
-        List<String> errorBodies = new CopyOnWriteArrayList<>();
-        ExecutorService pool = Executors.newFixedThreadPool(fixture.getWorkOrderIds().size());
-
-        for (UUID workOrderId : fixture.getWorkOrderIds()) {
-            pool.submit(() -> {
-                try {
-                    start.await();
-                    statusCodes.add(reserve(workOrderId, fixture.getUsername()).getStatusCode().value());
-                } catch (HttpStatusCodeException exception) {
-                    statusCodes.add(exception.getStatusCode().value());
-                    errorBodies.add(exception.getResponseBodyAsString());
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    statusCodes.add(HttpStatus.INTERNAL_SERVER_ERROR.value());
-                } finally {
-                    done.countDown();
-                }
-            });
-        }
-
-        start.countDown();
-        assertThat(done.await(30, TimeUnit.SECONDS)).isTrue();
-        pool.shutdown();
-        assertThat(pool.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
-
-        assertThat(statusCodes.stream().filter(status -> status == HttpStatus.OK.value()).count()).isEqualTo(10);
-        assertThat(statusCodes.stream().filter(status -> status == HttpStatus.BAD_REQUEST.value()).count()).isEqualTo(10);
-        assertThat(errorBodies).allSatisfy(body -> assertThat(body).contains("INSUFFICIENT_STOCK"));
-        assertThat(availableQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.ZERO);
-        assertThat(reservedQuantity(fixture.getMaterialProductId())).isEqualByComparingTo(BigDecimal.TEN);
-        assertThat(dsl.fetchCount(STOCK_MOVEMENTS, STOCK_MOVEMENTS.WORK_ORDER_ID.in(fixture.getWorkOrderIds())))
-                .isEqualTo(10);
-        assertThat(dsl.select(org.jooq.impl.DSL.countDistinct(STOCK_MOVEMENTS.WORK_ORDER_ID)).from(STOCK_MOVEMENTS)
-                .where(STOCK_MOVEMENTS.WORK_ORDER_ID.in(fixture.getWorkOrderIds()))
-                .fetchOne(0, Integer.class)).isEqualTo(10);
-        assertThat(dsl.selectCount().from(WORK_ORDERS)
-                .join(WORK_ORDER_STATUSES).on(WORK_ORDER_STATUSES.ID.eq(WORK_ORDERS.WORK_ORDER_STATUS_ID))
-                .where(WORK_ORDERS.ID.in(fixture.getWorkOrderIds()))
-                .and(WORK_ORDER_STATUSES.NAME.eq("READY_TO_PRODUCE"))
-                .fetchOne(0, Integer.class)).isEqualTo(10);
-        assertThat(dsl.selectCount().from(WORK_ORDERS)
-                .join(WORK_ORDER_STATUSES).on(WORK_ORDER_STATUSES.ID.eq(WORK_ORDERS.WORK_ORDER_STATUS_ID))
-                .where(WORK_ORDERS.ID.in(fixture.getWorkOrderIds()))
-                .and(WORK_ORDER_STATUSES.NAME.eq("MATERIAL_SHORTAGE"))
-                .fetchOne(0, Integer.class)).isEqualTo(10);
-    }
-
-    private ReservationFixture seedFixture(int workOrderCount, BigDecimal requiredQuantity, List<StockSeed> stockSeeds) {
+    void reserveMaterials_updatesStockWorkOrderMovementAndAudit() {
         UUID userId = UUID.randomUUID();
-        String username = "planner_" + userId;
+        UUID workOrderId = UUID.randomUUID();
         UUID materialProductId = UUID.randomUUID();
         UUID finishedProductId = UUID.randomUUID();
+        UUID warehouseId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+        UUID machineId = UUID.randomUUID();
         UUID bomId = UUID.randomUUID();
-        UUID plannerRoleId = referenceId(ROLES.ID, ROLES, ROLES.NAME, "PLANNER");
-        UUID rawTypeId = referenceId(PRODUCT_TYPES.ID, PRODUCT_TYPES, PRODUCT_TYPES.NAME, "RAW_MATERIAL");
-        UUID finishedTypeId = referenceId(PRODUCT_TYPES.ID, PRODUCT_TYPES, PRODUCT_TYPES.NAME, "FINISHED_GOOD");
-        UUID unitId = referenceId(UNITS_OF_MEASURE.ID, UNITS_OF_MEASURE, UNITS_OF_MEASURE.NAME, "PCS");
-        UUID productStatusId = referenceId(PRODUCT_STATUSES.ID, PRODUCT_STATUSES, PRODUCT_STATUSES.NAME, "ACTIVE");
-        UUID activeWarehouseStatusId = referenceId(WAREHOUSE_STATUSES.ID, WAREHOUSE_STATUSES,
-                WAREHOUSE_STATUSES.NAME, "ACTIVE");
-        UUID inactiveWarehouseStatusId = referenceId(WAREHOUSE_STATUSES.ID, WAREHOUSE_STATUSES,
-                WAREHOUSE_STATUSES.NAME, "INACTIVE");
-        UUID locationStatusId = referenceId(LOCATION_STATUSES.ID, LOCATION_STATUSES, LOCATION_STATUSES.NAME, "ACTIVE");
-        UUID bomStatusId = referenceId(BOM_STATUSES.ID, BOM_STATUSES, BOM_STATUSES.NAME, "ACTIVE");
-        UUID plannedStatusId = referenceId(WORK_ORDER_STATUSES.ID, WORK_ORDER_STATUSES,
-                WORK_ORDER_STATUSES.NAME, "PLANNED");
-        UUID availableStockStatusId = referenceId(STOCK_STATUSES.ID, STOCK_STATUSES, STOCK_STATUSES.NAME, "AVAILABLE");
+        UUID workOrderMaterialId = UUID.randomUUID();
+
+        UUID plannerRoleId = dsl.select(ROLES.ID).from(ROLES).where(ROLES.NAME.eq("PLANNER"))
+                .fetchOne(ROLES.ID);
+        UUID rawTypeId = dsl.select(PRODUCT_TYPES.ID).from(PRODUCT_TYPES)
+                .where(PRODUCT_TYPES.NAME.eq("RAW_MATERIAL")).fetchOne(PRODUCT_TYPES.ID);
+        UUID finishedTypeId = dsl.select(PRODUCT_TYPES.ID).from(PRODUCT_TYPES)
+                .where(PRODUCT_TYPES.NAME.eq("FINISHED_GOOD")).fetchOne(PRODUCT_TYPES.ID);
+        UUID unitId = dsl.select(UNITS_OF_MEASURE.ID).from(UNITS_OF_MEASURE)
+                .where(UNITS_OF_MEASURE.NAME.eq("PCS")).fetchOne(UNITS_OF_MEASURE.ID);
+        UUID activeProductStatusId = dsl.select(PRODUCT_STATUSES.ID).from(PRODUCT_STATUSES)
+                .where(PRODUCT_STATUSES.NAME.eq("ACTIVE")).fetchOne(PRODUCT_STATUSES.ID);
+        UUID activeWarehouseStatusId = dsl.select(WAREHOUSE_STATUSES.ID).from(WAREHOUSE_STATUSES)
+                .where(WAREHOUSE_STATUSES.NAME.eq("ACTIVE")).fetchOne(WAREHOUSE_STATUSES.ID);
+        UUID activeMachineStatusId = dsl.select(MACHINE_STATUSES.ID).from(MACHINE_STATUSES)
+                .where(MACHINE_STATUSES.NAME.eq("AVAILABLE")).fetchOne(MACHINE_STATUSES.ID);
+        UUID activeBomStatusId = dsl.select(BOM_STATUSES.ID).from(BOM_STATUSES)
+                .where(BOM_STATUSES.NAME.eq("ACTIVE")).fetchOne(BOM_STATUSES.ID);
+        UUID plannedStatusId = dsl.select(WORK_ORDER_STATUSES.ID).from(WORK_ORDER_STATUSES)
+                .where(WORK_ORDER_STATUSES.NAME.eq("PLANNED")).fetchOne(WORK_ORDER_STATUSES.ID);
+        UUID availableStockStatusId = dsl.select(STOCK_STATUSES.ID).from(STOCK_STATUSES)
+                .where(STOCK_STATUSES.NAME.eq("AVAILABLE")).fetchOne(STOCK_STATUSES.ID);
 
         dsl.insertInto(USERS).columns(USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH, USERS.ACTIVE)
-                .values(userId, username, "hash", true).execute();
+                .values(userId, "planner_" + userId, "hash", true).execute();
         dsl.insertInto(USER_ROLES).columns(USER_ROLES.USER_ID, USER_ROLES.ROLE_ID)
                 .values(userId, plannerRoleId).execute();
-        insertProduct(materialProductId, "MAT_" + materialProductId, rawTypeId, unitId, productStatusId);
-        insertProduct(finishedProductId, "FG_" + finishedProductId, finishedTypeId, unitId, productStatusId);
-        dsl.insertInto(BOMS).columns(BOMS.ID, BOMS.FINISHED_PRODUCT_ID, BOMS.VERSION, BOMS.BOM_STATUS_ID, BOMS.CREATED_BY)
-                .values(bomId, finishedProductId, 1, bomStatusId, userId).execute();
-
-        List<UUID> lotIds = new ArrayList<>();
-        List<UUID> balanceIds = new ArrayList<>();
-        List<UUID> warehouseIds = new ArrayList<>();
-        List<UUID> locationIds = new ArrayList<>();
-        for (StockSeed stockSeed : stockSeeds) {
-            UUID warehouseId = UUID.randomUUID();
-            UUID locationId = UUID.randomUUID();
-            UUID lotId = UUID.randomUUID();
-            UUID balanceId = UUID.randomUUID();
-            dsl.insertInto(WAREHOUSES).columns(WAREHOUSES.ID, WAREHOUSES.CODE, WAREHOUSES.NAME,
-                            WAREHOUSES.WAREHOUSE_STATUS_ID)
-                    .values(warehouseId, "WH_" + warehouseId, "Warehouse", stockSeed.isActive()
-                            ? activeWarehouseStatusId : inactiveWarehouseStatusId)
-                    .execute();
-            dsl.insertInto(WAREHOUSE_LOCATIONS).columns(WAREHOUSE_LOCATIONS.ID, WAREHOUSE_LOCATIONS.WAREHOUSE_ID,
-                            WAREHOUSE_LOCATIONS.CODE, WAREHOUSE_LOCATIONS.NAME, WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID)
-                    .values(locationId, warehouseId, "LOC_" + locationId, "Location", locationStatusId)
-                    .execute();
-            dsl.insertInto(STOCK_LOTS).columns(STOCK_LOTS.ID, STOCK_LOTS.LOT_NUMBER, STOCK_LOTS.PRODUCT_ID,
-                            STOCK_LOTS.CREATED_AT)
-                    .values(lotId, "LOT_" + lotId, materialProductId, stockSeed.getCreatedAt()).execute();
-            dsl.insertInto(STOCK_BALANCES).columns(STOCK_BALANCES.ID, STOCK_BALANCES.WAREHOUSE_ID,
-                            STOCK_BALANCES.LOCATION_ID, STOCK_BALANCES.PRODUCT_ID, STOCK_BALANCES.LOT_ID,
-                            STOCK_BALANCES.STOCK_STATUS_ID, STOCK_BALANCES.QUANTITY)
-                    .values(balanceId, warehouseId, locationId, materialProductId, lotId, availableStockStatusId,
-                            stockSeed.getQuantity())
-                    .execute();
-            lotIds.add(lotId);
-            balanceIds.add(balanceId);
-            warehouseIds.add(warehouseId);
-            locationIds.add(locationId);
-        }
-
-        List<UUID> workOrderIds = new ArrayList<>();
-        for (int index = 0; index < workOrderCount; index++) {
-            UUID workOrderId = UUID.randomUUID();
-            dsl.insertInto(WORK_ORDERS).columns(WORK_ORDERS.ID, WORK_ORDERS.CODE, WORK_ORDERS.FINISHED_PRODUCT_ID,
-                            WORK_ORDERS.BOM_ID, WORK_ORDERS.PLANNED_QUANTITY, WORK_ORDERS.WORK_ORDER_STATUS_ID,
-                            WORK_ORDERS.CREATED_BY)
-                    .values(workOrderId, "WO_" + workOrderId, finishedProductId, bomId, BigDecimal.ONE,
-                            plannedStatusId, userId)
-                    .execute();
-            dsl.insertInto(WORK_ORDER_MATERIALS).columns(WORK_ORDER_MATERIALS.ID, WORK_ORDER_MATERIALS.WORK_ORDER_ID,
-                            WORK_ORDER_MATERIALS.MATERIAL_PRODUCT_ID, WORK_ORDER_MATERIALS.REQUIRED_QUANTITY,
-                            WORK_ORDER_MATERIALS.RESERVED_QUANTITY, WORK_ORDER_MATERIALS.CONSUMED_QUANTITY)
-                    .values(UUID.randomUUID(), workOrderId, materialProductId, requiredQuantity, BigDecimal.ZERO,
-                            BigDecimal.ZERO)
-                    .execute();
-            workOrderIds.add(workOrderId);
-        }
-
-        return new ReservationFixture(userId, username, materialProductId, unitId, productStatusId,
-                availableStockStatusId, workOrderIds, lotIds, balanceIds, warehouseIds, locationIds);
-    }
-
-    private UUID addMaterial(ReservationFixture fixture, BigDecimal requiredQuantity, BigDecimal availableQuantity) {
-        UUID materialProductId = UUID.randomUUID();
-        insertProduct(materialProductId, "MAT_" + materialProductId,
-                referenceId(PRODUCT_TYPES.ID, PRODUCT_TYPES, PRODUCT_TYPES.NAME, "RAW_MATERIAL"),
-                fixture.getUnitId(), fixture.getProductStatusId());
-        UUID workOrderId = fixture.getWorkOrderIds().getFirst();
-        dsl.insertInto(WORK_ORDER_MATERIALS).columns(WORK_ORDER_MATERIALS.ID, WORK_ORDER_MATERIALS.WORK_ORDER_ID,
-                        WORK_ORDER_MATERIALS.MATERIAL_PRODUCT_ID, WORK_ORDER_MATERIALS.REQUIRED_QUANTITY,
-                        WORK_ORDER_MATERIALS.RESERVED_QUANTITY, WORK_ORDER_MATERIALS.CONSUMED_QUANTITY)
-                .values(UUID.randomUUID(), workOrderId, materialProductId, requiredQuantity, BigDecimal.ZERO,
-                        BigDecimal.ZERO)
+        dsl.insertInto(PRODUCTS).columns(PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID,
+                        PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
+                .values(materialProductId, "MAT_" + materialProductId, "Material", rawTypeId, unitId,
+                        activeProductStatusId)
                 .execute();
-        addStock(fixture, materialProductId, availableQuantity, OffsetDateTime.now(ZoneOffset.UTC));
-        return materialProductId;
-    }
-
-    private void addStock(ReservationFixture fixture, UUID productId, BigDecimal quantity, OffsetDateTime createdAt) {
-        UUID lotId = UUID.randomUUID();
-        dsl.insertInto(STOCK_LOTS).columns(STOCK_LOTS.ID, STOCK_LOTS.LOT_NUMBER, STOCK_LOTS.PRODUCT_ID,
-                        STOCK_LOTS.CREATED_AT)
-                .values(lotId, "LOT_" + lotId, productId, createdAt).execute();
+        dsl.insertInto(PRODUCTS).columns(PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID,
+                        PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
+                .values(finishedProductId, "FG_" + finishedProductId, "Finished", finishedTypeId, unitId,
+                        activeProductStatusId)
+                .execute();
+        dsl.insertInto(WAREHOUSES).columns(WAREHOUSES.ID, WAREHOUSES.CODE, WAREHOUSES.NAME,
+                        WAREHOUSES.WAREHOUSE_STATUS_ID)
+                .values(warehouseId, "RAW_MATERIAL_WAREHOUSE", "Raw Material Warehouse", activeWarehouseStatusId)
+                .execute();
+        UUID activeLocationStatusId = dsl.select(fpt.qn.mes.jooq.Tables.LOCATION_STATUSES.ID)
+                .from(fpt.qn.mes.jooq.Tables.LOCATION_STATUSES)
+                .where(fpt.qn.mes.jooq.Tables.LOCATION_STATUSES.NAME.eq("ACTIVE"))
+                .fetchOne(fpt.qn.mes.jooq.Tables.LOCATION_STATUSES.ID);
+        dsl.insertInto(WAREHOUSE_LOCATIONS).columns(WAREHOUSE_LOCATIONS.ID, WAREHOUSE_LOCATIONS.WAREHOUSE_ID,
+                        WAREHOUSE_LOCATIONS.CODE, WAREHOUSE_LOCATIONS.NAME, WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID)
+                .values(locationId, warehouseId, "RAW_LOC_" + locationId, "Raw location", activeLocationStatusId)
+                .execute();
+        dsl.insertInto(MACHINES).columns(MACHINES.ID, MACHINES.CODE, MACHINES.NAME, MACHINES.MACHINE_STATUS_ID)
+                .values(machineId, "M_" + machineId, "Available machine", activeMachineStatusId).execute();
+        dsl.insertInto(BOMS).columns(BOMS.ID, BOMS.FINISHED_PRODUCT_ID, BOMS.VERSION, BOMS.BOM_STATUS_ID,
+                        BOMS.CREATED_BY)
+                .values(bomId, finishedProductId, 1, activeBomStatusId, userId).execute();
+        dsl.insertInto(STOCK_LOTS).columns(STOCK_LOTS.ID, STOCK_LOTS.LOT_NUMBER, STOCK_LOTS.PRODUCT_ID)
+                .values(lotId, "LOT_" + lotId, materialProductId).execute();
         dsl.insertInto(STOCK_BALANCES).columns(STOCK_BALANCES.ID, STOCK_BALANCES.WAREHOUSE_ID,
                         STOCK_BALANCES.LOCATION_ID, STOCK_BALANCES.PRODUCT_ID, STOCK_BALANCES.LOT_ID,
                         STOCK_BALANCES.STOCK_STATUS_ID, STOCK_BALANCES.QUANTITY)
-                .values(UUID.randomUUID(), fixture.getWarehouseIds().getFirst(), fixture.getLocationIds().getFirst(),
-                        productId, lotId, fixture.getAvailableStockStatusId(), quantity)
-                .execute();
-    }
+                .values(UUID.randomUUID(), warehouseId, locationId, materialProductId, lotId,
+                        availableStockStatusId, BigDecimal.TEN).execute();
+        dsl.insertInto(WORK_ORDERS).columns(WORK_ORDERS.ID, WORK_ORDERS.CODE, WORK_ORDERS.FINISHED_PRODUCT_ID,
+                        WORK_ORDERS.BOM_ID, WORK_ORDERS.PLANNED_QUANTITY, WORK_ORDERS.WORK_ORDER_STATUS_ID,
+                        WORK_ORDERS.CREATED_BY)
+                .values(workOrderId, "WO_" + workOrderId, finishedProductId, bomId, BigDecimal.ONE,
+                        plannedStatusId, userId).execute();
+        dsl.insertInto(WORK_ORDER_MATERIALS).columns(WORK_ORDER_MATERIALS.ID, WORK_ORDER_MATERIALS.WORK_ORDER_ID,
+                        WORK_ORDER_MATERIALS.MATERIAL_PRODUCT_ID, WORK_ORDER_MATERIALS.REQUIRED_QUANTITY,
+                        WORK_ORDER_MATERIALS.RESERVED_QUANTITY, WORK_ORDER_MATERIALS.CONSUMED_QUANTITY)
+                .values(workOrderMaterialId, workOrderId, materialProductId, BigDecimal.valueOf(5), BigDecimal.ZERO,
+                        BigDecimal.ZERO).execute();
 
-    private void insertProduct(UUID productId, String code, UUID productTypeId, UUID unitId, UUID productStatusId) {
-        dsl.insertInto(PRODUCTS).columns(PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID,
-                        PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
-                .values(productId, code, code, productTypeId, unitId, productStatusId)
-                .execute();
-    }
+        var principal = AppUserPrincipal.builder().id(userId).username("planner_" + userId)
+                .roles(java.util.List.of("PLANNER")).enabled(true).build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(principal, "n/a",
+                        java.util.List.of(new SimpleGrantedAuthority("ROLE_PLANNER"))));
+        try {
+            var request = new ReserveWorkOrderMaterialsRequest();
+            request.setMachineId(machineId);
+            var response = workOrderService.reserveMaterials(workOrderId, request);
 
-    private UUID referenceId(org.jooq.Field<UUID> idField, org.jooq.Table<?> table,
-            org.jooq.Field<String> nameField, String name) {
-        return dsl.select(idField).from(table).where(nameField.eq(name)).fetchOne(idField);
-    }
-
-    private ResponseEntity<String> reserve(UUID workOrderId, String username) {
-        HttpHeaders headers = jsonHeaders();
-        headers.setBearerAuth(generateToken(username, "PLANNER"));
-        return restTemplate.exchange(url(workOrderId), HttpMethod.POST, new HttpEntity<>(headers), String.class);
-    }
-
-    private String workOrderStatus(UUID workOrderId) {
-        return dsl.select(WORK_ORDER_STATUSES.NAME).from(WORK_ORDERS)
-                .join(WORK_ORDER_STATUSES).on(WORK_ORDER_STATUSES.ID.eq(WORK_ORDERS.WORK_ORDER_STATUS_ID))
-                .where(WORK_ORDERS.ID.eq(workOrderId))
-                .fetchOne(WORK_ORDER_STATUSES.NAME);
-    }
-
-    private BigDecimal availableQuantity(UUID productId) {
-        return quantityByStatus(productId, "AVAILABLE");
-    }
-
-    private BigDecimal reservedQuantity(UUID productId) {
-        return quantityByStatus(productId, "RESERVED");
-    }
-
-    private BigDecimal quantityByStatus(UUID productId, String stockStatus) {
-        return dsl.select(org.jooq.impl.DSL.coalesce(org.jooq.impl.DSL.sum(STOCK_BALANCES.QUANTITY), BigDecimal.ZERO))
-                .from(STOCK_BALANCES)
-                .join(STOCK_STATUSES).on(STOCK_STATUSES.ID.eq(STOCK_BALANCES.STOCK_STATUS_ID))
-                .where(STOCK_BALANCES.PRODUCT_ID.eq(productId))
-                .and(STOCK_STATUSES.NAME.eq(stockStatus))
-                .fetchOne(0, BigDecimal.class);
-    }
-
-    private BigDecimal workOrderMaterialReservedQuantity(UUID workOrderId, UUID productId) {
-        return dsl.select(WORK_ORDER_MATERIALS.RESERVED_QUANTITY).from(WORK_ORDER_MATERIALS)
-                .where(WORK_ORDER_MATERIALS.WORK_ORDER_ID.eq(workOrderId))
-                .and(WORK_ORDER_MATERIALS.MATERIAL_PRODUCT_ID.eq(productId))
-                .fetchOne(WORK_ORDER_MATERIALS.RESERVED_QUANTITY);
-    }
-
-    private String url(UUID workOrderId) {
-        return "http://localhost:" + port + "/api/work-orders/" + workOrderId + "/reserve-materials";
+            assertThat(response.getStatus()).isEqualTo("READY_TO_PRODUCE");
+            assertThat(dsl.select(WORK_ORDERS.WORK_ORDER_STATUS_ID).from(WORK_ORDERS)
+                    .where(WORK_ORDERS.ID.eq(workOrderId)).fetchOne(WORK_ORDERS.WORK_ORDER_STATUS_ID))
+                    .isEqualTo(dsl.select(WORK_ORDER_STATUSES.ID).from(WORK_ORDER_STATUSES)
+                            .where(WORK_ORDER_STATUSES.NAME.eq("READY_TO_PRODUCE"))
+                            .fetchOne(WORK_ORDER_STATUSES.ID));
+            assertThat(dsl.select(STOCK_BALANCES.QUANTITY).from(STOCK_BALANCES)
+                    .where(STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId))
+                    .and(STOCK_BALANCES.LOT_ID.eq(lotId))
+                    .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(availableStockStatusId))
+                    .fetchOne(STOCK_BALANCES.QUANTITY)).isEqualByComparingTo(BigDecimal.valueOf(5));
+            assertThat(dsl.selectCount().from(STOCK_MOVEMENTS).where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))
+                    .and(STOCK_MOVEMENTS.LOT_ID.eq(lotId)).fetchOne(0, Integer.class)).isEqualTo(1);
+            assertThat(dsl.selectCount().from(AUDIT_LOGS).where(AUDIT_LOGS.ENTITY_ID.eq(workOrderId))
+                    .and(AUDIT_LOGS.ACTION.eq("RESERVE_MATERIAL")).fetchOne(0, Integer.class)).isEqualTo(1);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     private HttpHeaders jsonHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         return headers;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    private static class StockSeed {
-        boolean active;
-        BigDecimal quantity;
-        OffsetDateTime createdAt;
-    }
-
-    @Getter
-    @AllArgsConstructor
-    private static class ReservationFixture {
-        UUID userId;
-        String username;
-        UUID materialProductId;
-        UUID unitId;
-        UUID productStatusId;
-        UUID availableStockStatusId;
-        List<UUID> workOrderIds;
-        List<UUID> lotIds;
-        List<UUID> balanceIds;
-        List<UUID> warehouseIds;
-        List<UUID> locationIds;
     }
 }

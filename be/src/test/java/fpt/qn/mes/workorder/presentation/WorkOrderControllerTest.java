@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -176,6 +177,9 @@ class WorkOrderControllerTest {
     void reserveMaterials_shouldReturn200WithApiResponse() {
         // Arrange
         UUID id = sampleDto.getId();
+        ReserveWorkOrderMaterialsRequest req =
+                new ReserveWorkOrderMaterialsRequest();
+        req.setMachineId(UUID.randomUUID());
 
         ReserveWorkOrderMaterialsResponse expectedResponse =
                 ReserveWorkOrderMaterialsResponse.builder()
@@ -183,11 +187,11 @@ class WorkOrderControllerTest {
                         .status("READY_TO_PRODUCE")
                         .build();
 
-        when(workOrderUseCase.reserveMaterials(eq(id))).thenReturn(expectedResponse);
+        when(workOrderUseCase.reserveMaterials(eq(id), eq(req))).thenReturn(expectedResponse);
 
         // Act
         ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> response =
-                controller.reserveMaterials(id);
+                controller.reserveMaterials(id, req);
 
         // Assert
         assertNotNull(response);
@@ -197,6 +201,6 @@ class WorkOrderControllerTest {
         assertEquals("Materials reserved successfully. Work Order is now READY_TO_PRODUCE.", response.getBody().getMessage());
         assertEquals(id, response.getBody().getData().getWorkOrderId());
 
-        verify(workOrderUseCase).reserveMaterials(id);
+        verify(workOrderUseCase).reserveMaterials(id, req);
     }
 }

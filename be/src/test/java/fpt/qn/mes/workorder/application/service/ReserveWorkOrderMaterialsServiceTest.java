@@ -22,6 +22,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
+import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
@@ -37,6 +40,7 @@ class ReserveWorkOrderMaterialsServiceTest {
     @Mock WorkOrderRepository repository;
     @Mock BomRepository bomRepository;
     @Mock WorkOrderDtoMapper mapper;
+    @Mock WarehouseUseCase warehouseUseCase;
     @Mock MachineUseCase machineUseCase;
     @Mock WorkOrderReservationPort reservationPort;
     @Mock AuditLogPort auditLogPort;
@@ -45,6 +49,7 @@ class ReserveWorkOrderMaterialsServiceTest {
     @InjectMocks WorkOrderService service;
 
     UUID workOrderId;
+    UUID machineId;
     UUID materialId;
     UUID plannedStatusId;
     UUID readyStatusId;
@@ -54,10 +59,12 @@ class ReserveWorkOrderMaterialsServiceTest {
     UUID actorId;
     UUID warehouseId;
     WorkOrder workOrder;
+    ReserveWorkOrderMaterialsRequest request;
 
     @BeforeEach
     void setUp() {
         workOrderId = UUID.randomUUID();
+        machineId = UUID.randomUUID();
         materialId = UUID.randomUUID();
         plannedStatusId = UUID.randomUUID();
         readyStatusId = UUID.randomUUID();
@@ -71,9 +78,14 @@ class ReserveWorkOrderMaterialsServiceTest {
                 .plannedQuantity(BigDecimal.TEN)
                 .workOrderStatusId(plannedStatusId)
                 .build();
+        request = new ReserveWorkOrderMaterialsRequest();
+        request.setMachineId(machineId);
 
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(workOrder));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
+                .thenReturn(WarehouseResponse.builder().id(warehouseId).code("RAW_MATERIAL_WAREHOUSE").build());
+        when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RESERVE")).thenReturn(reserveMovementTypeId);
@@ -95,14 +107,14 @@ class ReserveWorkOrderMaterialsServiceTest {
         UUID olderBalance = UUID.randomUUID();
         UUID newerBalance = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
-        when(reservationPort.findAvailableStock(eq(List.of(materialId)), eq(availableStatusId)))
+        when(reservationPort.findAvailableStock(eq(warehouseId), eq(List.of(materialId)), eq(availableStatusId)))
                 .thenReturn(List.of(
                         new ReservationStock(olderBalance, warehouseId, locationId, materialId, olderLot,
                                 BigDecimal.valueOf(2), null),
                         new ReservationStock(newerBalance, warehouseId, locationId, materialId, newerLot,
                                 BigDecimal.valueOf(5), null)));
 
-        var result = service.reserveMaterials(workOrderId);
+        var result = service.reserveMaterials(workOrderId, request);
 
         assertEquals(workOrderId, result.getWorkOrderId());
         assertEquals("READY_TO_PRODUCE", result.getStatus());
@@ -113,6 +125,9 @@ class ReserveWorkOrderMaterialsServiceTest {
 
     @Test
     void reserveMaterials_shortageUpdatesStatusAndReturnsDetails() {
+        UUID warehouseId = UUID.randomUUID();
+        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
+                .thenReturn(WarehouseResponse.builder().id(warehouseId).build());
         when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
                 WorkOrderMaterial.builder()
                         .workOrderId(workOrderId)
@@ -120,52 +135,16 @@ class ReserveWorkOrderMaterialsServiceTest {
                         .requiredQuantity(BigDecimal.TEN)
                         .reservedQuantity(BigDecimal.ZERO)
                         .build()));
-        when(reservationPort.findAvailableStock(eq(List.of(materialId)), eq(availableStatusId)))
+        when(reservationPort.findAvailableStock(eq(warehouseId), eq(List.of(materialId)), eq(availableStatusId)))
                 .thenReturn(List.of(new ReservationStock(UUID.randomUUID(), warehouseId, UUID.randomUUID(),
                         materialId, UUID.randomUUID(), BigDecimal.ONE, null)));
         when(repository.findStatusIdByName("MATERIAL_SHORTAGE")).thenReturn(Optional.of(UUID.randomUUID()));
 
         var exception = assertThrows(InsufficientMaterialException.class,
-                () -> service.reserveMaterials(workOrderId));
+                () -> service.reserveMaterials(workOrderId, request));
 
         assertEquals("INSUFFICIENT_STOCK", exception.getErrorCode().getCode());
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "MATERIAL_SHORTAGE");
         verify(reservationPort, org.mockito.Mockito.never()).applyReservation(any(), any(), any(), any(), any(), any(), any());
-    }
-
-    @Test
-    void reserveMaterials_whenStockAvailableInMultipleWarehouses_collectsFromMultipleWarehouses() {
-        // Test multi-warehouse reservation fallback across active warehouses
-        when(repository.findStatusIdByName("READY_TO_PRODUCE")).thenReturn(Optional.of(readyStatusId));
-        when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
-                WorkOrderMaterial.builder()
-                        .workOrderId(workOrderId)
-                        .materialProductId(materialId)
-                        .requiredQuantity(BigDecimal.valueOf(7))
-                        .reservedQuantity(BigDecimal.ZERO)
-                        .build()));
-
-        UUID secondaryWarehouseId = UUID.randomUUID();
-        UUID primaryBalanceId = UUID.randomUUID();
-        UUID secondaryBalanceId = UUID.randomUUID();
-        UUID primaryLocationId = UUID.randomUUID();
-        UUID secondaryLocationId = UUID.randomUUID();
-        UUID lotId = UUID.randomUUID();
-
-        // Warehouse 1 has 2 units, Warehouse 2 has 5 units
-        when(reservationPort.findAvailableStock(eq(List.of(materialId)), eq(availableStatusId)))
-                .thenReturn(List.of(
-                        new ReservationStock(primaryBalanceId, warehouseId, primaryLocationId, materialId, lotId,
-                                BigDecimal.valueOf(2), null),
-                        new ReservationStock(secondaryBalanceId, secondaryWarehouseId, secondaryLocationId, materialId, lotId,
-                                BigDecimal.valueOf(5), null)));
-
-        var result = service.reserveMaterials(workOrderId);
-
-        assertEquals(workOrderId, result.getWorkOrderId());
-        assertEquals("READY_TO_PRODUCE", result.getStatus());
-        verify(reservationPort).applyReservation(eq(workOrderId), any(List.class), any(),
-                eq(availableStatusId), eq(reservedStatusId), eq(reserveMovementTypeId), eq(actorId));
-        verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "READY_TO_PRODUCE");
     }
 }
