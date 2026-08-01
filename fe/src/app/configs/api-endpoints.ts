@@ -72,9 +72,15 @@ export const API = {
     scrap: (id: string | number) => `${BASE}/quality-inspections/${id}/scrap`,
   },
   maintenanceTickets: {
-    base: `${BASE}/maintenance-tickets`,
-    start: (id: string | number) => `${BASE}/maintenance-tickets/${id}/start`,
-    close: (id: string | number) => `${BASE}/maintenance-tickets/${id}/close`,
+    base: `${BASE}/maintenance`,
+    byId: (id: string | number) => `${BASE}/maintenance/${id}`,
+    start: (id: string | number) => `${BASE}/maintenance/${id}/start`,
+    close: (id: string | number) => `${BASE}/maintenance/${id}/close`,
+    resolve: (id: string | number) => `${BASE}/maintenance/${id}/resolve`,
+    cancel: (id: string | number) => `${BASE}/maintenance/${id}/cancel`,
+    ticketStatuses: `${BASE}/maintenance/ticket-statuses`,
+    ticketPriorities: `${BASE}/maintenance/ticket-priorities`,
+    downtimeByTicket: (id: string | number) => `${BASE}/maintenance/${id}/downtime`,
   },
   reports: {
     inventory: `${BASE}/reports/inventory`,
