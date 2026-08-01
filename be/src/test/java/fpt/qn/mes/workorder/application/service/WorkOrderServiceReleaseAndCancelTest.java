@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.InvalidWorkOrderStateException;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.WorkOrderNotFoundException;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
@@ -99,9 +99,9 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PLANNED)).thenReturn(Optional.of(plannedStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").workOrderStatusId(plannedStatusId).build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-001").workOrderStatusId(plannedStatusId).build());
 
-        WorkOrderDto result = workOrderService.releaseMaterials(workOrderId);
+        WorkOrderResponse result = workOrderService.releaseMaterials(workOrderId);
 
         assertNotNull(result);
         assertEquals("WO-001", result.getCode());
@@ -132,9 +132,9 @@ class WorkOrderServiceReleaseAndCancelTest {
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.CANCELLED)).thenReturn(Optional.of(cancelledStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-001").workOrderStatusId(cancelledStatusId).build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-001").workOrderStatusId(cancelledStatusId).build());
 
-        WorkOrderDto result = workOrderService.cancelWorkOrder(workOrderId);
+        WorkOrderResponse result = workOrderService.cancelWorkOrder(workOrderId);
 
         assertNotNull(result);
         assertEquals("WO-001", result.getCode());

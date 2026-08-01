@@ -27,9 +27,9 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
@@ -67,7 +67,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<WorkOrderDto> getWorkOrders(WorkOrderSearchRequest request) {
+    public PageResponse<WorkOrderResponse> getWorkOrders(WorkOrderSearchRequest request) {
         WorkOrderSearchCriteria criteria = WorkOrderSearchCriteria.builder()
                 .page(request != null ? request.getPage() : 0)
                 .size(request != null ? request.getSize() : 20)
@@ -81,12 +81,12 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .map(w -> mapper.toDto(w))
                 .toList();
 
-        return PageResponse.<WorkOrderDto>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
+        return PageResponse.<WorkOrderResponse>of(dtos, result.getTotal(), criteria.getPage(), criteria.getSize());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public WorkOrderDto getWorkOrderById(UUID id) {
+    public WorkOrderResponse getWorkOrderById(UUID id) {
         var workOrder = repository.findById(id)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + id));
 
@@ -98,9 +98,9 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .map(e -> mapper.toDto(e))
                 .toList();
 
-        WorkOrderDto baseDto = mapper.toDto(workOrder);
+        WorkOrderResponse baseDto = mapper.toDto(workOrder);
 
-        return WorkOrderDto.builder()
+        return WorkOrderResponse.builder()
                 .id(baseDto.getId())
                 .code(baseDto.getCode())
                 .finishedProductId(baseDto.getFinishedProductId())
@@ -119,7 +119,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional
-    public WorkOrderDto createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
+    public WorkOrderResponse createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
         Bom activeBom = bomRepository.findActiveByFinishedProductId(req.getFinishedProductId())
                 .orElseThrow(() -> new BomNotActiveException("No active BOM found for finished product: " + req.getFinishedProductId()));
 
@@ -161,7 +161,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional
-    public WorkOrderDto updateWorkOrder(UUID id, UpdateWorkOrderRequest req) {
+    public WorkOrderResponse updateWorkOrder(UUID id, UpdateWorkOrderRequest req) {
         if (req == null) {
             throw new InvalidInputException("Update request body cannot be null");
         }
@@ -392,7 +392,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional
-    public WorkOrderDto releaseMaterials(UUID workOrderId) {
+    public WorkOrderResponse releaseMaterials(UUID workOrderId) {
         // Serialize state transitions for this work order before touching its reservations.
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
@@ -435,7 +435,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional
-    public WorkOrderDto cancelWorkOrder(UUID workOrderId) {
+    public WorkOrderResponse cancelWorkOrder(UUID workOrderId) {
         // Lock first so cancellation cannot race a release or production transition.
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
@@ -480,12 +480,12 @@ public class WorkOrderService implements WorkOrderUseCase {
     public void deleteWorkOrder(UUID id) {}
 
     @Override @Transactional(readOnly = true)
-    public PageResponse<WorkOrderMaterialDto> getMaterials(UUID workOrderId, int page, int size) {
+    public PageResponse<WorkOrderMaterialResponse> getMaterials(UUID workOrderId, int page, int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public WorkOrderMaterialDto addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest req) {
+    public WorkOrderMaterialResponse addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
@@ -493,12 +493,12 @@ public class WorkOrderService implements WorkOrderUseCase {
     public void deleteMaterial(UUID workOrderId, UUID materialId) {}
 
     @Override @Transactional(readOnly = true)
-    public PageResponse<WorkOrderEventDto> getEvents(UUID workOrderId, int page, int size) {
+    public PageResponse<WorkOrderEventResponse> getEvents(UUID workOrderId, int page, int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @Override @Transactional
-    public WorkOrderEventDto addEvent(UUID workOrderId, CreateWorkOrderEventRequest req) {
+    public WorkOrderEventResponse addEvent(UUID workOrderId, CreateWorkOrderEventRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

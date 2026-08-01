@@ -3,11 +3,7 @@ package fpt.qn.mes.inventory.infrastructure.persistence;
 import java.time.ZoneOffset;
 
 import org.springframework.stereotype.Component;
-<<<<<<< HEAD
-import fpt.qn.mes.inventory.domain.entities.LotType;
-=======
 
->>>>>>> origin/develop
 import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;

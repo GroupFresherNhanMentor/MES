@@ -13,16 +13,6 @@ import fpt.qn.mes.master.warehouse.application.dto.warehouse.search.WarehouseSea
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.update.UpdateWarehouseRequest;
 
 public interface WarehouseUseCase {
-<<<<<<< HEAD
-    PageResponse<WarehouseDto> getWarehouses(int page, int size);
-    PageResponse<WarehouseDto> getWarehousesByStatus(int page, int size, UUID statusId);
-    WarehouseDto getWarehouseById(UUID id);
-    WarehouseDto getWarehouseByCode(String code);
-    Map<UUID, WarehouseDto> getWarehousesByIds(Collection<UUID> ids);
-    WarehouseDto createWarehouse(CreateWarehouseRequest request, UUID currentUserId);
-    WarehouseDto updateWarehouse(UUID id, UpdateWarehouseRequest request, UUID currentUserId);
-    void deleteWarehouse(UUID id);
-=======
     PageResponse<WarehouseResponse> getWarehouses(WarehouseSearchRequest request);
     WarehouseResponse getWarehouseById(UUID id);
     WarehouseResponse getWarehouseByCode(String code);
@@ -35,5 +25,4 @@ public interface WarehouseUseCase {
     void assignManager(UUID warehouseId, AssignManagerRequest request);
     void removeManager(UUID warehouseId, UUID userId);
     List<WarehouseManagerResponse> getManagers(UUID warehouseId);
->>>>>>> origin/develop
 }

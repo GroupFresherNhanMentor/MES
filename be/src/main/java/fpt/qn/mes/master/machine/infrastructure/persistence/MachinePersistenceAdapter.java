@@ -2,11 +2,8 @@ package fpt.qn.mes.master.machine.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.MACHINES;
 import static fpt.qn.mes.jooq.Tables.MACHINE_STATUSES;
-<<<<<<< HEAD
-=======
 import static fpt.qn.mes.jooq.Tables.PRODUCTION_LINES;
 import static fpt.qn.mes.jooq.Tables.USERS;
->>>>>>> origin/develop
 
 import java.util.List;
 import java.util.Map;
@@ -53,33 +50,6 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
     }
 
     @Override
-<<<<<<< HEAD
-    public Optional<Machine> findById(UUID id) { return fetchById(id).map(mapper::toDomain); }
-
-    @Override
-    public boolean isAvailableForUpdate(UUID id) {
-        return ctx.select(MACHINES.ID)
-                .from(MACHINES)
-                .join(MACHINE_STATUSES).on(MACHINE_STATUSES.ID.eq(MACHINES.MACHINE_STATUS_ID))
-                .where(MACHINES.ID.eq(id).and(MACHINE_STATUSES.NAME.eq("AVAILABLE")))
-                .forUpdate()
-                .fetchOptional()
-                .isPresent();
-    }
-    @Override
-    public Machine save(Machine m) { return mapper.toDomain(create(mapper.toRecord(m))); }
-    @Override
-    public Machine update(Machine m) { return mapper.toDomain(update(mapper.toRecord(m))); }
-    @Override
-    public void deleteById(UUID id) {}
-
-    @Override
-    public PaginationResult<Machine> findAll(int page, int size) {
-        var records = ctx.selectFrom(MACHINES).orderBy(MACHINES.CREATED_AT.desc())
-                .limit(size).offset((long) page * size).fetch();
-        int total = ctx.fetchCount(ctx.selectFrom(MACHINES));
-        return PaginationResult.<Machine>builder().total(total).items(records.stream().map(r -> mapper.toDomain(r)).toList()).build();
-=======
     public Optional<Machine> findById(UUID id) {
         return ctx.select()
                 .from(MACHINES)
@@ -91,7 +61,6 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
                 .fetchOptional(r -> mapper.toDomain(
                         r.into(MACHINES), r.into(MACHINE_STATUSES), r.into(PRODUCTION_LINES),
                         r.into(CREATOR), r.into(UPDATER)));
->>>>>>> origin/develop
     }
 
     @Override

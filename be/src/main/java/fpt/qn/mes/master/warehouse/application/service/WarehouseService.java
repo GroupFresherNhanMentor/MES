@@ -77,11 +77,7 @@ public class WarehouseService implements WarehouseUseCase {
 
     @Override
     @Transactional(readOnly = true)
-<<<<<<< HEAD
-    public WarehouseDto getWarehouseByCode(String code) {
-=======
     public WarehouseResponse getWarehouseByCode(String code) {
->>>>>>> origin/develop
         return warehouseRepository.findByCode(code)
                 .map(mapper::toDto)
                 .orElseThrow(() -> new WarehouseNotFoundException("Warehouse not found with code: " + code));
@@ -89,13 +85,8 @@ public class WarehouseService implements WarehouseUseCase {
 
     @Override
     @Transactional(readOnly = true)
-<<<<<<< HEAD
-    public java.util.Map<UUID, WarehouseDto> getWarehousesByIds(java.util.Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) return java.util.Map.of();
-=======
     public Map<UUID, WarehouseResponse> getWarehousesByIds(Collection<UUID> ids) {
         if (ids == null || ids.isEmpty()) return Map.of();
->>>>>>> origin/develop
         var warehouses = warehouseRepository.findByIds(ids);
         return warehouses.stream()
                 .collect(Collectors.toMap(Warehouse::getId, mapper::toDto, (w1, w2) -> w1));

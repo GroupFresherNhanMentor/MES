@@ -106,42 +106,6 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
     public List<StockMovement> search(StockMovementSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-<<<<<<< HEAD
-
-        var sm = STOCK_MOVEMENTS;
-        var mt = MOVEMENT_TYPES.as("mt");
-        var sl = STOCK_LOTS.as("sl");
-        var fs = STOCK_STATUSES.as("fs");
-        var ts = STOCK_STATUSES.as("ts");
-
-        return ctx.select(
-                    sm.ID,
-                    sm.MOVEMENT_TYPE_ID,
-                    mt.NAME.as("movementTypeName"),
-                     sm.PRODUCT_ID,
-                     sm.LOT_ID,
-                     sm.WORK_ORDER_ID,
-                    sl.LOT_NUMBER.as("lotNumber"),
-                    sm.FROM_WAREHOUSE_ID,
-                    sm.FROM_LOCATION_ID,
-                    sm.TO_WAREHOUSE_ID,
-                    sm.TO_LOCATION_ID,
-                    sm.QUANTITY,
-                    sm.FROM_STATUS_ID,
-                    fs.NAME.as("fromStatusName"),
-                    sm.TO_STATUS_ID,
-                    ts.NAME.as("toStatusName"),
-                    sm.REFERENCE_NO,
-                    sm.REASON,
-                    sm.CREATED_BY,
-                    sm.CREATED_AT
-                )
-                .from(sm)
-                .leftJoin(mt).on(sm.MOVEMENT_TYPE_ID.eq(mt.ID))
-                .leftJoin(sl).on(sm.LOT_ID.eq(sl.ID))
-                .leftJoin(fs).on(sm.FROM_STATUS_ID.eq(fs.ID))
-                .leftJoin(ts).on(sm.TO_STATUS_ID.eq(ts.ID))
-=======
         return ctx.select()
                 .from(STOCK_MOVEMENTS)
                 .leftJoin(PRODUCTS).on(STOCK_MOVEMENTS.PRODUCT_ID.eq(PRODUCTS.ID))
@@ -154,7 +118,6 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
                 .leftJoin(FROM_LOC).on(STOCK_MOVEMENTS.FROM_LOCATION_ID.eq(FROM_LOC.ID))
                 .leftJoin(TO_LOC).on(STOCK_MOVEMENTS.TO_LOCATION_ID.eq(TO_LOC.ID))
                 .leftJoin(CREATOR).on(STOCK_MOVEMENTS.CREATED_BY.eq(CREATOR.ID))
->>>>>>> origin/develop
                 .where(condition)
                 .orderBy(orderBy)
                 .limit(criteria.getSize())
@@ -232,13 +195,8 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
         return StockMovement.builder()
                 .id(sm.getId())
                 .movementType(movementType)
-<<<<<<< HEAD
-                .productId(r.get(STOCK_MOVEMENTS.PRODUCT_ID))
-                .workOrderId(r.get(STOCK_MOVEMENTS.WORK_ORDER_ID))
-=======
                 .productId(sm.getProductId())
                 .workOrderId(sm.getWorkOrderId())
->>>>>>> origin/develop
                 .stockLot(stockLot)
                 .fromWarehouseId(sm.getFromWarehouseId())
                 .fromLocationId(sm.getFromLocationId())

@@ -27,9 +27,9 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -46,7 +46,7 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderResponse>>> getAll(
             @Valid WorkOrderSearchRequest request) {
         var response = workOrderUseCase.getWorkOrders(request);
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
@@ -54,14 +54,14 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> getById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> getById(@PathVariable UUID id) {
         var response = workOrderUseCase.getWorkOrderById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Work Order details retrieved successfully"));
     }
 
     @PreAuthorize("hasRole('PLANNER')")
     @PostMapping
-    public ResponseEntity<ApiResponse<WorkOrderDto>> create(
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> create(
             @Valid @RequestBody CreateWorkOrderRequest req,
             @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : null;
@@ -72,7 +72,7 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> update(
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> update(
             @PathVariable UUID id, @Valid @RequestBody UpdateWorkOrderRequest req) {
         var result = workOrderUseCase.updateWorkOrder(id, req);
         return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
@@ -90,14 +90,14 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     @PostMapping("/{id}/release-materials")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> releaseMaterials(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> releaseMaterials(@PathVariable UUID id) {
         var response = workOrderUseCase.releaseMaterials(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Materials released successfully"));
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> cancel(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> cancel(@PathVariable UUID id) {
         var response = workOrderUseCase.cancelWorkOrder(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Work order cancelled successfully"));
     }
@@ -108,14 +108,14 @@ public class WorkOrderController {
     }
 
     @GetMapping("/{workOrderId}/materials")
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderMaterialDto>>> getMaterials(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderMaterialResponse>>> getMaterials(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/{workOrderId}/materials")
-    public ResponseEntity<ApiResponse<WorkOrderMaterialDto>> addMaterial(
+    public ResponseEntity<ApiResponse<WorkOrderMaterialResponse>> addMaterial(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderMaterialRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -127,14 +127,14 @@ public class WorkOrderController {
     }
 
     @GetMapping("/{workOrderId}/events")
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderEventDto>>> getEvents(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderEventResponse>>> getEvents(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/{workOrderId}/events")
-    public ResponseEntity<ApiResponse<WorkOrderEventDto>> addEvent(
+    public ResponseEntity<ApiResponse<WorkOrderEventResponse>> addEvent(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderEventRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
