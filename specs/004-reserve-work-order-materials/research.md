@@ -16,6 +16,7 @@
 - Reuse `InventoryService.recordMovement`: rejected because it does not decrement `AVAILABLE` and increment `RESERVED` atomically for a reservation.
 - Add business logic to the controller: rejected by the Clean Architecture and service-layer exception rules.
 
+<<<<<<< HEAD
 ## Decision 2: Resolve the source warehouse by configured code
 
 **Decision**: Resolve the warehouse with code `RAW_MATERIAL_WAREHOUSE` on the server. Do not accept `sourceWarehouseId` in the request. Add a warehouse lookup by code through the master application boundary and a configurable default code with `RAW_MATERIAL_WAREHOUSE` as its default value.
@@ -31,6 +32,22 @@
 - Accept `sourceWarehouseId` from the client: rejected because it could bypass the designated source warehouse.
 - Search every warehouse and aggregate stock: rejected by the feature rule.
 - Hard-code a warehouse UUID: rejected because IDs are application-generated and environments differ.
+=======
+## Decision 2: Select stock across active warehouses
+
+**Decision**: Select eligible `AVAILABLE` stock across all `ACTIVE` warehouses. Do not accept `sourceWarehouseId` in the request.
+
+**Rationale**:
+
+- Planners should be able to reserve material that is distributed across active warehouse locations.
+- The stock query can exclude inactive warehouses through a joined warehouse-status predicate.
+- The caller does not control source warehouse selection.
+
+**Alternatives considered**:
+
+- Accept `sourceWarehouseId` from the client: rejected because allocation is determined by system FIFO rules.
+- Include inactive warehouses: rejected because their inventory is not available for production.
+>>>>>>> origin/develop
 
 ## Decision 3: Use pessimistic row locking with deterministic FIFO allocation
 
@@ -81,6 +98,7 @@
 - Add a second reservation ledger table: rejected because the existing movement ledger already models this event.
 - Leave `workOrderId` unmapped: rejected because it violates auditability and the data model.
 
+<<<<<<< HEAD
 ## Decision 6: Implement API versioning without breaking current Work Order routes
 
 **Decision**: Expose the requested `/api/v1/work-orders/{id}/reserve-materials` route while retaining the existing `/api/work-orders` route mapping for current clients.
@@ -96,6 +114,21 @@
 - Replace `/api` with `/api/v1`: rejected because it breaks existing routes.
 - Implement only `/api/work-orders/{id}/reserve-materials`: rejected because it does not satisfy the requested endpoint.
 - Add a second duplicate controller with copied business logic: rejected because it creates two presentation paths for one use case.
+=======
+## Decision 6: Keep the action in the Work Order controller
+
+**Decision**: Expose `/api/work-orders/{id}/reserve-materials` from the existing `WorkOrderController`.
+
+**Rationale**:
+
+- Reservation is a Work Order action and belongs with the rest of the Work Order resource routes.
+- A single controller prevents duplicated security and response handling.
+
+**Alternatives considered**:
+
+- Add a second controller with copied action mapping: rejected because it creates two presentation paths for one use case.
+- Add `/api/v1` at the Work Order controller class level: rejected because it would duplicate every existing Work Order route.
+>>>>>>> origin/develop
 
 ## Decision 7: Audit status transitions in the same business transaction
 

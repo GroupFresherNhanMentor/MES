@@ -41,6 +41,7 @@ public class StockBalance {
             throw new InsufficientStockException("Insufficient stock balance for deduction");
         }
         this.quantity = this.quantity.subtract(amount);
+        this.version = this.version != null ? this.version + 1 : 1L;
     }
 
     public void addQuantity(BigDecimal amount) {
@@ -52,5 +53,7 @@ public class StockBalance {
         } else {
             this.quantity = this.quantity.add(amount);
         }
+
+        this.version = this.version != null ? this.version + 1 : 1L;
     }
 }

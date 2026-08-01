@@ -59,6 +59,18 @@
         </button>
       }
 
+      @if (canDeactivate()) {
+        <button
+          mat-flat-button
+          class="font-semibold !px-5 !py-2.5 shadow-md flex items-center gap-1.5 !bg-error/10 !text-error hover:!bg-error/20 border border-error/30"
+          (click)="onDeactivate()"
+          [disabled]="actionLoading()"
+          matTooltip="Mark this BOM as inactive"
+        >
+          <mat-icon class="!w-5 !h-5 text-xl">block</mat-icon> Deactivate BOM
+        </button>
+      }
+
       @if (canNewVersion()) {
         <button
           mat-flat-button
@@ -124,7 +136,7 @@
               [class.bg-warning]="isDraft()"
               [class.bg-error]="isInactive()"
             ></span>
-            {{ bom()?.bomStatusName || bom()?.bomStatusId }}
+            {{ bom()?.bomStatus?.name || '-' }}
           </span>
         </div>
         <span class="kpi-trend text-text-muted mt-2 block">
@@ -201,7 +213,18 @@
             <ng-container matColumnDef="quantityPerUnit">
               <th mat-header-cell *matHeaderCellDef>Qty / Unit</th>
               <td mat-cell *matCellDef="let item">
-                <span class="font-bold text-text-primary text-base mr-1">{{ item.quantityPerUnit }}</span>
+                @if (editingItemId() === item.id) {
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.0001"
+                    [ngModel]="editQty()"
+                    (ngModelChange)="editQty.set($event)"
+                    class="w-24 px-2 py-1 text-sm font-bold font-mono rounded bg-surface-elevated border border-primary text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                } @else {
+                  <span class="font-bold text-text-primary text-base mr-1">{{ item.quantityPerUnit }}</span>
+                }
               </td>
             </ng-container>
 
@@ -210,7 +233,7 @@
               <th mat-header-cell *matHeaderCellDef>Unit</th>
               <td mat-cell *matCellDef="let item">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-surface-elevated text-text-secondary border border-border-light">
-                  {{ item.unit || 'PCS' }}
+                  {{ item.unitName || 'PCS' }}
                 </span>
               </td>
             </ng-container>
@@ -219,17 +242,31 @@
             <ng-container matColumnDef="scrapRate">
               <th mat-header-cell *matHeaderCellDef>Scrap Rate (%)</th>
               <td mat-cell *matCellDef="let item">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs font-semibold text-text-secondary font-mono">{{ item.scrapRate || 0 }}%</span>
-                  @if ((item.scrapRate || 0) > 0) {
-                    <div class="w-12 h-1.5 rounded-full bg-surface-elevated overflow-hidden border border-border-light">
-                      <div
-                        class="h-full bg-warning rounded-full"
-                        [style.width.%]="item.scrapRate > 100 ? 100 : item.scrapRate"
-                      ></div>
-                    </div>
-                  }
-                </div>
+                @if (editingItemId() === item.id) {
+                  <div class="flex items-center gap-1">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      [ngModel]="editScrapRate()"
+                      (ngModelChange)="editScrapRate.set($event)"
+                      class="w-20 px-2 py-1 text-xs font-semibold font-mono rounded bg-surface-elevated border border-primary text-text-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                    <span class="text-xs font-semibold text-text-secondary font-mono">%</span>
+                  </div>
+                } @else {
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-text-secondary font-mono">{{ item.scrapRate || 0 }}%</span>
+                    @if ((item.scrapRate || 0) > 0) {
+                      <div class="w-12 h-1.5 rounded-full bg-surface-elevated overflow-hidden border border-border-light">
+                        <div
+                          class="h-full bg-warning rounded-full"
+                          [style.width.%]="item.scrapRate > 100 ? 100 : item.scrapRate"
+                        ></div>
+                      </div>
+                    }
+                  </div>
+                }
               </td>
             </ng-container>
 
@@ -238,15 +275,49 @@
               <th mat-header-cell *matHeaderCellDef class="text-right">Actions</th>
               <td mat-cell *matCellDef="let item" class="text-right">
                 @if (canWrite() && isDraft()) {
-                  <button
-                    mat-icon-button
-                    class="!text-error hover:!bg-error/10 transition-colors"
-                    (click)="onRemoveItem(item)"
-                    matTooltip="Remove component"
-                    [disabled]="actionLoading()"
-                  >
-                    <mat-icon class="!w-5 !h-5 text-xl">delete_outline</mat-icon>
-                  </button>
+                  @if (editingItemId() === item.id) {
+                    <div class="flex items-center justify-end gap-1">
+                      <button
+                        mat-icon-button
+                        class="!text-success hover:!bg-success/10 transition-colors"
+                        (click)="onSaveEdit(item)"
+                        matTooltip="Save changes"
+                        [disabled]="actionLoading()"
+                      >
+                        <mat-icon class="!w-5 !h-5 text-xl">check</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        class="!text-text-secondary hover:!bg-surface-elevated transition-colors"
+                        (click)="onCancelEdit()"
+                        matTooltip="Cancel"
+                        [disabled]="actionLoading()"
+                      >
+                        <mat-icon class="!w-5 !h-5 text-xl">close</mat-icon>
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="flex items-center justify-end gap-1">
+                      <button
+                        mat-icon-button
+                        class="!text-primary hover:!bg-primary/10 transition-colors"
+                        (click)="onEditItem(item)"
+                        matTooltip="Edit quantity/scrap"
+                        [disabled]="actionLoading()"
+                      >
+                        <mat-icon class="!w-5 !h-5 text-xl">edit_note</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        class="!text-error hover:!bg-error/10 transition-colors"
+                        (click)="onRemoveItem(item)"
+                        matTooltip="Remove component"
+                        [disabled]="actionLoading()"
+                      >
+                        <mat-icon class="!w-5 !h-5 text-xl">delete_outline</mat-icon>
+                      </button>
+                    </div>
+                  }
                 }
               </td>
             </ng-container>

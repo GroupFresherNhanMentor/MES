@@ -1,29 +1,36 @@
 package fpt.qn.mes.master.product.application.service;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.master.product.application.dto.request.CreateProductRequest;
-import fpt.qn.mes.master.product.application.dto.response.ProductDto;
-import fpt.qn.mes.master.product.application.dto.request.UpdateProductRequest;
+import fpt.qn.mes.common.util.PaginationUtils;
+import fpt.qn.mes.master.product.application.dto.product.ProductResponse;
+import fpt.qn.mes.master.product.application.dto.product.create.CreateProductRequest;
+import fpt.qn.mes.master.product.application.dto.product.search.ProductSearchRequest;
+import fpt.qn.mes.master.product.application.dto.product.update.UpdateProductRequest;
 import fpt.qn.mes.master.product.application.exception.ProductConflictException;
 import fpt.qn.mes.master.product.application.exception.ProductNotFoundException;
+import fpt.qn.mes.master.product.application.exception.ProductStatusNotFoundException;
+import fpt.qn.mes.master.product.application.exception.ProductTypeNotFoundException;
+import fpt.qn.mes.master.product.application.exception.UnitOfMeasureNotFoundException;
 import fpt.qn.mes.master.product.application.mapper.ProductDtoMapper;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
+import fpt.qn.mes.master.product.application.port.out.MovementStockCheckPort;
+import fpt.qn.mes.master.product.domain.constants.ProductStatusConstants;
 import fpt.qn.mes.master.product.domain.entities.Product;
+import fpt.qn.mes.master.product.domain.entities.ProductStatus;
 import fpt.qn.mes.master.product.domain.repository.ProductRepository;
+import fpt.qn.mes.master.product.domain.repository.ProductStatusRepository;
+import fpt.qn.mes.master.product.domain.repository.ProductTypeRepository;
+import fpt.qn.mes.master.product.domain.repository.UnitOfMeasureRepository;
+import fpt.qn.mes.master.product.domain.repository.criteria.ProductSearchCriteria;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import static fpt.qn.mes.jooq.Tables.BOM_ITEMS;
-import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
-import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 
 @Service
 @RequiredArgsConstructor
@@ -31,152 +38,109 @@ import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 public class ProductService implements ProductUseCase {
 
     ProductRepository productRepository;
+    ProductStatusRepository productStatusRepository;
+    ProductTypeRepository productTypeRepository;
+    UnitOfMeasureRepository unitOfMeasureRepository;
+    MovementStockCheckPort movementStockCheckPort;
     ProductDtoMapper mapper;
-    DSLContext ctx;
+    CurrentUserPort currentUserPort;
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ProductDto> getProducts(int page, int size) {
-        UUID activeStatusId = getActiveStatusId();
-        var result = productRepository.findAllByStatus(page, size, activeStatusId);
-        var items = result.getItems().stream()
-                .map(mapper::toDto)
-                .toList();
-        return PageResponse.<ProductDto>builder()
-                .items(items)
+    public PageResponse<ProductResponse> getProducts(ProductSearchRequest request) {
+        var criteria = ProductSearchCriteria.builder()
+                .code(request.getCode())
+                .name(request.getName())
+                .version(request.getVersion())
+                .productTypeId(request.getProductTypeId())
+                .unitId(request.getUnitId())
+                .productStatusId(request.getProductStatusId())
+                .page(request.getPage())
+                .size(request.getSize())
+                .sort(request.getSort())
+                .build();
+        var result = productRepository.search(criteria);
+        return PageResponse.<ProductResponse>builder()
+                .items(result.getItems().stream().map(p -> mapper.toDto(p)).toList())
                 .totalElements(result.getTotal())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalPages((int) Math.ceil((double) result.getTotal() / size))
+                .pageNumber(request.getPage())
+                .pageSize(request.getSize())
+                .totalPages(PaginationUtils.calculateTotalPages(result.getTotal(), request.getSize()))
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ProductDto> getProductsByStatus(int page, int size, UUID statusId) {
-        var result = productRepository.findAllByStatus(page, size, statusId);
-        var items = result.getItems().stream()
-                .map(mapper::toDto)
-                .toList();
-        return PageResponse.<ProductDto>builder()
-                .items(items)
-                .totalElements(result.getTotal())
-                .pageNumber(page)
-                .pageSize(size)
-                .totalPages((int) Math.ceil((double) result.getTotal() / size))
-                .build();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public ProductDto getProductById(UUID id) {
+    public ProductResponse getProductById(UUID id) {
         return productRepository.findById(id)
-                .map(mapper::toDto)
+                .map(p -> mapper.toDto(p))
                 .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public java.util.Map<UUID, ProductDto> getProductsByIds(java.util.Collection<UUID> ids) {
-        if (ids == null || ids.isEmpty()) return java.util.Map.of();
-        var products = productRepository.findByIds(ids);
-        return products.stream()
-                .collect(java.util.stream.Collectors.toMap(Product::getId, mapper::toDto, (p1, p2) -> p1));
-    }
-
-    @Override
     @Transactional
-    public ProductDto createProduct(CreateProductRequest request, UUID currentUserId) {
+    public void createProduct(CreateProductRequest request) {
         if (productRepository.existsByCode(request.getCode())) {
             throw new ProductConflictException("Product code already exists: " + request.getCode());
         }
-        var product = Product.create(
-                request.getCode(),
-                request.getName(),
-                request.getProductTypeId(),
-                request.getUnitId(),
-                request.getProductStatusId(),
-                currentUserId);
-        var saved = productRepository.save(product);
-        return mapper.toDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public ProductDto updateProduct(UUID id, UpdateProductRequest request, UUID currentUserId) {
-        var existing = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
-
-        var updated = Product.builder()
-                .id(existing.getId())
-                .code(existing.getCode())
-                .name(request.getName() != null ? request.getName() : existing.getName())
-                .productTypeId(existing.getProductTypeId())
-                .unitId(request.getUnitId() != null ? request.getUnitId() : existing.getUnitId())
-                .productStatusId(request.getProductStatusId() != null ? request.getProductStatusId() : existing.getProductStatusId())
-                .version(existing.getVersion())
-                .createdAt(existing.getCreatedAt())
-                .createdBy(existing.getCreatedBy())
-                .updatedAt(Instant.now())
-                .updatedBy(currentUserId)
-                .build();
-
-        var saved = productRepository.update(updated);
-        return mapper.toDto(saved);
-    }
-
-    @Override
-    @Transactional
-    public void deleteProduct(UUID id) {
-        var existing = productRepository.findById(id)
-                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
-
-        if (hasStockMovements(id) || hasBomReferences(id)) {
-            throw new ProductConflictException("Cannot deactivate product — referenced in stock movements or BOM: " + id);
+        if (productRepository.existsByVersion(request.getVersion())) {
+            throw new ProductConflictException("Product version already exists: " + request.getVersion());
         }
-
-        UUID inactiveStatusId = getInactiveStatusId();
-        var deactivated = Product.builder()
-                .id(existing.getId())
-                .code(existing.getCode())
-                .name(existing.getName())
-                .productTypeId(existing.getProductTypeId())
-                .unitId(existing.getUnitId())
-                .productStatusId(inactiveStatusId)
-                .version(existing.getVersion())
-                .createdAt(existing.getCreatedAt())
-                .createdBy(existing.getCreatedBy())
-                .updatedAt(Instant.now())
-                .updatedBy(existing.getUpdatedBy())
-                .build();
-        productRepository.update(deactivated);
+        if (!productTypeRepository.existsById(request.getProductTypeId())) {
+            throw new ProductTypeNotFoundException("Product type not found: " + request.getProductTypeId());
+        }
+        if (!unitOfMeasureRepository.existsById(request.getUnitId())) {
+            throw new UnitOfMeasureNotFoundException("Unit of measure not found: " + request.getUnitId());
+        }
+        ProductStatus activeStatus = productStatusRepository.findByName(ProductStatusConstants.ACTIVE)
+                .orElseThrow(() -> new ProductStatusNotFoundException("ACTIVE status not found"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var product = Product.create(request.getCode(), request.getName(), request.getVersion(), request.getProductTypeId(), request.getUnitId(), activeStatus.getId(), currentUserId);
+        productRepository.save(product);
     }
 
-    private boolean hasStockMovements(UUID productId) {
-        return ctx.fetchExists(
-                ctx.selectFrom(STOCK_MOVEMENTS)
-                        .where(STOCK_MOVEMENTS.PRODUCT_ID.eq(productId)));
+    @Override
+    @Transactional
+    public void updateProduct(UUID id, UpdateProductRequest request) {
+        var existing = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+        boolean hasMovements = movementStockCheckPort.hasStockMovements(id);
+        if (hasMovements && request.getProductTypeId() != null && !request.getProductTypeId().equals(existing.getProductType().getId())) {
+            throw new ProductConflictException("Cannot change product type — product already has stock movements: " + id);
+        }
+        if (hasMovements && request.getUnitId() != null && !request.getUnitId().equals(existing.getUnit().getId())) {
+            throw new ProductConflictException("Cannot change unit of measure — product already has stock movements: " + id);
+        }
+        if (request.getProductTypeId() != null && !productTypeRepository.existsById(request.getProductTypeId())) {
+            throw new ProductTypeNotFoundException("Product type not found: " + request.getProductTypeId());
+        }
+        if (request.getUnitId() != null && !unitOfMeasureRepository.existsById(request.getUnitId())) {
+            throw new UnitOfMeasureNotFoundException("Unit of measure not found: " + request.getUnitId());
+        }
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var updated = Product.update(existing, request.getName(), request.getProductTypeId(), request.getUnitId(), currentUserId);
+        productRepository.update(updated);
     }
 
-    private boolean hasBomReferences(UUID productId) {
-        return ctx.fetchExists(
-                ctx.selectFrom(BOM_ITEMS)
-                        .where(BOM_ITEMS.MATERIAL_PRODUCT_ID.eq(productId)));
+    @Override
+    @Transactional
+    public void activateProduct(UUID id) {
+        var existing = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+        ProductStatus activeStatus = productStatusRepository.findByName(ProductStatusConstants.ACTIVE)
+                .orElseThrow(() -> new ProductStatusNotFoundException("ACTIVE status not found"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        productRepository.update(Product.changeStatus(existing, activeStatus.getId(), currentUserId));
     }
 
-    private UUID getActiveStatusId() {
-        return ctx.select(PRODUCT_STATUSES.ID)
-                .from(PRODUCT_STATUSES)
-                .where(PRODUCT_STATUSES.NAME.eq("ACTIVE"))
-                .fetchOptionalInto(UUID.class)
-                .orElseThrow(() -> new IllegalStateException("ACTIVE status not found in product_statuses"));
-    }
-
-    private UUID getInactiveStatusId() {
-        return ctx.select(PRODUCT_STATUSES.ID)
-                .from(PRODUCT_STATUSES)
-                .where(PRODUCT_STATUSES.NAME.eq("INACTIVE"))
-                .fetchOptionalInto(UUID.class)
-                .orElseThrow(() -> new IllegalStateException("INACTIVE status not found in product_statuses"));
+    @Override
+    @Transactional
+    public void deactivateProduct(UUID id) {
+        var existing = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product not found: " + id));
+        ProductStatus inactiveStatus = productStatusRepository.findByName(ProductStatusConstants.INACTIVE)
+                .orElseThrow(() -> new ProductStatusNotFoundException("INACTIVE status not found"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        productRepository.update(Product.changeStatus(existing, inactiveStatus.getId(), currentUserId));
     }
 }

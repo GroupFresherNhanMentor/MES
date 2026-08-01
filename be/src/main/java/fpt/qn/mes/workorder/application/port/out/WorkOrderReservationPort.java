@@ -17,6 +17,9 @@ public interface WorkOrderReservationPort {
             Map<UUID, BigDecimal> reservedByProduct,
             UUID availableStatusId, UUID reservedStatusId, UUID reserveMovementTypeId, UUID actorId);
 
-    void releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
+    /**
+     * Releases only the outstanding net reservation and returns false when stock data is inconsistent.
+     */
+    boolean releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
             UUID releaseMovementTypeId, UUID actorId);
 }

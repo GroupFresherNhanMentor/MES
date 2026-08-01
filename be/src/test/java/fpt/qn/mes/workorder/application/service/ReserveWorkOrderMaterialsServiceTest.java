@@ -22,7 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
-import fpt.qn.mes.master.warehouse.application.dto.response.WarehouseDto;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
@@ -84,7 +84,7 @@ class ReserveWorkOrderMaterialsServiceTest {
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(workOrder));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
         when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(WarehouseDto.builder().id(warehouseId).code("RAW_MATERIAL_WAREHOUSE").build());
+                .thenReturn(WarehouseResponse.builder().id(warehouseId).code("RAW_MATERIAL_WAREHOUSE").build());
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
@@ -127,7 +127,7 @@ class ReserveWorkOrderMaterialsServiceTest {
     void reserveMaterials_shortageUpdatesStatusAndReturnsDetails() {
         UUID warehouseId = UUID.randomUUID();
         when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(WarehouseDto.builder().id(warehouseId).build());
+                .thenReturn(WarehouseResponse.builder().id(warehouseId).build());
         when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
                 WorkOrderMaterial.builder()
                         .workOrderId(workOrderId)

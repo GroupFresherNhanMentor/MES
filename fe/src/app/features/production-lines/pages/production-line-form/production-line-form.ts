@@ -28,7 +28,7 @@ import type { ProductionLineDto } from '../../../../core/models/production-line.
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -42,19 +42,23 @@ export class ProductionLineFormComponent {
   name = '';
 
   constructor() {
-    if (this.data) { this.code = this.data.code; this.name = this.data.name; }
+    if (this.data) {
+      this.code = this.data.code;
+      this.name = this.data.name;
+    }
   }
 
   save() {
-    const body = { code: this.code, name: this.name, lineStatusId: '00000000-0000-0000-0000-000000000001' };
-    const req = this.data
-      ? this.api.put(`/api/production-lines/${this.data.id}`, { name: this.name })
-      : this.api.post('/api/production-lines', body);
-    req.subscribe(r => {
-      if (r.success) {
-        this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 });
-        this.dialogRef.close(true);
-      }
-    });
+    if (this.data) {
+      this.api.put(`/api/lines/${this.data.id}`, { name: this.name }).subscribe({
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
+        error: e => this.snackBar.open(e?.error?.message || 'Error updating line', 'OK', { duration: 4000 })
+      });
+    } else {
+      this.api.post('/api/lines', { code: this.code, name: this.name }).subscribe({
+        next: r => { if (r.success) { this.snackBar.open('Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },
+        error: e => this.snackBar.open(e?.error?.message || 'Error creating line', 'OK', { duration: 4000 })
+      });
+    }
   }
 }

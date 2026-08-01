@@ -23,7 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.InvalidWorkOrderStateException;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.MachineNotAvailableException;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.WorkOrderNotFoundException;
@@ -104,9 +104,9 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.createProductionRun(workOrderId, machineId, lineId, actorId)).thenReturn(runId);
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
-        WorkOrderDto result = workOrderService.startWorkOrder(workOrderId, req);
+        WorkOrderResponse result = workOrderService.startWorkOrder(workOrderId, req);
 
         assertNotNull(result);
         assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
@@ -154,9 +154,9 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PAUSED)).thenReturn(Optional.of(pausedStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(pausedStatusId).build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(pausedStatusId).build());
 
-        WorkOrderDto result = workOrderService.pauseWorkOrder(workOrderId);
+        WorkOrderResponse result = workOrderService.pauseWorkOrder(workOrderId);
 
         assertNotNull(result);
         assertEquals(pausedStatusId, result.getWorkOrderStatusId());
@@ -172,9 +172,9 @@ class WorkOrderServiceStartPauseResumeTest {
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderDto.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
+        when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
-        WorkOrderDto result = workOrderService.resumeWorkOrder(workOrderId);
+        WorkOrderResponse result = workOrderService.resumeWorkOrder(workOrderId);
 
         assertNotNull(result);
         assertEquals(inProgressStatusId, result.getWorkOrderStatusId());

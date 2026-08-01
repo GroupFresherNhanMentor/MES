@@ -2,7 +2,7 @@ package fpt.qn.mes.inventory.application.mapper;
 
 import org.mapstruct.Mapper;
 
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 
 import org.mapstruct.Mapping;
@@ -20,5 +20,5 @@ public interface StockMovementDtoMapper {
     @Mapping(target = "fromStatus", ignore = true)
     @Mapping(target = "toStatus", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
-    StockMovementDto toDto(StockMovement entity);
+    StockMovementResponse toDto(StockMovement entity);
 }

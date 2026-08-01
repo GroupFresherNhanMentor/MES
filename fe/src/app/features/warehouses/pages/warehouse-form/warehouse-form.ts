@@ -26,13 +26,13 @@ import type { WarehouseDto } from '../../../../core/models/warehouse.model';
       </mat-form-field>
       <mat-form-field appearance="outline">
         <mat-label>Address</mat-label>
-        <input matInput [(ngModel)]="address" name="address">
+        <input matInput [(ngModel)]="address" name="address" required>
       </mat-form-field>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button color="primary" (click)="save()" [disabled]="!code || !name">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name || !address">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -55,15 +55,17 @@ export class WarehouseFormComponent {
   }
 
   save() {
-    const body = { code: this.code, name: this.name, address: this.address };
-    const req = this.data
-      ? this.api.put(`/api/warehouses/${this.data.id}`, { name: this.name, address: this.address })
-      : this.api.post('/api/warehouses', body);
-    req.subscribe(r => {
-      if (r.success) {
-        this.snackBar.open(this.data ? 'Updated' : 'Created', 'OK', { duration: 2000 });
-        this.dialogRef.close(true);
-      }
-    });
+    const editId = this.data?.id;
+    if (editId) {
+      this.api.put(`/api/warehouses/${editId}`, { name: this.name, address: this.address }).subscribe({
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
+        error: e => this.snackBar.open(e?.error?.message || 'Error updating warehouse', 'OK', { duration: 4000 })
+      });
+    } else {
+      this.api.post('/api/warehouses', { code: this.code, name: this.name, address: this.address }).subscribe({
+        next: r => { if (r.success) { this.snackBar.open('Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },
+        error: e => this.snackBar.open(e?.error?.message || 'Error creating warehouse', 'OK', { duration: 4000 })
+      });
+    }
   }
 }

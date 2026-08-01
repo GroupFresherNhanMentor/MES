@@ -2,15 +2,13 @@ package fpt.qn.mes.bom.application.mapper;
 
 import org.mapstruct.Mapper;
 
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.dto.response.BomItemDto;
+import fpt.qn.mes.bom.application.dto.bom.BomResponse;
 import fpt.qn.mes.bom.domain.entities.Bom;
-import fpt.qn.mes.bom.domain.entities.BomItem;
+import fpt.qn.mes.bom.domain.entities.BomStatus;
 
 @Mapper(componentModel = "spring")
 public interface BomDtoMapper {
-
-    BomDto toDto(Bom bom);
-
-    BomItemDto toDto(BomItem bomItem);
+    BomResponse toDto(Bom bom);
+    BomResponse.BomStatusInfo toStatusInfo(BomStatus bomStatus);
+    BomResponse.UserInfo toUserInfo(Bom.UserRef userRef);
 }

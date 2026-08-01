@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -146,21 +147,65 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
     }
 
     @Override
-    public void releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
+    public boolean releaseReservation(UUID workOrderId, UUID availableStatusId, UUID reservedStatusId,
             UUID releaseMovementTypeId, UUID actorId) {
+        // A release can be retried, so reconstruct the outstanding amount from immutable movement history.
         UUID reserveMovementTypeId = findMovementTypeId("RESERVE");
+        if (reserveMovementTypeId == null) {
+            return false;
+        }
         var reserveMovements = ctx.selectFrom(STOCK_MOVEMENTS)
                 .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))
                 .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(reserveMovementTypeId))
+                .orderBy(STOCK_MOVEMENTS.CREATED_AT.asc(), STOCK_MOVEMENTS.ID.asc())
                 .fetch();
+        var releaseMovements = ctx.selectFrom(STOCK_MOVEMENTS)
+                .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))
+                .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(releaseMovementTypeId))
+                .fetch();
+
+        // Track the net outstanding reservation for every original warehouse, location, product, and lot.
+        Map<String, BigDecimal> remainingByStockKey = new HashMap<>();
+        for (var movement : reserveMovements) {
+            remainingByStockKey.merge(stockKey(movement.getFromWarehouseId(), movement.getFromLocationId(),
+                    movement.getProductId(), movement.getLotId()), movement.getQuantity(), BigDecimal::add);
+        }
+        for (var movement : releaseMovements) {
+            String key = stockKey(movement.getFromWarehouseId(), movement.getFromLocationId(),
+                    movement.getProductId(), movement.getLotId());
+            remainingByStockKey.merge(key, movement.getQuantity().negate(), BigDecimal::add);
+        }
+        if (remainingByStockKey.values().stream().anyMatch(quantity -> quantity.compareTo(BigDecimal.ZERO) < 0)) {
+            // Historical releases may never exceed the reservations they reverse.
+            return false;
+        }
 
         OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         for (var movement : reserveMovements) {
-            BigDecimal qty = movement.getQuantity();
+            String key = stockKey(movement.getFromWarehouseId(), movement.getFromLocationId(),
+                    movement.getProductId(), movement.getLotId());
+            BigDecimal remaining = remainingByStockKey.getOrDefault(key, BigDecimal.ZERO);
+            BigDecimal qty = movement.getQuantity().min(remaining);
+            if (qty.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
 
-            // Reduce RESERVED balance
-            ctx.update(STOCK_BALANCES)
+            // Lock the exact RESERVED balance before validating and debiting it.
+            var reservedBalance = ctx.selectFrom(STOCK_BALANCES)
+                    .where(STOCK_BALANCES.WAREHOUSE_ID.eq(movement.getFromWarehouseId()))
+                    .and(STOCK_BALANCES.LOCATION_ID.eq(movement.getFromLocationId()))
+                    .and(STOCK_BALANCES.PRODUCT_ID.eq(movement.getProductId()))
+                    .and(STOCK_BALANCES.LOT_ID.eq(movement.getLotId()))
+                    .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(reservedStatusId))
+                    .forUpdate()
+                    .fetchOptional();
+            if (reservedBalance.isEmpty() || reservedBalance.get().getQuantity().compareTo(qty) < 0) {
+                return false;
+            }
+
+            // Repeat the quantity predicate in the update to protect against stale or invalid data.
+            int updated = ctx.update(STOCK_BALANCES)
                     .set(STOCK_BALANCES.QUANTITY, STOCK_BALANCES.QUANTITY.subtract(qty))
                     .set(STOCK_BALANCES.VERSION, STOCK_BALANCES.VERSION.add(1L))
                     .set(STOCK_BALANCES.UPDATED_AT, now)
@@ -169,9 +214,13 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                     .and(STOCK_BALANCES.PRODUCT_ID.eq(movement.getProductId()))
                     .and(STOCK_BALANCES.LOT_ID.eq(movement.getLotId()))
                     .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(reservedStatusId))
+                    .and(STOCK_BALANCES.QUANTITY.ge(qty))
                     .execute();
+            if (updated != 1) {
+                return false;
+            }
 
-            // Increase AVAILABLE balance
+            // Return the validated quantity to the same available stock balance.
             ctx.insertInto(STOCK_BALANCES)
                     .columns(STOCK_BALANCES.ID, STOCK_BALANCES.WAREHOUSE_ID, STOCK_BALANCES.LOCATION_ID,
                             STOCK_BALANCES.PRODUCT_ID, STOCK_BALANCES.LOT_ID, STOCK_BALANCES.STOCK_STATUS_ID,
@@ -188,7 +237,7 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                     .set(STOCK_BALANCES.UPDATED_AT, now)
                     .execute();
 
-            // Record RELEASE_RESERVATION stock movement
+            // Persist the reversal so a later retry cannot release this quantity again.
             ctx.insertInto(STOCK_MOVEMENTS)
                     .columns(STOCK_MOVEMENTS.ID, STOCK_MOVEMENTS.MOVEMENT_TYPE_ID, STOCK_MOVEMENTS.PRODUCT_ID,
                             STOCK_MOVEMENTS.LOT_ID, STOCK_MOVEMENTS.WORK_ORDER_ID,
@@ -201,12 +250,19 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                             movement.getFromLocationId(), qty, reservedStatusId, availableStatusId,
                             "Work Order material release", actorId)
                     .execute();
+            remainingByStockKey.put(key, remaining.subtract(qty));
         }
 
-        // Reset reserved_quantity to 0 for all materials of this work order
+        // Material lines are cleared only after all stock balance updates and movements succeed.
         ctx.update(WORK_ORDER_MATERIALS)
                 .set(WORK_ORDER_MATERIALS.RESERVED_QUANTITY, BigDecimal.ZERO)
                 .where(WORK_ORDER_MATERIALS.WORK_ORDER_ID.eq(workOrderId))
                 .execute();
+        return true;
+    }
+
+    private String stockKey(UUID warehouseId, UUID locationId, UUID productId, UUID lotId) {
+        // The four dimensions uniquely identify a stock balance for release accounting.
+        return warehouseId + ":" + locationId + ":" + productId + ":" + lotId;
     }
 }

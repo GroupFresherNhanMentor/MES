@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "endpoint": "POST /api/v1/work-orders/{id}/reserve-materials",
   "description": "Reserve all required Work Order materials from the configured raw material warehouse and make the Work Order ready for production",
+=======
+  "endpoint": "POST /api/work-orders/{id}/reserve-materials",
+  "description": "Reserve all required Work Order materials from active warehouses and make the Work Order ready for production",
+>>>>>>> origin/develop
   "authentication": "JWT Bearer Token",
   "authorization": ["PLANNER"],
   "pathParameters": {
@@ -10,6 +15,7 @@
       "description": "Work Order ID"
     }
   },
+<<<<<<< HEAD
   "requestBody": {
     "contentType": "application/json",
     "schema": {
@@ -23,6 +29,9 @@
       "sourceWarehouseId": "Not accepted from the client; resolved from configured warehouse code RAW_MATERIAL_WAREHOUSE"
     }
   },
+=======
+  "requestBody": null,
+>>>>>>> origin/develop
   "responses": {
     "200": {
       "description": "Materials reserved successfully",
@@ -36,7 +45,11 @@
       }
     },
     "400": {
+<<<<<<< HEAD
       "description": "Invalid state, machine, input, or insufficient stock",
+=======
+      "description": "Invalid Work Order state or insufficient stock",
+>>>>>>> origin/develop
       "errorCodes": ["INVALID_INPUT", "INSUFFICIENT_STOCK"],
       "examples": [
         {
@@ -53,11 +66,14 @@
           ]
         },
         {
+<<<<<<< HEAD
           "case": "Machine unavailable",
           "errorCode": "INVALID_INPUT",
           "message": "Machine must be AVAILABLE before the Work Order can be reserved"
         },
         {
+=======
+>>>>>>> origin/develop
           "case": "Work Order not reservable",
           "errorCode": "INVALID_INPUT",
           "message": "Work Order must be PLANNED or MATERIAL_SHORTAGE to reserve materials"
@@ -71,11 +87,16 @@
       "description": "User does not have the PLANNER role"
     },
     "404": {
+<<<<<<< HEAD
       "description": "Work Order or machine not found",
+=======
+      "description": "Work Order not found",
+>>>>>>> origin/develop
       "errorCode": "NOT_FOUND"
     }
   },
   "businessRules": [
+<<<<<<< HEAD
     "Resolve the source warehouse using the configured code RAW_MATERIAL_WAREHOUSE; never accept sourceWarehouseId from the client",
     "Consider only AVAILABLE stock balances within the resolved source warehouse",
     "Select eligible lots in FIFO order by stock_lots.created_at",
@@ -83,6 +104,15 @@
     "Require the requested machine to have status AVAILABLE",
     "Move to READY_TO_PRODUCE only when all materials and the machine condition are satisfied",
     "Use pessimistic locking for the Work Order, machine decision, and eligible stock balances",
+=======
+    "The endpoint has no request body and does not accept a source warehouse parameter",
+    "Consider AVAILABLE stock balances across all ACTIVE warehouses",
+    "Select eligible lots in FIFO order by stock_lots.created_at",
+    "Allow reservation only from PLANNED or MATERIAL_SHORTAGE",
+    "Move to READY_TO_PRODUCE only when all material requirements are satisfied",
+    "Machine assignment and availability are validated when production starts, not during reservation",
+    "Use pessimistic locking for the Work Order and eligible stock balances",
+>>>>>>> origin/develop
     "Reserve all materials atomically; do not create partial reservations",
     "Create one immutable RESERVE movement per selected lot linked to the Work Order",
     "Write RESERVE_MATERIAL audit data for every important status transition",

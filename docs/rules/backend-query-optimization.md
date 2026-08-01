@@ -133,5 +133,6 @@ List<WorkOrder> filtered = dslCtx
 | No `.findAll()` then sort in Java | Add `ORDER BY` to the query |
 | Prefer `multiset()` for multiple nested collections | Avoids cartesian product from multi-JOIN |
 | Use `fetchGroups()` after JOIN for single nested collection | Simpler than multiset for 1 level deep |
-| Always paginate list queries | Use `.limit(size).offset(page * size)` — never fetch unbounded |
+| Paginate list queries by default | Use `.limit(size).offset(page * size)` for operational datasets and every new list endpoint |
+| Bound approved legacy catalogs | An unpaginated legacy catalog is allowed only under the compatibility conditions in `backend-api.md`; query it with deterministic `ORDER BY` and protect its response shape with a compatibility test |
 | Count separately, not with fetchAll().size() | Use `dslCtx.fetchCount(table, condition)` |

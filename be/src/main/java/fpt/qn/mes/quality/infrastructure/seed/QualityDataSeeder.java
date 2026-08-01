@@ -3,21 +3,16 @@ package fpt.qn.mes.quality.infrastructure.seed;
 import static fpt.qn.mes.jooq.Tables.DEFECT_TYPES;
 import static fpt.qn.mes.jooq.Tables.QC_ACTIONS;
 import static fpt.qn.mes.jooq.Tables.QC_STATUSES;
-
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -57,7 +52,7 @@ public class QualityDataSeeder implements ApplicationRunner {
 
         var step = ctx.insertInto(QC_ACTIONS, QC_ACTIONS.ID, QC_ACTIONS.NAME, QC_ACTIONS.DESCRIPTION);
         for (Map<String, Object> row : rows) {
-            step = step.values(UUID.randomUUID(), (String) row.get("name"), (String) row.get("description"));
+            step = step.values(UuidV7.generate(), (String) row.get("name"), (String) row.get("description"));
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded qc_actions");

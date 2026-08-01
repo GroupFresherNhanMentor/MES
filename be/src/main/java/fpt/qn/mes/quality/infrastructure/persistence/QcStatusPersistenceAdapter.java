@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.jooq.tables.records.QcStatusesRecord;
 import fpt.qn.mes.quality.domain.entities.QcStatus;
@@ -60,7 +61,7 @@ public class QcStatusPersistenceAdapter extends BaseRepository<QcStatusesRecord>
     @Override
     public QcStatus save(QcStatus status) {
         QcStatusesRecord r = mapper.toRecord(status);
-        if (r.getId() == null) r.setId(UUID.randomUUID());
+        if (r.getId() == null) r.setId(UuidV7.generate());
         dslCtx.insertInto(QC_STATUSES)
             .set(r)
             .onConflict(QC_STATUSES.ID)

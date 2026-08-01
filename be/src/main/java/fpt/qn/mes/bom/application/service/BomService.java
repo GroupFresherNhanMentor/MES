@@ -2,33 +2,36 @@ package fpt.qn.mes.bom.application.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
-import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
-import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomDto;
-import fpt.qn.mes.bom.application.dto.response.BomItemDto;
-import fpt.qn.mes.bom.application.exception.BomAlreadyExistsException;
+import fpt.qn.mes.bom.application.dto.bom.BomResponse;
+import fpt.qn.mes.bom.application.dto.bom.create.CreateBomRequest;
+import fpt.qn.mes.bom.application.dto.bom.search.BomSearchRequest;
 import fpt.qn.mes.bom.application.exception.BomNotFoundException;
+import fpt.qn.mes.bom.application.exception.BomStatusNotFoundException;
 import fpt.qn.mes.bom.application.exception.EmptyBomException;
 import fpt.qn.mes.bom.application.exception.InvalidBomStatusException;
 import fpt.qn.mes.bom.application.mapper.BomDtoMapper;
 import fpt.qn.mes.bom.application.port.in.BomUseCase;
+import fpt.qn.mes.bom.domain.constants.BomStatusConstants;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.entities.BomItem;
+import fpt.qn.mes.bom.domain.repository.BomItemRepository;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
-import fpt.qn.mes.common.domainQuery.PaginationResult;
+import fpt.qn.mes.bom.domain.repository.BomStatusRepository;
+import fpt.qn.mes.bom.domain.repository.criteria.BomSearchCriteria;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
+import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import fpt.qn.mes.common.service.LookupEntry;
-import fpt.qn.mes.common.service.LookupRepository;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -36,196 +39,147 @@ import java.util.List;
 public class BomService implements BomUseCase {
 
     BomRepository bomRepository;
-    BomDtoMapper mapper;
+    BomItemRepository bomItemRepository;
+    BomStatusRepository bomStatusRepository;
     ProductUseCase productUseCase;
     CurrentUserPort currentUserPort;
-    LookupRepository lookupRepository;
+    BomDtoMapper mapper;
+    JsonSerializerPort jsonSerializer;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
-    public List<LookupEntry> getBomStatuses() {
-        return lookupRepository.findAll("bom_statuses");
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<BomDto> getBoms(int page, int size, UUID finishedProductId, UUID bomStatusId) {
-        PaginationResult<Bom> result = bomRepository.findAll(page, size, finishedProductId, bomStatusId);
-        int totalPages = size > 0 ? (int) Math.ceil((double) result.getTotal() / size) : 0;
-        return PageResponse.<BomDto>builder()
-                .items(result.getItems().stream().map(mapper::toDto).toList())
+    public PageResponse<BomResponse> getBoms(BomSearchRequest request) {
+        var criteria = BomSearchCriteria.builder()
+                .finishedProductId(request.getFinishedProductId())
+                .bomStatusId(request.getBomStatusId())
+                .page(request.getPage())
+                .size(request.getSize())
+                .sort(request.getSort())
+                .build();
+        var result = bomRepository.search(criteria);
+        return PageResponse.<BomResponse>builder()
+                .items(result.getItems().stream().map(b -> mapper.toDto(b)).toList())
                 .totalElements(result.getTotal())
-                .totalPages(totalPages)
-                .pageNumber(page)
-                .pageSize(size)
+                .pageNumber(request.getPage())
+                .pageSize(request.getSize())
+                .totalPages(PaginationUtils.calculateTotalPages(result.getTotal(), request.getSize()))
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public BomDto getBomById(UUID id) {
+    public BomResponse getBomById(UUID id) {
         return bomRepository.findById(id)
-                .map(mapper::toDto)
+                .map(b -> mapper.toDto(b))
                 .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
     }
 
     @Override
     @Transactional
-    public BomDto createBom(CreateBomRequest request) {
-        UUID currentUserId = currentUserPort.getCurrentUserId();
-
-        // 1. Verify product exists
+    public void createBom(CreateBomRequest request) {
         productUseCase.getProductById(request.getFinishedProductId());
 
-        // 2. Verify version does not already exist
-        if (bomRepository.existsByFinishedProductIdAndVersion(request.getFinishedProductId(), request.getVersion())) {
-            throw new BomAlreadyExistsException(
-                    "BOM version " + request.getVersion() + " already exists for product " + request.getFinishedProductId()
-            );
+        int maxVersion = bomRepository.findMaxVersionByFinishedProductId(request.getFinishedProductId());
+        int version;
+        if (request.getVersion() != null && request.getVersion() > 0) {
+            version = bomRepository.existsByFinishedProductIdAndVersion(request.getFinishedProductId(), request.getVersion())
+                    ? maxVersion + 1
+                    : request.getVersion();
+        } else {
+            version = maxVersion + 1;
         }
 
-        // 3. Resolve status ID (default to DRAFT if not provided)
-        UUID statusId = request.getBomStatusId();
-        if (statusId == null) {
-            statusId = bomRepository.findStatusIdByName("DRAFT")
-                    .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        }
-
-        // 4. Create and save entity
-        Bom bom = Bom.create(
-                request.getFinishedProductId(),
-                request.getVersion(),
-                statusId,
-                currentUserId
-        );
-
-        Bom savedBom = bomRepository.save(bom);
-        return mapper.toDto(savedBom);
+        var draftStatus = bomStatusRepository.findByName(BomStatusConstants.DRAFT)
+                .orElseThrow(() -> new BomStatusNotFoundException("DRAFT status not found in bom_statuses"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        bomRepository.save(Bom.create(request.getFinishedProductId(), version, draftStatus.getId(), currentUserId));
     }
 
     @Override
     @Transactional
-    public BomDto activateBom(UUID id) {
-        // 1. Fetch target BOM
+    public void activateBom(UUID id) {
         Bom bom = bomRepository.findById(id)
                 .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
 
-        // 2. Resolve status IDs
-        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-        UUID activeStatusId = bomRepository.findStatusIdByName("ACTIVE")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000002"));
-        UUID inactiveStatusId = bomRepository.findStatusIdByName("INACTIVE")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000003"));
+        var draftStatus = bomStatusRepository.findByName(BomStatusConstants.DRAFT)
+                .orElseThrow(() -> new BomStatusNotFoundException("DRAFT status not found in bom_statuses"));
+        var activeStatus = bomStatusRepository.findByName(BomStatusConstants.ACTIVE)
+                .orElseThrow(() -> new BomStatusNotFoundException("ACTIVE status not found in bom_statuses"));
+        var inactiveStatus = bomStatusRepository.findByName(BomStatusConstants.INACTIVE)
+                .orElseThrow(() -> new BomStatusNotFoundException("INACTIVE status not found in bom_statuses"));
 
-        // 3. Validate status is DRAFT
-        if (!draftStatusId.equals(bom.getBomStatusId())) {
+        if (!draftStatus.getId().equals(bom.getBomStatus().getId())) {
             throw new InvalidBomStatusException("Only DRAFT BOMs can be activated");
         }
-
-        // 4. Validate BOM contains items (> 0)
-        int itemCount = bomRepository.countItemsByBomId(id);
-        if (itemCount == 0 && (bom.getItems() == null || bom.getItems().isEmpty())) {
+        if (bom.getItems() == null || bom.getItems().isEmpty()) {
             throw new EmptyBomException("Cannot activate an empty BOM (must contain at least 1 item)");
         }
 
-        // 5. Deactivate any existing ACTIVE BOM for this product
-        bomRepository.deactivateActiveBomsForProduct(
-                bom.getFinishedProductId(),
-                activeStatusId,
-                inactiveStatusId
-        );
+        bomRepository.deactivateActiveBomsForProduct(bom.getFinishedProductId(), activeStatus.getId(), inactiveStatus.getId());
 
-        // 6. Transition target BOM to ACTIVE
-        bom.updateStatus(activeStatusId);
-        Bom savedBom = bomRepository.save(bom);
+        Bom activated = Bom.changeStatus(bom, activeStatus.getId());
+        bomRepository.update(activated);
 
-        return mapper.toDto(savedBom);
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_BOM, "BOM", id,
+                jsonSerializer.toJson(bom),
+                jsonSerializer.toJson(activated),
+                null));
     }
 
     @Override
     @Transactional
-    public BomDto createNewVersion(UUID id) {
-        // 1. Fetch source BOM
+    public void deactivateBom(UUID id) {
+        Bom bom = bomRepository.findById(id)
+                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + id));
+
+        var activeStatus = bomStatusRepository.findByName(BomStatusConstants.ACTIVE)
+                .orElseThrow(() -> new BomStatusNotFoundException("ACTIVE status not found in bom_statuses"));
+        var inactiveStatus = bomStatusRepository.findByName(BomStatusConstants.INACTIVE)
+                .orElseThrow(() -> new BomStatusNotFoundException("INACTIVE status not found in bom_statuses"));
+
+        if (!activeStatus.getId().equals(bom.getBomStatus().getId())) {
+            throw new InvalidBomStatusException("Only ACTIVE BOMs can be deactivated");
+        }
+
+        Bom deactivated = Bom.changeStatus(bom, inactiveStatus.getId());
+        bomRepository.update(deactivated);
+
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_BOM, "BOM", id,
+                jsonSerializer.toJson(bom),
+                jsonSerializer.toJson(deactivated),
+                null));
+    }
+
+    @Override
+    @Transactional
+    public BomResponse createNewVersion(UUID id) {
         Bom sourceBom = bomRepository.findById(id)
                 .orElseThrow(() -> new BomNotFoundException("Source BOM not found: " + id));
 
-        // 2. Resolve DRAFT status ID
-        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+        var draftStatus = bomStatusRepository.findByName(BomStatusConstants.DRAFT)
+                .orElseThrow(() -> new BomStatusNotFoundException("DRAFT status not found in bom_statuses"));
 
-        // 3. Find max version and calculate next version
-        int maxVersion = bomRepository.findMaxVersionByFinishedProductId(sourceBom.getFinishedProductId());
-        int newVersion = maxVersion + 1;
-
-        // 4. Get current user ID
+        int newVersion = bomRepository.findMaxVersionByFinishedProductId(sourceBom.getFinishedProductId()) + 1;
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
-        // 5. Create new draft BOM entity
-        Bom newBom = Bom.create(
-                sourceBom.getFinishedProductId(),
-                newVersion,
-                draftStatusId,
-                currentUserId
-        );
+        Bom newBom = Bom.create(sourceBom.getFinishedProductId(), newVersion, draftStatus.getId(), currentUserId);
+        Bom savedBom = bomRepository.save(newBom);
 
-        // 6. Deep copy component items if present
-        if (sourceBom.getItems() != null && !sourceBom.getItems().isEmpty()) {
+        if (sourceBom.getItems() != null) {
             for (BomItem sourceItem : sourceBom.getItems()) {
-                BomItem clonedItem = BomItem.create(
-                        newBom.getId(),
+                bomItemRepository.save(BomItem.create(
+                        savedBom.getId(),
                         sourceItem.getMaterialProductId(),
                         sourceItem.getQuantityPerUnit(),
-                        sourceItem.getUnit(),
-                        sourceItem.getScrapRate()
-                );
-                newBom.getItems().add(clonedItem);
+                        sourceItem.getScrapRate()));
             }
         }
 
-        // 7. Save and return DTO
-        Bom savedBom = bomRepository.save(newBom);
-        return mapper.toDto(savedBom);
-    }
-
-    @Override
-    @Transactional
-    public BomItemDto addBomItem(UUID bomId, CreateBomItemRequest request) {
-        Bom bom = bomRepository.findById(bomId)
-                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
-
-        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-
-        if (!draftStatusId.equals(bom.getBomStatusId())) {
-            throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
-        }
-
-        BomItem item = BomItem.create(
-                bomId,
-                request.getMaterialProductId(),
-                request.getQuantityPerUnit(),
-                request.getUnit(),
-                request.getScrapRate()
-        );
-
-        BomItem savedItem = bomRepository.saveItem(item);
-        return mapper.toDto(savedItem);
-    }
-
-    @Override
-    @Transactional
-    public void deleteBomItem(UUID bomId, UUID itemId) {
-        Bom bom = bomRepository.findById(bomId)
-                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
-
-        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
-                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
-
-        if (!draftStatusId.equals(bom.getBomStatusId())) {
-            throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
-        }
-
-        bomRepository.deleteItemById(itemId);
+        return bomRepository.findById(savedBom.getId())
+                .map(b -> mapper.toDto(b))
+                .orElseThrow(() -> new BomNotFoundException("BOM not found after save: " + savedBom.getId()));
     }
 }

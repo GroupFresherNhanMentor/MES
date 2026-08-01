@@ -5,6 +5,7 @@
 ### `POST /api/v1/work-orders/{id}/release-materials`
 
 Releases all reserved materials associated with a Work Order back into available stock.
+The operation is idempotent: it releases only the outstanding net reservation for each original stock lot.
 
 #### Security
 - **Bearer Token**: Required (JWT)
@@ -57,6 +58,7 @@ None
   "data": null
 }
 ```
+- **`400 Bad Request`** (Reserved balance integrity failure): the system could not lock or debit the required `RESERVED` balance. No stock movement or status change is persisted.
 - **`404 Not Found`**:
 ```json
 {
