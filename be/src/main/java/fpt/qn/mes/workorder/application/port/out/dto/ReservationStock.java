@@ -1,13 +1,15 @@
-package fpt.qn.mes.workorder.application.port.out;
+package fpt.qn.mes.workorder.application.port.out.dto;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 
-public record ReservationAllocation(
+public record ReservationStock(
         UUID balanceId,
         UUID warehouseId,
         UUID locationId,
         UUID productId,
         UUID lotId,
-        BigDecimal quantity) {
+        BigDecimal quantity,
+        Instant lotCreatedAt) {
 }

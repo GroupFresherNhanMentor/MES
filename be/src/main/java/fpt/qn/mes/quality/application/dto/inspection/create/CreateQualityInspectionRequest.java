@@ -17,6 +17,6 @@ public class CreateQualityInspectionRequest {
     @NotNull UUID workOrderId;
     @NotNull UUID productId;
     @NotNull UUID lotId;
-    @NotNull @DecimalMin("0.0001") BigDecimal quantity;
+    @NotNull @DecimalMin("0.0") BigDecimal quantity;
     @NotNull UUID qcStatusId;
 }

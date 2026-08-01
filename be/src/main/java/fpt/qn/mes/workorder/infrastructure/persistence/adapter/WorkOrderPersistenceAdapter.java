@@ -4,6 +4,7 @@ import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_EVENTS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_MATERIALS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUS_TRANSITIONS;
 import static org.jooq.impl.DSL.noCondition;
 
 import java.util.List;
@@ -188,6 +189,14 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
                 .from(WORK_ORDER_STATUSES)
                 .where(WORK_ORDER_STATUSES.NAME.eq(name))
                 .fetchOptionalInto(UUID.class);
+    }
+
+    @Override
+    public boolean hasActiveTransition(UUID fromStatusId, UUID toStatusId) {
+        return dslCtx.fetchExists(WORK_ORDER_STATUS_TRANSITIONS,
+                WORK_ORDER_STATUS_TRANSITIONS.FROM_STATUS_ID.eq(fromStatusId)
+                        .and(WORK_ORDER_STATUS_TRANSITIONS.TO_STATUS_ID.eq(toStatusId))
+                        .and(WORK_ORDER_STATUS_TRANSITIONS.IS_ACTIVE.isTrue()));
     }
 
     @Override

@@ -8,6 +8,7 @@ import static fpt.qn.mes.jooq.Tables.WORK_ORDER_EVENT_TYPES;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.workorder.application.port.out.ProductionRunPort;
+import fpt.qn.mes.workorder.application.port.out.dto.ActiveProductionRun;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,6 +54,36 @@ public class ProductionRunPersistenceAdapter implements ProductionRunPort {
     }
 
     @Override
+    public Optional<ActiveProductionRun> findActiveProductionRunForUpdate(UUID workOrderId) {
+        // Lock the active run so only one completion transaction can close it.
+        return ctx.select(PRODUCTION_RUNS.ID, PRODUCTION_RUNS.MACHINE_ID)
+                .from(PRODUCTION_RUNS)
+                .where(PRODUCTION_RUNS.WORK_ORDER_ID.eq(workOrderId))
+                .and(PRODUCTION_RUNS.END_TIME.isNull())
+                .orderBy(PRODUCTION_RUNS.START_TIME.asc(), PRODUCTION_RUNS.ID.asc())
+                .forUpdate()
+                .fetchOptional(record -> ActiveProductionRun.builder()
+                        .id(record.get(PRODUCTION_RUNS.ID))
+                        .machineId(record.get(PRODUCTION_RUNS.MACHINE_ID))
+                        .build());
+    }
+
+    @Override
+    public boolean closeActiveProductionRun(UUID productionRunId, BigDecimal actualQuantity,
+            BigDecimal goodQuantity, BigDecimal defectQuantity, BigDecimal scrapQuantity) {
+        // The end-time predicate prevents a second caller from overwriting final production results.
+        return ctx.update(PRODUCTION_RUNS)
+                .set(PRODUCTION_RUNS.END_TIME, OffsetDateTime.now(ZoneOffset.UTC))
+                .set(PRODUCTION_RUNS.ACTUAL_QUANTITY, actualQuantity)
+                .set(PRODUCTION_RUNS.GOOD_QUANTITY, goodQuantity)
+                .set(PRODUCTION_RUNS.DEFECT_QUANTITY, defectQuantity)
+                .set(PRODUCTION_RUNS.SCRAP_QUANTITY, scrapQuantity)
+                .where(PRODUCTION_RUNS.ID.eq(productionRunId))
+                .and(PRODUCTION_RUNS.END_TIME.isNull())
+                .execute() == 1;
+    }
+
+    @Override
     public boolean isMachineRunning(UUID machineId) {
         return ctx.fetchExists(
                 ctx.selectFrom(PRODUCTION_RUNS)
@@ -77,6 +109,13 @@ public class ProductionRunPersistenceAdapter implements ProductionRunPort {
 
     @Override
     public void recordWorkOrderEvent(UUID workOrderId, UUID productionRunId, String eventTypeName, UUID operatorId) {
+        recordWorkOrderEvent(workOrderId, productionRunId, eventTypeName, operatorId, null);
+    }
+
+    @Override
+    public void recordWorkOrderEvent(UUID workOrderId, UUID productionRunId, String eventTypeName, UUID operatorId,
+            String note) {
+        // Resolve the event type by its seeded business name before creating the immutable event ledger row.
         UUID eventTypeId = ctx.select(WORK_ORDER_EVENT_TYPES.ID)
                 .from(WORK_ORDER_EVENT_TYPES)
                 .where(WORK_ORDER_EVENT_TYPES.NAME.eq(eventTypeName))
@@ -90,6 +129,7 @@ public class ProductionRunPersistenceAdapter implements ProductionRunPort {
                     .set(WORK_ORDER_EVENTS.EVENT_TYPE_ID, eventTypeId)
                     .set(WORK_ORDER_EVENTS.OPERATOR_ID, operatorId)
                     .set(WORK_ORDER_EVENTS.EVENT_TIMESTAMP, OffsetDateTime.now(ZoneOffset.UTC))
+                    .set(WORK_ORDER_EVENTS.NOTE, note)
                     .execute();
         }
     }

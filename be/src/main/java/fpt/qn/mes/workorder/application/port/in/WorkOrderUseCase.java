@@ -10,6 +10,7 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
@@ -26,6 +27,7 @@ public interface WorkOrderUseCase {
     WorkOrderResponse startWorkOrder(UUID workOrderId, StartWorkOrderRequest request);
     WorkOrderResponse pauseWorkOrder(UUID workOrderId);
     WorkOrderResponse resumeWorkOrder(UUID workOrderId);
+    WorkOrderResponse completeWorkOrder(UUID workOrderId, CompleteWorkOrderRequest request);
     void deleteWorkOrder(UUID id);
 
     PageResponse<WorkOrderMaterialResponse> getMaterials(UUID workOrderId, int page, int size);

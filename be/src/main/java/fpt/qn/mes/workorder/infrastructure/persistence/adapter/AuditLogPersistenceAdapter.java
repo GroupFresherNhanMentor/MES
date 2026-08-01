@@ -41,6 +41,12 @@ public class AuditLogPersistenceAdapter implements AuditLogPort {
                 .execute();
     }
 
+    @Override
+    public void recordCompletion(UUID actorId, UUID workOrderId) {
+        // Completion has its own audit action so production finalization is distinguishable from reservation actions.
+        recordStatusTransition(actorId, workOrderId, "IN_PROGRESS", "COMPLETED", "COMPLETE_PRODUCTION");
+    }
+
     private JSONB statusJson(String status) {
         // A null status remains a JSONB null database value rather than the string "null".
         return status == null ? null : JSONB.valueOf("\"" + status + "\"");
