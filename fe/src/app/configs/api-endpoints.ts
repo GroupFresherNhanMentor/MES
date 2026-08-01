@@ -6,6 +6,16 @@ export const API = {
     refresh: `${BASE}/auth/refresh`,
     me: `${BASE}/auth/me`,
   },
+  users: {
+    base: `${BASE}/users`,
+    byId: (id: string) => `${BASE}/users/${id}`,
+    activate: (id: string) => `${BASE}/users/${id}/activate`,
+    deactivate: (id: string) => `${BASE}/users/${id}/deactivate`,
+    roles: (id: string) => `${BASE}/users/${id}/roles`,
+  },
+  roles: {
+    base: `${BASE}/roles`,
+  },
   products: {
     base: `${BASE}/products`,
     byId: (id: string | number) => `${BASE}/products/${id}`,
