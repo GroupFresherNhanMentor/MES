@@ -19,11 +19,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.dto.request.CreateRoleRequest;
 import fpt.qn.mes.auth.application.dto.request.UpdateRoleRequest;
 import fpt.qn.mes.auth.application.dto.response.RoleResponse;
+import fpt.qn.mes.auth.application.exception.RoleConflictException;
 import fpt.qn.mes.auth.application.exception.RoleNotFoundException;
 import fpt.qn.mes.auth.application.mapper.RoleDtoMapper;
 import fpt.qn.mes.auth.domain.entities.Role;
 import fpt.qn.mes.auth.domain.repository.RoleRepository;
-import fpt.qn.mes.common.exception.ConflictException;
 
 @ExtendWith(MockitoExtension.class)
 class RoleServiceTest {
@@ -69,7 +69,7 @@ class RoleServiceTest {
         when(roleRepository.existsByName(" admin ")).thenReturn(true);
 
         assertThatThrownBy(() -> service.createRole(request))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RoleConflictException.class);
         verify(roleRepository, never()).save(any());
     }
 
@@ -81,7 +81,7 @@ class RoleServiceTest {
         when(roleRepository.findById(id)).thenReturn(Optional.of(role(id, "ADMIN")));
 
         assertThatThrownBy(() -> service.updateRole(id, request))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RoleConflictException.class);
         verify(roleRepository, never()).update(any());
     }
 
@@ -90,14 +90,14 @@ class RoleServiceTest {
         UUID adminId = UUID.randomUUID();
         when(roleRepository.findById(adminId)).thenReturn(Optional.of(role(adminId, "ADMIN")));
         assertThatThrownBy(() -> service.deleteRole(adminId))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RoleConflictException.class);
 
         UUID assignedId = UUID.randomUUID();
         when(roleRepository.findById(assignedId))
                 .thenReturn(Optional.of(role(assignedId, "PLANNER")));
         when(roleRepository.isAssigned(assignedId)).thenReturn(true);
         assertThatThrownBy(() -> service.deleteRole(assignedId))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(RoleConflictException.class);
     }
 
     @Test

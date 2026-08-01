@@ -22,11 +22,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
-import fpt.qn.mes.common.exception.ConflictException;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
 import fpt.qn.mes.user.application.dto.response.UserResponse;
 import fpt.qn.mes.user.application.exception.UserNotFoundException;
+import fpt.qn.mes.user.application.exception.UsernameAlreadyExistsException;
 import fpt.qn.mes.user.application.mapper.UserDtoMapper;
 import fpt.qn.mes.user.domain.entities.User;
 import fpt.qn.mes.user.domain.repository.UserRepository;
@@ -104,7 +104,7 @@ class UserServiceTest {
         when(repository.existsByUsername("alice")).thenReturn(true);
 
         assertThatThrownBy(() -> service.createUser(request))
-                .isInstanceOf(ConflictException.class);
+                .isInstanceOf(UsernameAlreadyExistsException.class);
         verify(passwordPort, never()).encode(any());
         verify(repository, never()).save(any());
     }
