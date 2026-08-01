@@ -1,5 +1,8 @@
 package fpt.qn.mes.workorder.application.port.out;
 
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationAllocation;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationStock;
+
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;

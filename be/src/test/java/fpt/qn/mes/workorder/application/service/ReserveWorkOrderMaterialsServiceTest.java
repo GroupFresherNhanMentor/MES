@@ -28,7 +28,7 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
-import fpt.qn.mes.workorder.application.port.out.ReservationStock;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;

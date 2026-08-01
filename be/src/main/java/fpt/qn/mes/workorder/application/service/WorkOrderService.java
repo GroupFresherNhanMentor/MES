@@ -1,6 +1,7 @@
 package fpt.qn.mes.workorder.application.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,14 +32,19 @@ import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsRe
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
 import fpt.qn.mes.workorder.application.port.out.ProductionRunPort;
-import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
-import fpt.qn.mes.workorder.application.port.out.ReservationStock;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationAllocation;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
+import fpt.qn.mes.workorder.application.port.out.WorkOrderCompletionPort;
+import fpt.qn.mes.workorder.application.port.out.dto.ActiveProductionRun;
+import fpt.qn.mes.workorder.application.port.out.dto.CompletionReferences;
+import fpt.qn.mes.workorder.application.port.out.dto.CompletionReservationAllocation;
 import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
@@ -60,6 +66,7 @@ public class WorkOrderService implements WorkOrderUseCase {
     WarehouseUseCase warehouseUseCase;
     MachineUseCase machineUseCase;
     WorkOrderReservationPort reservationPort;
+    WorkOrderCompletionPort completionPort;
     ProductionRunPort productionRunPort;
     AuditLogPort auditLogPort;
     CurrentUserPort currentUserPort;
@@ -554,6 +561,102 @@ public class WorkOrderService implements WorkOrderUseCase {
         productionRunPort.recordWorkOrderEvent(workOrderId, runId, "RESUME", actorId);
         auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.IN_PROGRESS);
         return getWorkOrderById(workOrderId);
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse completeWorkOrder(UUID workOrderId, CompleteWorkOrderRequest request) {
+        // Validate the reported production split before any persistent state is locked or changed.
+        if (request == null) {
+            throw new InvalidInputException("Completion request body cannot be null");
+        }
+        BigDecimal reportedTotal = request.getGoodQuantity().add(request.getDefectQuantity()).add(request.getScrapQuantity());
+        if (reportedTotal.compareTo(request.getActualQuantity()) != 0) {
+            throw new InvalidInputException("Good, defect, and scrap quantities must equal actual quantity");
+        }
+        // Lock the order first so a competing completion cannot pass the lifecycle check.
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (!WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException("Work Order must be IN_PROGRESS to complete");
+        }
+        // The configured transition table, rather than a hard-coded rule alone, authorizes finalization.
+        UUID completedStatusId = repository.findStatusIdByName(WorkOrderStatusConstants.COMPLETED)
+                .orElseThrow(() -> new InvalidWorkOrderStateException("COMPLETED status is not configured"));
+        if (!repository.hasActiveTransition(workOrder.getWorkOrderStatusId(), completedStatusId)) {
+            throw new InvalidWorkOrderStateException("IN_PROGRESS to COMPLETED transition is not active");
+        }
+        // The active run identifies the machine that must be released and is locked for a single close.
+        ActiveProductionRun productionRun = productionRunPort.findActiveProductionRunForUpdate(workOrderId)
+                .orElseThrow(() -> new InvalidWorkOrderStateException("Work Order has no active production run"));
+        var destination = completionPort.findOutputDestination(request.getOutputWarehouseId(), request.getOutputLocationId())
+                .orElseThrow(() -> new InvalidInputException("Output location must belong to the output warehouse"));
+        CompletionReferences references = completionPort.findCompletionReferences();
+        if (!hasAllCompletionReferences(references)) {
+            throw new InvalidWorkOrderStateException("Completion reference data is not configured");
+        }
+        // Build lot-level consumption, scrap, and release commands from the immutable reservation ledger.
+        List<CompletionReservationAllocation> allocations = calculateCompletionAllocations(
+                completionPort.findOutstandingReservations(workOrderId), workOrder.getPlannedQuantity(), request);
+        UUID actorId = currentUserPort.getCurrentUserId();
+        // Persist all stock, output, run, machine, and event effects before exposing the completed state.
+        if (!completionPort.finalizeCompletion(workOrder, productionRun, request, allocations, destination, references, actorId)) {
+            throw new InvalidWorkOrderStateException("Reserved material balance or production run is inconsistent");
+        }
+        // The status and audit record are written last inside this transaction to preserve all-or-nothing completion.
+        updateStatus(workOrder, completedStatusId);
+        auditLogPort.recordCompletion(actorId, workOrderId);
+        return getWorkOrderById(workOrderId);
+    }
+
+    private List<CompletionReservationAllocation> calculateCompletionAllocations(
+            List<CompletionReservationAllocation> reservations, BigDecimal plannedQuantity,
+            CompleteWorkOrderRequest request) {
+        // Aggregate reservations first because one material can be reserved from several physical lots.
+        Map<UUID, BigDecimal> reservedByProduct = new HashMap<>();
+        for (CompletionReservationAllocation reservation : reservations) {
+            reservedByProduct.merge(reservation.getMaterialProductId(), reservation.getReservedQuantity(),
+                    (left, right) -> left.add(right));
+        }
+        Map<UUID, BigDecimal> remainingConsumption = new HashMap<>();
+        for (var entry : reservedByProduct.entrySet()) {
+            // Consumption scales with actual output but can never exceed the material reserved for this order.
+            BigDecimal consumed = entry.getValue().multiply(request.getActualQuantity())
+                    .divide(plannedQuantity, 4, RoundingMode.HALF_UP).min(entry.getValue());
+            remainingConsumption.put(entry.getKey(), consumed);
+        }
+        List<CompletionReservationAllocation> allocations = new ArrayList<>();
+        for (CompletionReservationAllocation reservation : reservations) {
+            // Allocate the capped material consumption in deterministic reservation order.
+            BigDecimal remaining = remainingConsumption.getOrDefault(reservation.getMaterialProductId(), BigDecimal.ZERO);
+            BigDecimal consumed = reservation.getReservedQuantity().min(remaining);
+            // Split each consumed lot between normal production and material loss without dividing by zero.
+            BigDecimal scrap = request.getActualQuantity().compareTo(BigDecimal.ZERO) == 0
+                    ? BigDecimal.ZERO
+                    : consumed.multiply(request.getScrapQuantity()).divide(request.getActualQuantity(), 4, RoundingMode.HALF_UP);
+            allocations.add(CompletionReservationAllocation.builder()
+                    .materialProductId(reservation.getMaterialProductId())
+                    .warehouseId(reservation.getWarehouseId())
+                    .locationId(reservation.getLocationId())
+                    .lotId(reservation.getLotId())
+                    .reservedQuantity(reservation.getReservedQuantity())
+                    .consumedQuantity(consumed)
+                    .scrapQuantity(scrap)
+                    .build());
+            remainingConsumption.put(reservation.getMaterialProductId(), remaining.subtract(consumed));
+        }
+        return allocations;
+    }
+
+    private boolean hasAllCompletionReferences(CompletionReferences references) {
+        return references != null && references.getAvailableStatusId() != null && references.getReservedStatusId() != null
+                && references.getConsumedStatusId() != null && references.getScrappedStatusId() != null
+                && references.getQualityInspectionStatusId() != null && references.getConsumeMovementTypeId() != null
+                && references.getScrapMovementTypeId() != null && references.getReleaseMovementTypeId() != null
+                && references.getProductionOutputMovementTypeId() != null && references.getProductionLotTypeId() != null
+                && references.getPendingInspectionStatusId() != null && references.getCompleteEventTypeId() != null
+                && references.getAvailableMachineStatusId() != null;
     }
 
     @Override @Transactional

@@ -970,6 +970,29 @@ deduplicated; any missing ID rejects the complete mutation.
 
 ---
 
+### POST `/api/v1/work-orders/{id}/complete`
+> **Roles:** `OPERATOR`
+
+Completes an in-progress Work Order with a running production run. Classified good and defective output is placed in quality inspection, while raw-material reservations are consumed or released atomically.
+
+**Request body:**
+```json
+{
+  "actualQuantity": 100.0000,
+  "goodQuantity": 90.0000,
+  "defectQuantity": 5.0000,
+  "scrapQuantity": 5.0000,
+  "outputWarehouseId": "uuid",
+  "outputLocationId": "uuid",
+  "note": "Shift B completion"
+}
+```
+`goodQuantity + defectQuantity + scrapQuantity` must equal `actualQuantity`; all quantities are non-negative and the location must belong to the warehouse.
+
+**Response `200`:** `ApiResponse<WorkOrderDto>` with message `Production completed successfully`.
+
+---
+
 ### DELETE `/work-orders/{id}`
 > **Roles:** `ADMIN` · `PLANNER`
 

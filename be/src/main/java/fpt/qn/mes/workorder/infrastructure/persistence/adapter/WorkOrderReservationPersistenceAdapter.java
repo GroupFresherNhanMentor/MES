@@ -20,8 +20,8 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.util.UuidV7;
-import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
-import fpt.qn.mes.workorder.application.port.out.ReservationStock;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationAllocation;
+import fpt.qn.mes.workorder.application.port.out.dto.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -159,9 +159,11 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                 .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(reserveMovementTypeId))
                 .orderBy(STOCK_MOVEMENTS.CREATED_AT.asc(), STOCK_MOVEMENTS.ID.asc())
                 .fetch();
+        UUID consumeMovementTypeId = findMovementTypeId("CONSUME_IN_PRODUCTION");
+        UUID scrapMovementTypeId = findMovementTypeId("SCRAP");
         var releaseMovements = ctx.selectFrom(STOCK_MOVEMENTS)
                 .where(STOCK_MOVEMENTS.WORK_ORDER_ID.eq(workOrderId))
-                .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(releaseMovementTypeId))
+                .and(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.in(releaseMovementTypeId, consumeMovementTypeId, scrapMovementTypeId))
                 .fetch();
 
         // Track the net outstanding reservation for every original warehouse, location, product, and lot.

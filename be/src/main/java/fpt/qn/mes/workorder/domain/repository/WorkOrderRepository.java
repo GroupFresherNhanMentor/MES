@@ -30,5 +30,6 @@ public interface WorkOrderRepository {
     java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId);
     Optional<String> findStatusNameById(UUID id);
     Optional<UUID> findStatusIdByName(String name);
+    boolean hasActiveTransition(UUID fromStatusId, UUID toStatusId);
     boolean existsByCodeAndIdNot(String code, UUID excludeId);
 }

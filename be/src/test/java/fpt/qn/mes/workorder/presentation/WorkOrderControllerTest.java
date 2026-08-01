@@ -29,6 +29,7 @@ import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 
@@ -202,5 +203,25 @@ class WorkOrderControllerTest {
         assertEquals(id, response.getBody().getData().getWorkOrderId());
 
         verify(workOrderUseCase).reserveMaterials(id, req);
+    }
+
+    @Test
+    @DisplayName("complete should return the completed Work Order response")
+    void complete_shouldReturn200WithSuccessEnvelope() {
+        UUID id = sampleDto.getId();
+        CompleteWorkOrderRequest request = new CompleteWorkOrderRequest();
+        request.setActualQuantity(BigDecimal.TEN);
+        request.setGoodQuantity(BigDecimal.TEN);
+        request.setDefectQuantity(BigDecimal.ZERO);
+        request.setScrapQuantity(BigDecimal.ZERO);
+        request.setOutputWarehouseId(UUID.randomUUID());
+        request.setOutputLocationId(UUID.randomUUID());
+        when(workOrderUseCase.completeWorkOrder(id, request)).thenReturn(sampleDto);
+
+        ResponseEntity<ApiResponse<WorkOrderResponse>> response = controller.complete(id, request);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Production completed successfully", response.getBody().getMessage());
+        verify(workOrderUseCase).completeWorkOrder(id, request);
     }
 }

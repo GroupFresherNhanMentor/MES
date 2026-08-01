@@ -27,6 +27,7 @@ import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsReq
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
@@ -123,6 +124,15 @@ public class WorkOrderController {
     public ResponseEntity<ApiResponse<WorkOrderResponse>> resume(@PathVariable UUID id) {
         var response = workOrderUseCase.resumeWorkOrder(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Production resumed successfully"));
+    }
+
+    @PreAuthorize("hasRole('OPERATOR')")
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> complete(@PathVariable UUID id,
+            @Valid @RequestBody CompleteWorkOrderRequest request) {
+        // Completion is restricted to Operators; all business and transactional work remains in the use case.
+        var response = workOrderUseCase.completeWorkOrder(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production completed successfully"));
     }
 
     @DeleteMapping("/{id}")
