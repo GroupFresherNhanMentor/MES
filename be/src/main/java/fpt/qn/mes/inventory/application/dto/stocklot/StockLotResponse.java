@@ -13,10 +13,46 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockLotResponse {
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ProductRef {
+        UUID id;
+        String code;
+        String name;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class LotTypeRef {
+        UUID id;
+        String name;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserInfo {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
     UUID id;
     String lotNumber;
-    UUID productId;
-    UUID lotTypeId;
+    ProductRef product;
+    LotTypeRef lotType;
     LocalDate expiryDate;
     Instant createdAt;
+    UserInfo createdBy;
+    Instant updatedAt;
+    UserInfo updatedBy;
 }

@@ -1,6 +1,5 @@
 package fpt.qn.mes.inventory.application.dto.stocklot.search;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 import fpt.qn.mes.common.dto.request.BaseSearchRequest;
@@ -21,5 +20,4 @@ public class StockLotSearchRequest extends BaseSearchRequest {
     UUID productId;
     UUID lotTypeId;
     String lotNumber;
-    LocalDate expiryBefore;
 }

@@ -1,6 +1,7 @@
 package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.LOT_TYPES;
+import static fpt.qn.mes.jooq.Tables.USERS;
 
 import java.util.List;
 import java.util.Map;
@@ -20,6 +21,7 @@ import fpt.qn.mes.common.repository.SortUtils;
 import fpt.qn.mes.inventory.domain.entities.LotType;
 import fpt.qn.mes.inventory.domain.repository.LotTypeRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.LotTypeSearchCriteria;
+import fpt.qn.mes.jooq.tables.Users;
 import fpt.qn.mes.jooq.tables.records.LotTypesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
@@ -27,6 +29,9 @@ import lombok.experimental.FieldDefaults;
 @Repository
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LotTypePersistenceAdapter extends BaseRepository<LotTypesRecord> implements LotTypeRepository {
+
+    private static final Users CREATOR = USERS.as("creator");
+    private static final Users UPDATER = USERS.as("updater");
 
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
             "name", LOT_TYPES.NAME,
@@ -43,16 +48,22 @@ public class LotTypePersistenceAdapter extends BaseRepository<LotTypesRecord> im
 
     @Override
     public Optional<LotType> findById(UUID id) {
-        return ctx.selectFrom(LOT_TYPES)
+        return ctx.select()
+                .from(LOT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(LOT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(LOT_TYPES.UPDATED_BY))
                 .where(LOT_TYPES.ID.eq(id))
-                .fetchOptional(r -> mapper.toDomain(r));
+                .fetchOptional(r -> mapper.toDomain(r.into(LOT_TYPES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
     public Optional<LotType> findByName(String name) {
-        return ctx.selectFrom(LOT_TYPES)
+        return ctx.select()
+                .from(LOT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(LOT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(LOT_TYPES.UPDATED_BY))
                 .where(LOT_TYPES.NAME.eq(name))
-                .fetchOptional(r -> mapper.toDomain(r));
+                .fetchOptional(r -> mapper.toDomain(r.into(LOT_TYPES), r.into(CREATOR), r.into(UPDATER)));
     }
 
     @Override
@@ -88,12 +99,15 @@ public class LotTypePersistenceAdapter extends BaseRepository<LotTypesRecord> im
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
         long total = ctx.fetchCount(LOT_TYPES, condition);
-        List<LotType> items = ctx.selectFrom(LOT_TYPES)
+        List<LotType> items = ctx.select()
+                .from(LOT_TYPES)
+                .leftJoin(CREATOR).on(CREATOR.ID.eq(LOT_TYPES.CREATED_BY))
+                .leftJoin(UPDATER).on(UPDATER.ID.eq(LOT_TYPES.UPDATED_BY))
                 .where(condition)
                 .orderBy(orderBy)
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
-                .fetch(r -> mapper.toDomain(r));
+                .fetch(r -> mapper.toDomain(r.into(LOT_TYPES), r.into(CREATOR), r.into(UPDATER)));
         return PaginationResult.<LotType>builder().total(total).items(items).build();
     }
 

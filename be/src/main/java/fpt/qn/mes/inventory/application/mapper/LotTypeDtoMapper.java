@@ -8,4 +8,5 @@ import fpt.qn.mes.inventory.domain.entities.LotType;
 @Mapper(componentModel = "spring")
 public interface LotTypeDtoMapper {
     LotTypeResponse toDto(LotType entity);
+    LotTypeResponse.UserInfo toUserInfo(LotType.UserRef ref);
 }

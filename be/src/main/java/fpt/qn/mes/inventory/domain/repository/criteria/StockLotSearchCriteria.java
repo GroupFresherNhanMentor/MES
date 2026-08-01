@@ -1,6 +1,5 @@
 package fpt.qn.mes.inventory.domain.repository.criteria;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 import fpt.qn.mes.common.domainQuery.BaseSearchCriteria;
@@ -23,5 +22,4 @@ public class StockLotSearchCriteria extends BaseSearchCriteria {
     UUID productId;
     UUID lotTypeId;
     String lotNumber;
-    LocalDate expiryBefore;
 }

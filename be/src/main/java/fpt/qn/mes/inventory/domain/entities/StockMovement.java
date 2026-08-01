@@ -21,6 +21,23 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockMovement {
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ProductRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class WarehouseRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class WarehouseLocationRef { UUID id; String code; String name; }
+
+    @Getter @Builder @NoArgsConstructor @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserRef { UUID id; String username; String fullName; }
+
     UUID id;
     MovementType movementType;
     StockLot stockLot;
@@ -37,6 +54,13 @@ public class StockMovement {
     String reason;
     UUID createdBy;
     Instant createdAt;
+
+    ProductRef product;
+    WarehouseRef fromWarehouse;
+    WarehouseRef toWarehouse;
+    WarehouseLocationRef fromLocation;
+    WarehouseLocationRef toLocation;
+    UserRef createdByUser;
 
     public static StockMovement create(
             UUID movementTypeId,
@@ -59,9 +83,9 @@ public class StockMovement {
         if (productId == null) {
             throw new DomainException("Product ID cannot be null");
         }
-        if (toWarehouseId == null) {
-            throw new DomainException("At least one warehouse (fromWarehouseId or toWarehouseId) must be specified");
-        }
+        // if (toWarehouseId == null) {
+        //     throw new DomainException("At least one warehouse (fromWarehouseId or toWarehouseId) must be specified");
+        // }
         if (createdBy == null) {
             throw new DomainException("Created-by user ID cannot be null");
         }
