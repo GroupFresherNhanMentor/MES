@@ -1,5 +1,6 @@
 package fpt.qn.mes.inventory.application.dto.lottype;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import lombok.AccessLevel;
@@ -15,7 +16,23 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class LotTypeResponse {
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserInfo {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
     UUID id;
     String name;
     String description;
+    Instant createdAt;
+    UserInfo createdBy;
+    Instant updatedAt;
+    UserInfo updatedBy;
 }

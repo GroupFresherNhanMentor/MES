@@ -4,10 +4,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -36,10 +38,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AppException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex, HttpServletRequest request) {
+    public ResponseEntity<ApiResponse<?>> handleAppException(AppException ex, HttpServletRequest request) {
         log.warn("{} at {}: {}", ex.getStatus(), request.getRequestURI(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus())
-                .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage()));
+                .body(ApiResponse.error(ex.getErrorCode(), ex.getMessage(), ex.getDetails()));
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -47,6 +49,14 @@ public class GlobalExceptionHandler {
         log.warn("{} at {}: {}", ex.getStatusCode(), request.getRequestURI(), ex.getReason());
         return ResponseEntity.status(ex.getStatusCode())
                 .body(ApiResponse.error(ErrorCode.NOT_FOUND, ex.getReason() != null ? ex.getReason() : ex.getMessage()));
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthorizationDenied(
+            AuthorizationDeniedException ex, HttpServletRequest request) {
+        log.warn("Forbidden at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(403)
+                .body(ApiResponse.error(ErrorCode.FORBIDDEN, "Access denied"));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -79,5 +89,12 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later."));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        log.warn("Bad request at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, "Invalid request body"));
     }
 }

@@ -89,4 +89,3 @@ public class UserPersistenceAdapter extends BaseRepository<UsersRecord> implemen
                 .where(USERS.USERNAME.eq(username.trim())));
     }
 }
-

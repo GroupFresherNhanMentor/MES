@@ -91,4 +91,3 @@ public class RolePersistenceAdapter extends BaseRepository<RolesRecord> implemen
         return ctx.fetchExists(ctx.selectOne().from(USER_ROLES).where(USER_ROLES.ROLE_ID.eq(id)));
     }
 }
-

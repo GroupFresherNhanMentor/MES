@@ -1,6 +1,11 @@
 package fpt.qn.mes.master.warehouse.application.service;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -8,11 +13,14 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseManagerResponse;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
+import fpt.qn.mes.master.warehouse.application.dto.warehouse.assign.AssignManagerRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.create.CreateWarehouseRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.search.WarehouseSearchRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.update.UpdateWarehouseRequest;
 import fpt.qn.mes.master.warehouse.application.exception.WarehouseConflictException;
+import fpt.qn.mes.master.warehouse.application.exception.WarehouseManagerAlreadyAssignedException;
 import fpt.qn.mes.master.warehouse.application.exception.WarehouseNotFoundException;
 import fpt.qn.mes.master.warehouse.application.exception.WarehouseStatusNotFoundException;
 import fpt.qn.mes.master.warehouse.application.mapper.WarehouseDtoMapper;
@@ -68,16 +76,32 @@ public class WarehouseService implements WarehouseUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public WarehouseResponse getWarehouseByCode(String code) {
+        return warehouseRepository.findByCode(code)
+                .map(mapper::toDto)
+                .orElseThrow(() -> new WarehouseNotFoundException("Warehouse not found with code: " + code));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, WarehouseResponse> getWarehousesByIds(Collection<UUID> ids) {
+        if (ids == null || ids.isEmpty()) return Map.of();
+        var warehouses = warehouseRepository.findByIds(ids);
+        return warehouses.stream()
+                .collect(Collectors.toMap(Warehouse::getId, mapper::toDto, (w1, w2) -> w1));
+    }
+
+    @Override
     @Transactional
     public void createWarehouse(CreateWarehouseRequest request) {
         if (warehouseRepository.existsByCode(request.getCode())) {
             throw new WarehouseConflictException("Warehouse code already exists: " + request.getCode());
         }
-        if (!warehouseStatusRepository.existsById(request.getWarehouseStatusId())) {
-            throw new WarehouseStatusNotFoundException("Warehouse status not found: " + request.getWarehouseStatusId());
-        }
+        var activeStatus = warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)
+                .orElseThrow(() -> new WarehouseStatusNotFoundException("ACTIVE status not found in warehouse_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.save(Warehouse.create(request.getCode(), request.getName(), request.getAddress(), request.getWarehouseStatusId(), currentUserId));
+        warehouseRepository.save(Warehouse.create(request.getCode(), request.getName(), request.getAddress(), activeStatus.getId(), currentUserId));
     }
 
     @Override
@@ -116,5 +140,39 @@ public class WarehouseService implements WarehouseUseCase {
         UUID currentUserId = currentUserPort.getCurrentUserId();
         warehouseRepository.update(Warehouse.deactivate(existing, inactiveStatus.getId(), currentUserId));
         warehouseLocationPort.deactivateAllByWarehouseId(id, currentUserId);
+    }
+
+    @Override
+    @Transactional
+    public void assignManager(UUID warehouseId, AssignManagerRequest request) {
+        if (!warehouseRepository.existsById(warehouseId)) {
+            throw new WarehouseNotFoundException("Warehouse not found: " + warehouseId);
+        }
+        if (warehouseRepository.isManagerAssigned(warehouseId, request.getUserId())) {
+            throw new WarehouseManagerAlreadyAssignedException(
+                "User " + request.getUserId() + " is already a manager of warehouse " + warehouseId);
+        }
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        warehouseRepository.assignManager(warehouseId, request.getUserId(), currentUserId);
+    }
+
+    @Override
+    @Transactional
+    public void removeManager(UUID warehouseId, UUID userId) {
+        if (!warehouseRepository.existsById(warehouseId)) {
+            throw new WarehouseNotFoundException("Warehouse not found: " + warehouseId);
+        }
+        warehouseRepository.removeManager(warehouseId, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WarehouseManagerResponse> getManagers(UUID warehouseId) {
+        if (!warehouseRepository.existsById(warehouseId)) {
+            throw new WarehouseNotFoundException("Warehouse not found: " + warehouseId);
+        }
+        return warehouseRepository.findManagersByWarehouseId(warehouseId).stream()
+                .map(ref -> mapper.toManagerResponse(ref))
+                .toList();
     }
 }

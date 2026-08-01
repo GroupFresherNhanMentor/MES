@@ -19,7 +19,7 @@ public class MovementStockCheckAdapter implements MovementStockCheckPort {
 
     DSLContext ctx;
 
-    @Override   
+    @Override
     public boolean hasStockMovements(UUID productId) {
         return ctx.fetchExists(ctx.selectFrom(STOCK_MOVEMENTS)
             .where(STOCK_MOVEMENTS.PRODUCT_ID.eq(productId)));

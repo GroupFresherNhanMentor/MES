@@ -39,28 +39,28 @@ class LineStatusServiceTest {
         when(mapper.toDto(status)).thenReturn(response);
 
         var result = linestatusService.getLineStatuses(new LineStatusSearchRequest());
-        
+
         assertEquals(1, result.getItems().size());
         assertEquals("ACTIVE", result.getItems().get(0).getName());
     }
-    
+
     @Test
     void createLineStatus_Success() {
         when(linestatusRepository.existsByName("ACTIVE")).thenReturn(false);
         var req = new CreateLineStatusRequest();
         req.setName("ACTIVE");
         req.setDescription("Desc");
-        
+
         assertDoesNotThrow(() -> linestatusService.createLineStatus(req));
         verify(linestatusRepository).save(any());
     }
-    
+
     @Test
     void createLineStatus_Duplicate_ThrowsConflict() {
         when(linestatusRepository.existsByName("ACTIVE")).thenReturn(true);
         var req = new CreateLineStatusRequest();
         req.setName("ACTIVE");
-        
+
         assertThrows(LineStatusConflictException.class, () -> linestatusService.createLineStatus(req));
     }
 }

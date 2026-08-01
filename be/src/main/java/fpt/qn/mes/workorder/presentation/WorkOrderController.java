@@ -5,8 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,13 +17,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
@@ -33,10 +37,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import org.springframework.security.access.prepost.PreAuthorize;
-
 @RestController
-@RequestMapping("/api/work-orders")
+@RequestMapping("/api/v1/work-orders")
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WorkOrderController {
@@ -62,7 +64,7 @@ public class WorkOrderController {
     @PostMapping
     public ResponseEntity<ApiResponse<WorkOrderResponse>> create(
             @Valid @RequestBody CreateWorkOrderRequest req,
-            @AuthenticationPrincipal fpt.qn.mes.auth.application.security.AppUserPrincipal principal) {
+            @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : null;
         var result = workOrderUseCase.createWorkOrder(req, currentUserId);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
@@ -75,6 +77,52 @@ public class WorkOrderController {
             @PathVariable UUID id, @Valid @RequestBody UpdateWorkOrderRequest req) {
         var result = workOrderUseCase.updateWorkOrder(id, req);
         return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
+    }
+
+    @PreAuthorize("hasRole('PLANNER')")
+    @PostMapping("/{id}/reserve-materials")
+    public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(
+            @PathVariable UUID id,
+            @Valid @RequestBody ReserveWorkOrderMaterialsRequest req) {
+        var result = workOrderUseCase.reserveMaterials(id, req);
+        return ResponseEntity.ok(ApiResponse.success(result,
+                "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/release-materials")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> releaseMaterials(@PathVariable UUID id) {
+        var response = workOrderUseCase.releaseMaterials(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Materials released successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> cancel(@PathVariable UUID id) {
+        var response = workOrderUseCase.cancelWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Work order cancelled successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/start")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> start(
+            @PathVariable UUID id, @Valid @RequestBody StartWorkOrderRequest request) {
+        var response = workOrderUseCase.startWorkOrder(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production started successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/pause")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> pause(@PathVariable UUID id) {
+        var response = workOrderUseCase.pauseWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production paused successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/resume")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> resume(@PathVariable UUID id) {
+        var response = workOrderUseCase.resumeWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production resumed successfully"));
     }
 
     @DeleteMapping("/{id}")

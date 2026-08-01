@@ -14,7 +14,7 @@ public class WarehouseStatus {
     UUID id;
     String name;
     String description;
-    
+
     public static WarehouseStatus create(String name, String description) {
         return WarehouseStatus.builder()
             .id(UuidV7.generate())

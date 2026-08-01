@@ -44,9 +44,9 @@ public abstract class AbstractIntegrationTest {
     JwtEncoder jwtEncoder;
 
     @Autowired
-    DSLContext dslCtx;
+    private DSLContext dslCtx;
 
-    protected void seedAdminUser() {
+    protected UUID seedAdminUser() {
         UUID roleId = dslCtx.select(ROLES.ID)
                 .from(ROLES)
                 .where(ROLES.NAME.eq("ADMIN"))
@@ -73,6 +73,8 @@ public abstract class AbstractIntegrationTest {
                 .values(userId, roleId)
                 .onConflictDoNothing()
                 .execute();
+
+        return userId;
     }
 
     protected String generateToken(String username, String role) {
@@ -90,10 +92,14 @@ public abstract class AbstractIntegrationTest {
         if (userId == null) {
             throw new IllegalStateException("Test user not found: " + username);
         }
-        return generateToken(userId, username);
+        return generateToken(userId, username, java.util.List.of(role));
     }
 
     protected String generateToken(UUID userId, String username) {
+        return generateToken(userId, username, java.util.List.of());
+    }
+
+    private String generateToken(UUID userId, String username, java.util.List<String> roles) {
         Instant now = Instant.now();
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .subject(userId.toString())
@@ -101,6 +107,7 @@ public abstract class AbstractIntegrationTest {
                 .expiresAt(now.plusSeconds(900))
                 .id(UUID.randomUUID().toString())
                 .claim("username", username)
+                .claim("roles", roles)
                 .claim("token_type", "access")
                 .issuer("factoryflow-test")
                 .audience(java.util.List.of("factoryflow-api-test"))

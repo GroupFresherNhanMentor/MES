@@ -9,8 +9,11 @@ export const API = {
   products: {
     base: `${BASE}/products`,
     byId: (id: string | number) => `${BASE}/products/${id}`,
-    types: `${BASE}/products/types`,
-    statuses: `${BASE}/products/statuses`,
+    types: `${BASE}/product-types`,
+    statuses: `${BASE}/product-statuses`,
+    unitsOfMeasure: `${BASE}/units-of-measure`,
+    productTypes: `${BASE}/product-types`,
+    productStatuses: `${BASE}/product-statuses`,
     deactivate: (id: string | number) => `${BASE}/products/${id}/deactivate`,
   },
   warehouses: {
@@ -26,8 +29,8 @@ export const API = {
       `${BASE}/warehouses/${warehouseId}/locations/${id}/deactivate`,
   },
   productionLines: {
-    base: `${BASE}/production-lines`,
-    byId: (id: string | number) => `${BASE}/production-lines/${id}`,
+    base: `${BASE}/lines`,
+    byId: (id: string | number) => `${BASE}/lines/${id}`,
     deactivate: (id: string | number) => `${BASE}/production-lines/${id}/deactivate`,
   },
   machines: {
@@ -40,11 +43,10 @@ export const API = {
     base: `${BASE}/boms`,
     byId: (id: string | number) => `${BASE}/boms/${id}`,
     activate: (id: string | number) => `${BASE}/boms/${id}/activate`,
+    deactivate: (id: string | number) => `${BASE}/boms/${id}/deactivate`,
     newVersion: (id: string | number) => `${BASE}/boms/${id}/new-version`,
     items: (bomId: string | number) => `${BASE}/boms/${bomId}/items`,
-    deleteItem: (bomId: string | number, itemId: string | number) =>
-      `${BASE}/boms/${bomId}/items/${itemId}`,
-    statuses: `${BASE}/boms/statuses`,
+    statuses: `${BASE}/bom-statuses`,
   },
   workOrders: {
     base: `${BASE}/work-orders`,

@@ -36,4 +36,3 @@ public class JwtSecurityProperties {
     @Positive
     long refreshTokenExpiration = 604_800_000;
 }
-

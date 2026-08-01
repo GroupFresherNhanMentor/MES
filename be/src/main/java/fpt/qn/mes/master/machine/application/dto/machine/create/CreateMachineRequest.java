@@ -2,7 +2,6 @@ package fpt.qn.mes.master.machine.application.dto.machine.create;
 
 import java.util.UUID;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -15,6 +14,4 @@ public class CreateMachineRequest {
     String code;
     @NotBlank
     String name;
-    @NotNull
-    UUID machineStatusId;
 }

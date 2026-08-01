@@ -22,6 +22,7 @@ import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.machine.application.port.out.ProductionLinePort;
 import fpt.qn.mes.master.machine.domain.entities.Machine;
 import fpt.qn.mes.master.machine.domain.repository.MachineRepository;
+import fpt.qn.mes.master.machine.domain.constants.MachineStatusConstants;
 import fpt.qn.mes.master.machine.domain.repository.MachineStatusRepository;
 import fpt.qn.mes.master.machine.domain.repository.criteria.MachineSearchCriteria;
 import lombok.AccessLevel;
@@ -71,6 +72,14 @@ public class MachineService implements MachineUseCase {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public boolean isAvailableForReservation(UUID id) {
+        machineRepository.findById(id)
+                .orElseThrow(() -> new MachineNotFoundException("Machine not found: " + id));
+        return machineRepository.isAvailableForUpdate(id);
+    }
+
+    @Override
     @Transactional
     public void createMachine(CreateMachineRequest request) {
         if (machineRepository.existsByCode(request.getCode())) {
@@ -83,12 +92,11 @@ public class MachineService implements MachineUseCase {
         if (Boolean.FALSE.equals(isLineActiveOpt.get())) {
             throw new MachineConflictException("Cannot assign machine to inactive production line: " + request.getProductionLineId());
         }
-        if (!machineStatusRepository.existsById(request.getMachineStatusId())) {
-            throw new MachineStatusNotFoundException("Machine status not found: " + request.getMachineStatusId());
-        }
+        var availableStatus = machineStatusRepository.findByName(MachineStatusConstants.AVAILABLE)
+                .orElseThrow(() -> new MachineStatusNotFoundException("AVAILABLE status not found in machine_statuses"));
         machineRepository.save(Machine.create(
                 request.getProductionLineId(), request.getCode(),
-                request.getName(), request.getMachineStatusId(),
+                request.getName(), availableStatus.getId(),
                 currentUserPort.getCurrentUserId()));
     }
 

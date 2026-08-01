@@ -21,7 +21,7 @@ class StockLotTest {
         UUID lotTypeId = UUID.randomUUID();
         LocalDate expiryDate = LocalDate.now().plusMonths(6);
 
-        StockLot lot = StockLot.create("LOT-2026-001", productId, lotTypeId, expiryDate);
+        StockLot lot = StockLot.create("LOT-2026-001", productId, lotTypeId, expiryDate, UUID.randomUUID());
 
         assertThat(lot).isNotNull();
         assertThat(lot.getLotNumber()).isEqualTo("LOT-2026-001");
@@ -34,7 +34,7 @@ class StockLotTest {
     void create_BlankLotNumber_ThrowsException() {
         UUID productId = UUID.randomUUID();
 
-        assertThatThrownBy(() -> StockLot.create("   ", productId, null, null))
+        assertThatThrownBy(() -> StockLot.create("   ", productId, null, null, null))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Lot number cannot be empty");
     }
@@ -42,7 +42,7 @@ class StockLotTest {
     @Test
     @DisplayName("create with null productId throws DomainException")
     void create_NullProductId_ThrowsException() {
-        assertThatThrownBy(() -> StockLot.create("LOT-001", null, null, null))
+        assertThatThrownBy(() -> StockLot.create("LOT-001", null, null, null, null))
                 .isInstanceOf(DomainException.class)
                 .hasMessageContaining("Product ID cannot be null");
     }

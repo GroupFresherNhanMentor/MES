@@ -12,6 +12,7 @@ import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 
 public interface WorkOrderRepository {
     Optional<WorkOrder> findById(UUID id);
+    Optional<WorkOrder> findForUpdate(UUID id);
     WorkOrder save(WorkOrder workOrder);
     WorkOrder update(WorkOrder workOrder);
     void deleteById(UUID id);
@@ -28,5 +29,6 @@ public interface WorkOrderRepository {
     PaginationResult<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId, int page, int size);
     java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId);
     Optional<String> findStatusNameById(UUID id);
+    Optional<UUID> findStatusIdByName(String name);
     boolean existsByCodeAndIdNot(String code, UUID excludeId);
 }

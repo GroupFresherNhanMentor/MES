@@ -9,6 +9,7 @@ import fpt.qn.mes.master.machine.domain.repository.criteria.MachineSearchCriteri
 
 public interface MachineRepository {
     Optional<Machine> findById(UUID id);
+    boolean isAvailableForUpdate(UUID id);
     Machine save(Machine machine);
     Machine update(Machine machine);
     PaginationResult<Machine> search(MachineSearchCriteria criteria);

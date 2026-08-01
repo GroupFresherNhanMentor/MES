@@ -124,4 +124,3 @@ public class JwtTokenProvider implements TokenPort {
         return jwtEncoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
     }
 }
-

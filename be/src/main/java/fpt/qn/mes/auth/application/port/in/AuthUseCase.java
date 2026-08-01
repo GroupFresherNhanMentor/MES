@@ -11,4 +11,3 @@ public interface AuthUseCase {
 
     void logout(String accessToken, String refreshToken);
 }
-

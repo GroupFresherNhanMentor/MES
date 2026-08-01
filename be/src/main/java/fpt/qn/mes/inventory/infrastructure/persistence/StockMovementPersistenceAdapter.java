@@ -1,12 +1,17 @@
 package fpt.qn.mes.inventory.infrastructure.persistence;
 
 import static fpt.qn.mes.jooq.Tables.MOVEMENT_TYPES;
+import static fpt.qn.mes.jooq.Tables.PRODUCTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_LOTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_MOVEMENTS;
 import static fpt.qn.mes.jooq.Tables.STOCK_STATUSES;
+import static fpt.qn.mes.jooq.Tables.USERS;
+import static fpt.qn.mes.jooq.Tables.WAREHOUSE_LOCATIONS;
+import static fpt.qn.mes.jooq.Tables.WAREHOUSES;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.Condition;
@@ -19,14 +24,26 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.common.repository.SortUtils;
-import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 import fpt.qn.mes.inventory.domain.entities.StockStatus;
 import fpt.qn.mes.inventory.domain.repository.StockMovementRepository;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockMovementSearchCriteria;
+import fpt.qn.mes.jooq.tables.MovementTypes;
+import fpt.qn.mes.jooq.tables.StockLots;
+import fpt.qn.mes.jooq.tables.StockStatuses;
+import fpt.qn.mes.jooq.tables.Users;
+import fpt.qn.mes.jooq.tables.WarehouseLocations;
+import fpt.qn.mes.jooq.tables.Warehouses;
+import fpt.qn.mes.jooq.tables.records.MovementTypesRecord;
+import fpt.qn.mes.jooq.tables.records.ProductsRecord;
+import fpt.qn.mes.jooq.tables.records.StockLotsRecord;
 import fpt.qn.mes.jooq.tables.records.StockMovementsRecord;
+import fpt.qn.mes.jooq.tables.records.StockStatusesRecord;
+import fpt.qn.mes.jooq.tables.records.UsersRecord;
+import fpt.qn.mes.jooq.tables.records.WarehouseLocationsRecord;
+import fpt.qn.mes.jooq.tables.records.WarehousesRecord;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
@@ -34,12 +51,21 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class StockMovementPersistenceAdapter extends BaseRepository<StockMovementsRecord> implements StockMovementRepository {
 
+    private static final MovementTypes MT = MOVEMENT_TYPES.as("mt");
+    private static final StockLots SL = STOCK_LOTS.as("sl");
+    private static final StockStatuses FS = STOCK_STATUSES.as("fs");
+    private static final StockStatuses TS = STOCK_STATUSES.as("ts");
+    private static final Warehouses FROM_WH = WAREHOUSES.as("from_wh");
+    private static final Warehouses TO_WH = WAREHOUSES.as("to_wh");
+    private static final WarehouseLocations FROM_LOC = WAREHOUSE_LOCATIONS.as("from_loc");
+    private static final WarehouseLocations TO_LOC = WAREHOUSE_LOCATIONS.as("to_loc");
+    private static final Users CREATOR = USERS.as("creator");
+
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
             "createdAt",   STOCK_MOVEMENTS.CREATED_AT,
             "quantity",    STOCK_MOVEMENTS.QUANTITY,
             "referenceNo", STOCK_MOVEMENTS.REFERENCE_NO
     );
-
     private static final Field<?> DEFAULT_SORT_FIELD = STOCK_MOVEMENTS.CREATED_AT;
 
     InventoryRecordMapper mapper;
@@ -52,59 +78,51 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
     @Override
     public StockMovement save(StockMovement movement) {
         StockMovementsRecord record = mapper.toRecord(movement);
-        if (record.getId() == null) {
-            record.setId(UuidV7.generate());
-        }
-        ctx.attach(record);
-        record.store();
-        return mapper.toDomain(record);
+        ctx.insertInto(STOCK_MOVEMENTS).set(record)
+                .onConflict(STOCK_MOVEMENTS.ID).doUpdate().set(record)
+                .execute();
+        return movement;
+    }
+
+    @Override
+    public Optional<StockMovement> findById(UUID id) {
+        return ctx.select()
+                .from(STOCK_MOVEMENTS)
+                .leftJoin(PRODUCTS).on(STOCK_MOVEMENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(MT).on(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(MT.ID))
+                .leftJoin(SL).on(STOCK_MOVEMENTS.LOT_ID.eq(SL.ID))
+                .leftJoin(FS).on(STOCK_MOVEMENTS.FROM_STATUS_ID.eq(FS.ID))
+                .leftJoin(TS).on(STOCK_MOVEMENTS.TO_STATUS_ID.eq(TS.ID))
+                .leftJoin(FROM_WH).on(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID.eq(FROM_WH.ID))
+                .leftJoin(TO_WH).on(STOCK_MOVEMENTS.TO_WAREHOUSE_ID.eq(TO_WH.ID))
+                .leftJoin(FROM_LOC).on(STOCK_MOVEMENTS.FROM_LOCATION_ID.eq(FROM_LOC.ID))
+                .leftJoin(TO_LOC).on(STOCK_MOVEMENTS.TO_LOCATION_ID.eq(TO_LOC.ID))
+                .leftJoin(CREATOR).on(STOCK_MOVEMENTS.CREATED_BY.eq(CREATOR.ID))
+                .where(STOCK_MOVEMENTS.ID.eq(id))
+                .fetchOptional(r -> mapRecord(r));
     }
 
     @Override
     public List<StockMovement> search(StockMovementSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
-        int page = criteria.getPage();
-        int size = criteria.getSize();
-
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-
-        var sm = STOCK_MOVEMENTS;
-        var mt = MOVEMENT_TYPES.as("mt");
-        var sl = STOCK_LOTS.as("sl");
-        var fs = STOCK_STATUSES.as("fs");
-        var ts = STOCK_STATUSES.as("ts");
-
-        return ctx.select(
-                    sm.ID,
-                    sm.MOVEMENT_TYPE_ID,
-                    mt.NAME.as("movementTypeName"),
-                    sm.PRODUCT_ID,
-                    sm.LOT_ID,
-                    sl.LOT_NUMBER.as("lotNumber"),
-                    sm.FROM_WAREHOUSE_ID,
-                    sm.FROM_LOCATION_ID,
-                    sm.TO_WAREHOUSE_ID,
-                    sm.TO_LOCATION_ID,
-                    sm.QUANTITY,
-                    sm.FROM_STATUS_ID,
-                    fs.NAME.as("fromStatusName"),
-                    sm.TO_STATUS_ID,
-                    ts.NAME.as("toStatusName"),
-                    sm.REFERENCE_NO,
-                    sm.REASON,
-                    sm.CREATED_BY,
-                    sm.CREATED_AT
-                )
-                .from(sm)
-                .leftJoin(mt).on(sm.MOVEMENT_TYPE_ID.eq(mt.ID))
-                .leftJoin(sl).on(sm.LOT_ID.eq(sl.ID))
-                .leftJoin(fs).on(sm.FROM_STATUS_ID.eq(fs.ID))
-                .leftJoin(ts).on(sm.TO_STATUS_ID.eq(ts.ID))
+        return ctx.select()
+                .from(STOCK_MOVEMENTS)
+                .leftJoin(PRODUCTS).on(STOCK_MOVEMENTS.PRODUCT_ID.eq(PRODUCTS.ID))
+                .leftJoin(MT).on(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID.eq(MT.ID))
+                .leftJoin(SL).on(STOCK_MOVEMENTS.LOT_ID.eq(SL.ID))
+                .leftJoin(FS).on(STOCK_MOVEMENTS.FROM_STATUS_ID.eq(FS.ID))
+                .leftJoin(TS).on(STOCK_MOVEMENTS.TO_STATUS_ID.eq(TS.ID))
+                .leftJoin(FROM_WH).on(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID.eq(FROM_WH.ID))
+                .leftJoin(TO_WH).on(STOCK_MOVEMENTS.TO_WAREHOUSE_ID.eq(TO_WH.ID))
+                .leftJoin(FROM_LOC).on(STOCK_MOVEMENTS.FROM_LOCATION_ID.eq(FROM_LOC.ID))
+                .leftJoin(TO_LOC).on(STOCK_MOVEMENTS.TO_LOCATION_ID.eq(TO_LOC.ID))
+                .leftJoin(CREATOR).on(STOCK_MOVEMENTS.CREATED_BY.eq(CREATOR.ID))
                 .where(condition)
                 .orderBy(orderBy)
-                .limit(size)
-                .offset(page * size)
-                .fetch(this::mapRecordToStockMovement);
+                .limit(criteria.getSize())
+                .offset((long) criteria.getPage() * criteria.getSize())
+                .fetch(r -> mapRecord(r));
     }
 
     @Override
@@ -112,55 +130,91 @@ public class StockMovementPersistenceAdapter extends BaseRepository<StockMovemen
         return count(buildCondition(criteria));
     }
 
-    private StockMovement mapRecordToStockMovement(Record r) {
-        if (r == null) return null;
+    private StockMovement mapRecord(Record r) {
+        StockMovementsRecord sm = r.into(STOCK_MOVEMENTS);
+        MovementTypesRecord mt = r.into(MT);
+        StockLotsRecord sl = r.into(SL);
+        StockStatusesRecord fs = r.into(FS);
+        StockStatusesRecord ts = r.into(TS);
+        ProductsRecord product = r.into(PRODUCTS);
+        WarehousesRecord fromWhRec = r.into(FROM_WH);
+        WarehousesRecord toWhRec = r.into(TO_WH);
+        WarehouseLocationsRecord fromLocRec = r.into(FROM_LOC);
+        WarehouseLocationsRecord toLocRec = r.into(TO_LOC);
+        UsersRecord creator = r.into(CREATOR);
 
-        UUID movementTypeId = r.get(STOCK_MOVEMENTS.MOVEMENT_TYPE_ID);
-        String movementTypeName = r.get("movementTypeName", String.class);
-        MovementType movementType = movementTypeId != null ? MovementType.builder()
-                .id(movementTypeId)
-                .name(movementTypeName)
-                .build() : null;
+        MovementType movementType = mt.getId() != null
+                ? MovementType.builder().id(mt.getId()).name(mt.getName()).build()
+                : null;
 
-        UUID lotId = r.get(STOCK_MOVEMENTS.LOT_ID);
-        String lotNumber = r.get("lotNumber", String.class);
-        StockLot stockLot = lotId != null ? StockLot.builder()
-                .id(lotId)
-                .lotNumber(lotNumber)
-                .build() : null;
+        StockLot stockLot = sl.getId() != null
+                ? StockLot.builder().id(sl.getId()).lotNumber(sl.getLotNumber()).build()
+                : null;
 
-        UUID fromStatusId = r.get(STOCK_MOVEMENTS.FROM_STATUS_ID);
-        String fromStatusName = r.get("fromStatusName", String.class);
-        StockStatus fromStatus = fromStatusId != null ? StockStatus.builder()
-                .id(fromStatusId)
-                .name(fromStatusName)
-                .build() : null;
+        StockStatus fromStatus = fs.getId() != null
+                ? StockStatus.builder().id(fs.getId()).name(fs.getName()).build()
+                : null;
 
-        UUID toStatusId = r.get(STOCK_MOVEMENTS.TO_STATUS_ID);
-        String toStatusName = r.get("toStatusName", String.class);
-        StockStatus toStatus = toStatusId != null ? StockStatus.builder()
-                .id(toStatusId)
-                .name(toStatusName)
-                .build() : null;
+        StockStatus toStatus = ts.getId() != null
+                ? StockStatus.builder().id(ts.getId()).name(ts.getName()).build()
+                : null;
 
-        var createdAtOffset = r.get(STOCK_MOVEMENTS.CREATED_AT);
+        StockMovement.ProductRef productRef = product.getId() != null
+                ? StockMovement.ProductRef.builder()
+                        .id(product.getId()).code(product.getCode()).name(product.getName()).build()
+                : null;
+
+        StockMovement.WarehouseRef fromWarehouse = fromWhRec.getId() != null
+                ? StockMovement.WarehouseRef.builder()
+                        .id(fromWhRec.getId()).code(fromWhRec.getCode()).name(fromWhRec.getName()).build()
+                : null;
+
+        StockMovement.WarehouseRef toWarehouse = toWhRec.getId() != null
+                ? StockMovement.WarehouseRef.builder()
+                        .id(toWhRec.getId()).code(toWhRec.getCode()).name(toWhRec.getName()).build()
+                : null;
+
+        StockMovement.WarehouseLocationRef fromLocation = fromLocRec.getId() != null
+                ? StockMovement.WarehouseLocationRef.builder()
+                        .id(fromLocRec.getId()).code(fromLocRec.getCode()).name(fromLocRec.getName()).build()
+                : null;
+
+        StockMovement.WarehouseLocationRef toLocation = toLocRec.getId() != null
+                ? StockMovement.WarehouseLocationRef.builder()
+                        .id(toLocRec.getId()).code(toLocRec.getCode()).name(toLocRec.getName()).build()
+                : null;
+
+        StockMovement.UserRef createdByUser = creator.getId() != null
+                ? StockMovement.UserRef.builder()
+                        .id(creator.getId())
+                        .username(creator.getUsername())
+                        .fullName(creator.getFullName())
+                        .build()
+                : null;
 
         return StockMovement.builder()
-                .id(r.get(STOCK_MOVEMENTS.ID))
+                .id(sm.getId())
                 .movementType(movementType)
-                .productId(r.get(STOCK_MOVEMENTS.PRODUCT_ID))
+                .productId(sm.getProductId())
+                .workOrderId(sm.getWorkOrderId())
                 .stockLot(stockLot)
-                .fromWarehouseId(r.get(STOCK_MOVEMENTS.FROM_WAREHOUSE_ID))
-                .fromLocationId(r.get(STOCK_MOVEMENTS.FROM_LOCATION_ID))
-                .toWarehouseId(r.get(STOCK_MOVEMENTS.TO_WAREHOUSE_ID))
-                .toLocationId(r.get(STOCK_MOVEMENTS.TO_LOCATION_ID))
-                .quantity(r.get(STOCK_MOVEMENTS.QUANTITY))
+                .fromWarehouseId(sm.getFromWarehouseId())
+                .fromLocationId(sm.getFromLocationId())
+                .toWarehouseId(sm.getToWarehouseId())
+                .toLocationId(sm.getToLocationId())
+                .quantity(sm.getQuantity())
                 .fromStatus(fromStatus)
                 .toStatus(toStatus)
-                .referenceNo(r.get(STOCK_MOVEMENTS.REFERENCE_NO))
-                .reason(r.get(STOCK_MOVEMENTS.REASON))
-                .createdBy(r.get(STOCK_MOVEMENTS.CREATED_BY))
-                .createdAt(createdAtOffset != null ? createdAtOffset.toInstant() : null)
+                .referenceNo(sm.getReferenceNo())
+                .reason(sm.getReason())
+                .createdBy(sm.getCreatedBy())
+                .createdAt(sm.getCreatedAt() != null ? sm.getCreatedAt().toInstant() : null)
+                .product(productRef)
+                .fromWarehouse(fromWarehouse)
+                .toWarehouse(toWarehouse)
+                .fromLocation(fromLocation)
+                .toLocation(toLocation)
+                .createdByUser(createdByUser)
                 .build();
     }
 

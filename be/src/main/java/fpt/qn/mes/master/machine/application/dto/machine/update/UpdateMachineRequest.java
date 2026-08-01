@@ -10,9 +10,9 @@ import jakarta.validation.constraints.NotBlank;
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UpdateMachineRequest {
-    
+
     UUID productionLineId;
-    
+
     @NotBlank(message = "Name must not be blank")
     String name;
 }

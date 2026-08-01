@@ -104,7 +104,7 @@ public class WarehouseLocationPersistenceAdapter extends BaseRepository<Warehous
     public PaginationResult<WarehouseLocation> search(WarehouseLocationSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-        
+
         long total = ctx.fetchCount(WAREHOUSE_LOCATIONS, condition);
         List<WarehouseLocation> items = ctx.select()
                 .from(WAREHOUSE_LOCATIONS)
@@ -117,7 +117,7 @@ public class WarehouseLocationPersistenceAdapter extends BaseRepository<Warehous
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
                 .fetch(r -> mapper.toDomain(r.into(WAREHOUSE_LOCATIONS), r.into(WAREHOUSES), r.into(LOCATION_STATUSES), r.into(CREATOR), r.into(UPDATER)));
-                
+
         return PaginationResult.<WarehouseLocation>builder().total(total).items(items).build();
     }
 
@@ -127,11 +127,11 @@ public class WarehouseLocationPersistenceAdapter extends BaseRepository<Warehous
             condition = condition.and(WAREHOUSE_LOCATIONS.WAREHOUSE_ID.eq(criteria.getWarehouseId()));
         }
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(WAREHOUSE_LOCATIONS.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(WAREHOUSE_LOCATIONS.CODE.containsIgnoreCase(criteria.getCode())
+        .or(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(WAREHOUSE_LOCATIONS.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getLocationStatusId() != null) {
             condition = condition.and(WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID.eq(criteria.getLocationStatusId()));
         }

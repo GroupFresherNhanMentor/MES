@@ -8,4 +8,3 @@ public class MachineStatusConflictException extends AppException {
         super(409, ErrorCode.CONFLICT, message);
     }
 }
-

@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
+import { API } from '../../../../configs/api-endpoints';
 import { ProductDto } from '../../../../core/models/product.model';
 import { ProductFormComponent } from '../product-form/product-form';
 
@@ -22,7 +23,7 @@ interface LookupEntry { id: string; name: string; description: string; }
 @Component({
   selector: 'app-product-list',
   imports: [
-    DatePipe, SlicePipe, NgClass, FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatSelectModule, MatPaginatorModule, MatDialogModule,
     MatSnackBarModule, MatCardModule, MatTooltipModule,
@@ -43,19 +44,33 @@ export class ProductListComponent {
 
   types = signal<LookupEntry[]>([]);
   statuses = signal<LookupEntry[]>([]);
-  displayedColumns = ['code', 'name', 'type', 'unit', 'status', 'createdAt', 'actions'];
+  displayedColumns = ['code', 'name', 'type', 'unit', 'version', 'status', 'createdBy', 'createdAt', 'actions'];
 
   constructor() {
-    this.api.get<LookupEntry[]>('/api/products/types').subscribe(r => { if (r.success) this.types.set(r.data); });
-    this.api.get<LookupEntry[]>('/api/products/statuses').subscribe(r => { if (r.success) this.statuses.set(r.data); });
+    this.api.get<any>(API.products.productTypes + '?size=100').subscribe(r => {
+      if (r.success && r.data) {
+        const items = r.data.items || r.data;
+        this.types.set(items);
+      }
+    });
+    this.api.get<any>(API.products.productStatuses + '?size=100').subscribe(r => {
+      if (r.success && r.data) {
+        const items = r.data.items || r.data;
+        this.statuses.set(items);
+      }
+    });
     this.load();
   }
 
   load() {
-    let url = `/api/products?page=${this.page()}&size=${this.size()}`;
-    if (this.filterStatusId()) url += `&statusId=${this.filterStatusId()}`;
+    let url = `${API.products.base}?page=${this.page()}&size=${this.size()}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&productStatusId=${encodeURIComponent(this.filterStatusId())}`;
     this.api.get<{ items: ProductDto[]; totalElements: number }>(url).subscribe(r => {
-      if (r.success) { this.products.set(r.data.items); this.total.set(r.data.totalElements); }
+      if (r.success && r.data) {
+        this.products.set(r.data.items || []);
+        this.total.set(r.data.totalElements || 0);
+      }
     });
   }
 
@@ -67,6 +82,13 @@ export class ProductListComponent {
       if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
     });
   }
+
+  activate(p: ProductDto) {
+    this.api.put(`/api/products/${p.id}/activate`, {}).subscribe(r => {
+      if (r.success) { this.snackBar.open('Activated', 'OK', { duration: 2000 }); this.load(); }
+    });
+  }
+
 
   openCreate() {
     this.dialog.open(ProductFormComponent, { width: '500px', panelClass: 'ff-dialog-panel' }).afterClosed().subscribe(r => { if (r) this.load(); });

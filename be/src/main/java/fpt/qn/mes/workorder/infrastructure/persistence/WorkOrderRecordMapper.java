@@ -1,5 +1,7 @@
 package fpt.qn.mes.workorder.infrastructure.persistence;
 
+import java.time.ZoneOffset;
+
 import org.springframework.stereotype.Component;
 
 import fpt.qn.mes.jooq.tables.records.WorkOrderEventsRecord;
@@ -37,12 +39,12 @@ public class WorkOrderRecordMapper {
         r.setFinishedProductId(w.getFinishedProductId());
         r.setBomId(w.getBomId());
         r.setPlannedQuantity(w.getPlannedQuantity());
-        r.setPlannedStartDate(w.getPlannedStartDate() != null ? w.getPlannedStartDate().atOffset(java.time.ZoneOffset.UTC) : null);
-        r.setPlannedEndDate(w.getPlannedEndDate() != null ? w.getPlannedEndDate().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setPlannedStartDate(w.getPlannedStartDate() != null ? w.getPlannedStartDate().atOffset(ZoneOffset.UTC) : null);
+        r.setPlannedEndDate(w.getPlannedEndDate() != null ? w.getPlannedEndDate().atOffset(ZoneOffset.UTC) : null);
         r.setPriorityId(w.getPriorityId());
         r.setWorkOrderStatusId(w.getWorkOrderStatusId());
         r.setCreatedBy(w.getCreatedBy());
-        r.setCreatedAt(w.getCreatedAt() != null ? w.getCreatedAt().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setCreatedAt(w.getCreatedAt() != null ? w.getCreatedAt().atOffset(ZoneOffset.UTC) : null);
         return r;
     }
 

@@ -8,4 +8,3 @@ public class MachineStatusNotFoundException extends AppException {
         super(404, ErrorCode.NOT_FOUND, message);
     }
 }
-

@@ -8,4 +8,5 @@ import fpt.qn.mes.inventory.domain.entities.StockStatus;
 @Mapper(componentModel = "spring")
 public interface StockStatusDtoMapper {
     StockStatusResponse toDto(StockStatus entity);
+    StockStatusResponse.UserInfo toUserInfo(StockStatus.UserRef ref);
 }

@@ -5,6 +5,7 @@ export interface LocationDto {
   name: string;
   locationStatusId: string;
   locationStatusName: string;
+  locationStatus?: { id: string; name: string; description?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

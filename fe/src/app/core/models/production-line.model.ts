@@ -4,6 +4,7 @@ export interface ProductionLineDto {
   name: string;
   lineStatusId: string;
   lineStatusName: string;
+  lineStatus?: { id: string; name: string; description?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

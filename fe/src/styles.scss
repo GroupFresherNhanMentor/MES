@@ -877,4 +877,52 @@ button.btn-success:hover,
   .mat-mdc-menu-item:hover {
     background: #292524 !important;
   }
+
+  /* ── Menu dropdown ── */
+  .mat-mdc-menu-panel {
+    background: #1c1917 !important;
+    border: 1px solid #44403c;
+  }
+
+  .mat-mdc-menu-item {
+    color: #fafaf9 !important;
+  }
+
+  .mat-mdc-menu-item:hover {
+    background: #292524 !important;
+  }
+}
+/* ── Table scroll & truncation ── */
+.mat-mdc-card-content {
+  overflow-x: auto !important;
+  max-width: 100%;
+}
+
+.mat-mdc-table {
+  width: 100%;
+  min-width: 800px;
+  table-layout: fixed;
+}
+
+.mat-mdc-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.mat-mdc-cell.mat-column-actions {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.mat-mdc-cell.mat-column-createdBy,
+.mat-mdc-cell.mat-column-createdAt {
+  max-width: 140px;
+}
+
+.mat-mdc-header-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -14,7 +14,7 @@ public class LocationStatus {
     UUID id;
     String name;
     String description;
-    
+
     public static LocationStatus create(String name, String description) {
         return LocationStatus.builder()
             .id(UuidV7.generate())

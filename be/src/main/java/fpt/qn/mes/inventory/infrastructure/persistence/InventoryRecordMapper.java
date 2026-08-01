@@ -3,57 +3,33 @@ package fpt.qn.mes.inventory.infrastructure.persistence;
 import java.time.ZoneOffset;
 
 import org.springframework.stereotype.Component;
-import fpt.qn.mes.inventory.domain.entities.LotType;
+
+import fpt.qn.mes.inventory.domain.entities.MovementType;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
+import fpt.qn.mes.inventory.domain.entities.StockStatus;
 import fpt.qn.mes.jooq.tables.records.StockBalancesRecord;
-import fpt.qn.mes.jooq.tables.records.StockLotsRecord;
 import fpt.qn.mes.jooq.tables.records.StockMovementsRecord;
 
 @Component
 public class InventoryRecordMapper {
 
-    public StockLot toDomain(StockLotsRecord r) {
-        if (r == null) return null;
-        return StockLot.builder()
-                .id(r.getId())
-                .lotNumber(r.getLotNumber())
-                .productId(r.getProductId())
-                .lotType(LotType.builder().id(r.getLotTypeId()).build())
-                .expiryDate(r.getExpiryDate())
-                .createdAt(r.getCreatedAt() != null ? r.getCreatedAt().toInstant() : null)
-                .build();
-    }
-
-    public StockLotsRecord toRecord(StockLot l) {
-        if (l == null) return null;
-        StockLotsRecord r = new StockLotsRecord();
-        r.setId(l.getId());
-        r.setLotNumber(l.getLotNumber());
-        r.setProductId(l.getProductId());
-        r.setLotTypeId(l.getLotType().getId());
-        r.setExpiryDate(l.getExpiryDate());
-        if (l.getCreatedAt() != null) {
-            r.setCreatedAt(l.getCreatedAt().atOffset(ZoneOffset.UTC));
-        }
-        return r;
-    }
-
     public StockMovement toDomain(StockMovementsRecord r) {
         if (r == null) return null;
         return StockMovement.builder()
                 .id(r.getId())
-                .movementType(r.getMovementTypeId() != null ? fpt.qn.mes.inventory.domain.entities.MovementType.builder().id(r.getMovementTypeId()).build() : null)
+                .movementType(r.getMovementTypeId() != null ? MovementType.builder().id(r.getMovementTypeId()).build() : null)
                 .productId(r.getProductId())
-                .stockLot(r.getLotId() != null ? fpt.qn.mes.inventory.domain.entities.StockLot.builder().id(r.getLotId()).build() : null)
+                .workOrderId(r.getWorkOrderId())
+                .stockLot(r.getLotId() != null ? StockLot.builder().id(r.getLotId()).build() : null)
                 .fromWarehouseId(r.getFromWarehouseId())
                 .fromLocationId(r.getFromLocationId())
                 .toWarehouseId(r.getToWarehouseId())
                 .toLocationId(r.getToLocationId())
                 .quantity(r.getQuantity())
-                .fromStatus(r.getFromStatusId() != null ? fpt.qn.mes.inventory.domain.entities.StockStatus.builder().id(r.getFromStatusId()).build() : null)
-                .toStatus(r.getToStatusId() != null ? fpt.qn.mes.inventory.domain.entities.StockStatus.builder().id(r.getToStatusId()).build() : null)
+                .fromStatus(r.getFromStatusId() != null ? StockStatus.builder().id(r.getFromStatusId()).build() : null)
+                .toStatus(r.getToStatusId() != null ? StockStatus.builder().id(r.getToStatusId()).build() : null)
                 .referenceNo(r.getReferenceNo())
                 .reason(r.getReason())
                 .createdBy(r.getCreatedBy())
@@ -68,6 +44,7 @@ public class InventoryRecordMapper {
         r.setMovementTypeId(m.getMovementTypeId());
         r.setProductId(m.getProductId());
         r.setLotId(m.getLotId());
+        r.setWorkOrderId(m.getWorkOrderId());
         r.setFromWarehouseId(m.getFromWarehouseId());
         r.setFromLocationId(m.getFromLocationId());
         r.setToWarehouseId(m.getToWarehouseId());

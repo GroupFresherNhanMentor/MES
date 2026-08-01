@@ -89,7 +89,7 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
     public PaginationResult<Line> search(LineSearchCriteria criteria) {
         Condition condition = buildCondition(criteria);
         List<SortField<?>> orderBy = SortUtils.resolveSorts(criteria.getSort(), SORT_FIELDS, DEFAULT_SORT_FIELD);
-        
+
         long total = ctx.fetchCount(PRODUCTION_LINES, condition);
         List<Line> items = ctx.select()
                 .from(PRODUCTION_LINES)
@@ -101,18 +101,18 @@ public class LinePersistenceAdapter extends BaseRepository<ProductionLinesRecord
                 .limit(criteria.getSize())
                 .offset((long) criteria.getPage() * criteria.getSize())
                 .fetch(r -> mapper.toDomain(r.into(PRODUCTION_LINES), r.into(LINE_STATUSES), r.into(CREATOR), r.into(UPDATER)));
-                
+
         return PaginationResult.<Line>builder().total(total).items(items).build();
     }
 
     private Condition buildCondition(LineSearchCriteria criteria) {
         Condition condition = DSL.noCondition();
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(PRODUCTION_LINES.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(PRODUCTION_LINES.CODE.containsIgnoreCase(criteria.getCode())
+        .or(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(PRODUCTION_LINES.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getLineStatusId() != null) {
             condition = condition.and(PRODUCTION_LINES.LINE_STATUS_ID.eq(criteria.getLineStatusId()));
         }

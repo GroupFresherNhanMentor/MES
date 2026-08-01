@@ -49,6 +49,13 @@ public class MachineStatusPersistenceAdapter extends BaseRepository<MachineStatu
     }
 
     @Override
+    public Optional<MachineStatus> findByName(String name) {
+        return ctx.selectFrom(MACHINE_STATUSES)
+                .where(MACHINE_STATUSES.NAME.eq(name))
+                .fetchOptional(r -> mapper.toDomain(r));
+    }
+
+    @Override
     public boolean existsByName(String name) {
         return ctx.fetchExists(MACHINE_STATUSES, MACHINE_STATUSES.NAME.eq(name));
     }

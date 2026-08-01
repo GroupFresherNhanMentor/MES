@@ -22,14 +22,40 @@ import lombok.experimental.FieldDefaults;
 @EqualsAndHashCode
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class StockLot {
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class ProductRef {
+        UUID id;
+        String code;
+        String name;
+    }
+
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @FieldDefaults(level = AccessLevel.PRIVATE)
+    public static class UserRef {
+        UUID id;
+        String fullName;
+        String username;
+    }
+
     UUID id;
     String lotNumber;
-    UUID productId;
+    ProductRef product;
     LotType lotType;
     LocalDate expiryDate;
     Instant createdAt;
+    UserRef createdBy;
+    Instant updatedAt;
+    UserRef updatedBy;
 
-    public static StockLot create(String lotNumber, UUID productId, UUID lotTypeId, LocalDate expiryDate) {
+    public static StockLot create(String lotNumber, UUID productId, UUID lotTypeId, LocalDate expiryDate, UUID createdBy) {
         if (lotNumber == null || lotNumber.trim().isEmpty()) {
             throw new DomainException("Lot number cannot be empty or null");
         }
@@ -40,11 +66,16 @@ public class StockLot {
         return StockLot.builder()
                 .id(UuidV7.generate())
                 .lotNumber(lotNumber.trim())
-                .productId(productId)
+                .product(ProductRef.builder().id(productId).build())
                 .lotType(lotType)
                 .expiryDate(expiryDate)
                 .createdAt(Instant.now())
+                .createdBy(createdBy != null ? UserRef.builder().id(createdBy).build() : null)
                 .build();
+    }
+
+    public UUID getProductId() {
+        return product != null ? product.getId() : null;
     }
 
     public UUID getLotTypeId() {
