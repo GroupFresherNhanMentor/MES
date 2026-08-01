@@ -3,7 +3,7 @@ package fpt.qn.mes.inventory.domain.entities;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
-
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -58,6 +58,7 @@ public class StockAdjustmentApproval {
             String referenceNo,
             UUID createdBy) {
         return StockAdjustmentApproval.builder()
+                .id(UuidV7.generate())
                 .productId(productId)
                 .warehouseId(warehouseId)
                 .locationId(locationId)

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -79,5 +80,12 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity.internalServerError()
                 .body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, "An unexpected error occurred. Please try again later."));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        log.warn("Bad request at {}: {}", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, "Invalid request body"));
     }
 }

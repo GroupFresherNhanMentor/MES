@@ -27,6 +27,7 @@ import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustm
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.CreateStockMovementRequest;
 import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
 import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
@@ -103,8 +104,8 @@ public class InventoryController {
     @Operation(summary = "Transfer available inventory between warehouse locations")
     @PostMapping("/api/stock-transfers")
     public ResponseEntity<ApiResponse<StockTransferResponse>> transferStock(
-            @Valid @RequestBody fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest request) {
-        StockTransferResponse result = inventoryUseCase.transferStock(request);
+            @Valid @RequestBody StockTransferRequest request) {
+            StockTransferResponse result = inventoryUseCase.transferStock(request);
         return ResponseEntity.ok(ApiResponse.success(result, "Stock transfer completed successfully"));
     }
 }

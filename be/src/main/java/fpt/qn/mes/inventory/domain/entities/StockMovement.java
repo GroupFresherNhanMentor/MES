@@ -83,9 +83,9 @@ public class StockMovement {
         if (productId == null) {
             throw new DomainException("Product ID cannot be null");
         }
-        if (toWarehouseId == null) {
-            throw new DomainException("At least one warehouse (fromWarehouseId or toWarehouseId) must be specified");
-        }
+        // if (toWarehouseId == null) {
+        //     throw new DomainException("At least one warehouse (fromWarehouseId or toWarehouseId) must be specified");
+        // }
         if (createdBy == null) {
             throw new DomainException("Created-by user ID cannot be null");
         }
