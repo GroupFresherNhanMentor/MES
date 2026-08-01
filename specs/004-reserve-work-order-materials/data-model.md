@@ -34,18 +34,11 @@ The operation must reject inconsistent negative remaining quantities. A normal r
 
 | Field | Type | Rules for this feature |
 |---|---|---|
-<<<<<<< HEAD
 | `id` | UUID | Resolved internally and never supplied by the client. |
 | `code` | String | Must equal the configured `RAW_MATERIAL_WAREHOUSE` value. |
 | `warehouseStatusId` | UUID | The resolved warehouse must be usable for stock operations. |
 
 The request contains no `sourceWarehouseId`. The configured code is resolved for every request and the resulting warehouse ID scopes all stock queries.
-=======
-| `id` | UUID | Identifies an eligible stock source and is never supplied by the client. |
-| `warehouseStatusId` | UUID | Only warehouses with status `ACTIVE` are eligible for stock operations. |
-
-The request contains no `sourceWarehouseId`. Stock queries include all `ACTIVE` warehouses.
->>>>>>> origin/develop
 
 ### StockLot
 
@@ -61,11 +54,7 @@ FIFO ordering uses `createdAt` followed by deterministic `id`/location tie-break
 
 | Field | Type | Rules for this feature |
 |---|---|---|
-<<<<<<< HEAD
 | `warehouseId` | UUID | Must equal the resolved raw-material warehouse ID. |
-=======
-| `warehouseId` | UUID | Must belong to an `ACTIVE` warehouse. |
->>>>>>> origin/develop
 | `locationId` | UUID | Identifies the stock location. |
 | `productId` | UUID | Matches a Work Order material. |
 | `lotId` | UUID | Joins FIFO lot ordering. |
@@ -75,7 +64,6 @@ FIFO ordering uses `createdAt` followed by deterministic `id`/location tie-break
 
 The unique balance slot is `(warehouseId, locationId, productId, lotId, stockStatusId)`. Both source and destination status rows must be handled without conflating them.
 
-<<<<<<< HEAD
 ### Machine
 
 | Field | Type | Rules for this feature |
@@ -85,8 +73,6 @@ The unique balance slot is `(warehouseId, locationId, productId, lotId, stockSta
 
 The machine is checked while the reservation transaction is active. This feature does not create a production run or change the machine status.
 
-=======
->>>>>>> origin/develop
 ### StockMovement
 
 | Field | Type | Rules for this feature |
@@ -118,7 +104,6 @@ Stock movements are insert-only and one movement is created for each selected lo
 
 Audit records are immutable and written in the same transaction as the corresponding status change.
 
-<<<<<<< HEAD
 ## New API DTOs
 
 ### ReserveWorkOrderMaterialsRequest
@@ -128,11 +113,6 @@ Audit records are immutable and written in the same transaction as the correspon
 | `machineId` | UUID | Yes | Must identify an existing machine. |
 
 `sourceWarehouseId` is intentionally absent.
-=======
-## API DTOs
-
-The reservation endpoint has no request DTO or request body. The Work Order ID is supplied in the path, and the source warehouse is selected from all active warehouse balances.
->>>>>>> origin/develop
 
 ### ReserveWorkOrderMaterialsResponse
 
@@ -145,13 +125,8 @@ The reservation endpoint has no request DTO or request body. The Work Order ID i
 
 | Current status | Condition | New status | Result |
 |---|---|---|---|
-<<<<<<< HEAD
 | `PLANNED` | All required material is available and machine is `AVAILABLE` | `READY_TO_PRODUCE` | HTTP 200; stock and audit updated. |
 | `MATERIAL_SHORTAGE` | All required material is available and machine is `AVAILABLE` | `READY_TO_PRODUCE` | HTTP 200; retry succeeds. |
-=======
-| `PLANNED` | All required material is available | `READY_TO_PRODUCE` | HTTP 200; stock and audit updated. |
-| `MATERIAL_SHORTAGE` | All required material is available | `READY_TO_PRODUCE` | HTTP 200; retry succeeds. |
->>>>>>> origin/develop
 | `PLANNED` | Any material is insufficient | `MATERIAL_SHORTAGE` | HTTP 400 `INSUFFICIENT_STOCK`; no stock/material reservation mutation. |
 | `MATERIAL_SHORTAGE` | Any material remains insufficient | `MATERIAL_SHORTAGE` | HTTP 400 `INSUFFICIENT_STOCK`; no stock/material reservation mutation. |
 | Any other status | Reservation requested | Unchanged | HTTP 400 `INVALID_INPUT`. |
@@ -159,10 +134,7 @@ The reservation endpoint has no request DTO or request body. The Work Order ID i
 ## Transaction and Locking Invariants
 
 - Lock the Work Order before evaluating or mutating its reservation state.
-<<<<<<< HEAD
 - Lock machine availability for the duration of the reservation decision.
-=======
->>>>>>> origin/develop
 - Select and lock all eligible `AVAILABLE` balance rows in deterministic FIFO order before mutating any row.
 - Validate every material before changing any balance.
 - Decrement source `AVAILABLE` rows and increment or insert destination `RESERVED` rows atomically.

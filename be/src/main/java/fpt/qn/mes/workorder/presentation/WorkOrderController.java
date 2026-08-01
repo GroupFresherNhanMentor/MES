@@ -24,6 +24,7 @@ import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
@@ -100,6 +101,28 @@ public class WorkOrderController {
     public ResponseEntity<ApiResponse<WorkOrderResponse>> cancel(@PathVariable UUID id) {
         var response = workOrderUseCase.cancelWorkOrder(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Work order cancelled successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/start")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> start(
+            @PathVariable UUID id, @Valid @RequestBody StartWorkOrderRequest request) {
+        var response = workOrderUseCase.startWorkOrder(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production started successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/pause")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> pause(@PathVariable UUID id) {
+        var response = workOrderUseCase.pauseWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production paused successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/resume")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> resume(@PathVariable UUID id) {
+        var response = workOrderUseCase.resumeWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production resumed successfully"));
     }
 
     @DeleteMapping("/{id}")

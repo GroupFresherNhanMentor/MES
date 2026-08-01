@@ -16,7 +16,7 @@ public class LineRecordMapper {
 
     public Line toDomain(ProductionLinesRecord r, LineStatusesRecord status, UsersRecord creator, UsersRecord updater) {
         if (r == null || r.getId() == null) return null;
-        
+
         return Line.builder()
                 .id(r.getId())
                 .code(r.getCode())

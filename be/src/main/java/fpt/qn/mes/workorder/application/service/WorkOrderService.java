@@ -24,6 +24,7 @@ import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
@@ -34,6 +35,7 @@ import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
+import fpt.qn.mes.workorder.application.port.out.ProductionRunPort;
 import fpt.qn.mes.workorder.application.port.out.ReservationAllocation;
 import fpt.qn.mes.workorder.application.port.out.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
@@ -58,6 +60,7 @@ public class WorkOrderService implements WorkOrderUseCase {
     WarehouseUseCase warehouseUseCase;
     MachineUseCase machineUseCase;
     WorkOrderReservationPort reservationPort;
+    ProductionRunPort productionRunPort;
     AuditLogPort auditLogPort;
     CurrentUserPort currentUserPort;
 
@@ -473,6 +476,83 @@ public class WorkOrderService implements WorkOrderUseCase {
         auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
                 WorkOrderStatusConstants.CANCELLED, "CANCEL_WORK_ORDER");
 
+        return getWorkOrderById(workOrderId);
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse startWorkOrder(UUID workOrderId, StartWorkOrderRequest request) {
+        if (request == null || request.getMachineId() == null) {
+            throw new InvalidInputException("machineId is required to start production");
+        }
+
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (!WorkOrderStatusConstants.READY_TO_PRODUCE.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException(
+                    "Work Order must be in READY_TO_PRODUCE status to start production");
+        }
+        if (!machineUseCase.isAvailableForReservation(request.getMachineId())) {
+            throw new MachineNotAvailableException("Machine is not AVAILABLE for production");
+        }
+        if (productionRunPort.isMachineRunning(request.getMachineId())) {
+            throw new InvalidWorkOrderStateException("Machine is currently running another work order");
+        }
+
+        UUID operatorId = request.getOperatorId() != null ? request.getOperatorId() : currentUserPort.getCurrentUserId();
+        UUID runId = productionRunPort.createProductionRun(
+                workOrderId, request.getMachineId(), request.getProductionLineId(), operatorId);
+        productionRunPort.updateMachineStatus(request.getMachineId(), "RUNNING");
+
+        UUID inProgressStatusId = requireReferenceId(
+                repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS).orElse(null),
+                "IN_PROGRESS status is not configured");
+        updateStatus(workOrder, inProgressStatusId);
+        productionRunPort.recordWorkOrderEvent(workOrderId, runId, "START", operatorId);
+        auditLogPort.recordStatusTransition(operatorId, workOrderId, currentStatus, WorkOrderStatusConstants.IN_PROGRESS);
+        return getWorkOrderById(workOrderId);
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse pauseWorkOrder(UUID workOrderId) {
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (!WorkOrderStatusConstants.IN_PROGRESS.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException("Work Order must be IN_PROGRESS to pause");
+        }
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId).orElse(null);
+        UUID pausedStatusId = requireReferenceId(
+                repository.findStatusIdByName(WorkOrderStatusConstants.PAUSED).orElse(null),
+                "PAUSED status is not configured");
+        updateStatus(workOrder, pausedStatusId);
+        productionRunPort.recordWorkOrderEvent(workOrderId, runId, "PAUSE", actorId);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.PAUSED);
+        return getWorkOrderById(workOrderId);
+    }
+
+    @Override
+    @Transactional
+    public WorkOrderResponse resumeWorkOrder(UUID workOrderId) {
+        WorkOrder workOrder = repository.findForUpdate(workOrderId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
+        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
+        if (!WorkOrderStatusConstants.PAUSED.equals(currentStatus)) {
+            throw new InvalidWorkOrderStateException("Work Order must be PAUSED to resume");
+        }
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+        UUID runId = productionRunPort.findActiveProductionRunId(workOrderId).orElse(null);
+        UUID inProgressStatusId = requireReferenceId(
+                repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS).orElse(null),
+                "IN_PROGRESS status is not configured");
+        updateStatus(workOrder, inProgressStatusId);
+        productionRunPort.recordWorkOrderEvent(workOrderId, runId, "RESUME", actorId);
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus, WorkOrderStatusConstants.IN_PROGRESS);
         return getWorkOrderById(workOrderId);
     }
 

@@ -67,7 +67,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http,
             AppJwtAuthenticationConverter jwtConverter,
-            IdempotencyService idempotencyService, 
+            IdempotencyService idempotencyService,
             Environment environment,
             ObjectMapper objectMapper,
             @Qualifier("accessJwtDecoder") JwtDecoder accessJwtDecoder) throws Exception {

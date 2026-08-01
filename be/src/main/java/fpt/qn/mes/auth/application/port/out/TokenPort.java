@@ -17,4 +17,3 @@ public interface TokenPort {
 
     TokenClaims parseAccessToken(String token);
 }
-

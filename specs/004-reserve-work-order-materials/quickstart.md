@@ -10,18 +10,11 @@ docker-compose up -d
 ```
 
 - A valid JWT for a user with the `PLANNER` role.
-<<<<<<< HEAD
 - A warehouse with code `RAW_MATERIAL_WAREHOUSE` and at least one active location.
 - A finished product with an active BOM and an existing Work Order in `PLANNED` status.
 - `work_order_materials` populated for the Work Order.
 - `AVAILABLE` stock balances for every required material in the configured warehouse.
 - A machine with status `AVAILABLE`.
-=======
-- One or more `ACTIVE` warehouses with active locations.
-- A finished product with an active BOM and an existing Work Order in `PLANNED` status.
-- `work_order_materials` populated for the Work Order.
-- `AVAILABLE` stock balances for every required material across active warehouses.
->>>>>>> origin/develop
 
 ## Start the Backend
 
@@ -37,15 +30,10 @@ The API is expected to be available at `http://localhost:8080`.
 Replace the UUID values with seeded data and use a valid Planner token:
 
 ```bash
-<<<<<<< HEAD
 curl -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-materials" \
   -H "Authorization: Bearer ${PLANNER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"machineId":"{availableMachineId}"}'
-=======
-curl -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}"
->>>>>>> origin/develop
 ```
 
 Expected result:
@@ -53,17 +41,12 @@ Expected result:
 - HTTP `200 OK`.
 - Response data contains the Work Order ID and `READY_TO_PRODUCE`.
 - The Work Order status is `READY_TO_PRODUCE`.
-<<<<<<< HEAD
 - `AVAILABLE` balances decrease and `RESERVED` balances increase in `RAW_MATERIAL_WAREHOUSE`.
-=======
-- `AVAILABLE` balances decrease and `RESERVED` balances increase in the active warehouses and locations selected by FIFO.
->>>>>>> origin/develop
 - One `RESERVE` movement exists for each selected lot allocation.
 - A `RESERVE_MATERIAL` audit record exists for the status transition.
 
 ## Insufficient Stock
 
-<<<<<<< HEAD
 Use a Work Order whose required quantity exceeds the available quantity in the configured warehouse:
 
 ```bash
@@ -71,13 +54,6 @@ curl -i -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-
   -H "Authorization: Bearer ${PLANNER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"machineId":"{availableMachineId}"}'
-=======
-Use a Work Order whose required quantity exceeds the available quantity across all active warehouses:
-
-```bash
-curl -i -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}"
->>>>>>> origin/develop
 ```
 
 Expected result:
@@ -89,7 +65,6 @@ Expected result:
 - No `RESERVE` movement is created.
 - The Work Order status is `MATERIAL_SHORTAGE` and the transition is audited.
 
-<<<<<<< HEAD
 ## Scope and Warehouse Isolation
 
 Seed sufficient stock in another warehouse but insufficient stock in `RAW_MATERIAL_WAREHOUSE`. Repeat the request and verify that the other warehouse is ignored and the response remains `INSUFFICIENT_STOCK`.
@@ -97,15 +72,6 @@ Seed sufficient stock in another warehouse but insufficient stock in `RAW_MATERI
 ## Machine Guard
 
 Use a machine with status `DOWN`, `RUNNING`, `UNDER_MAINTENANCE`, or `RETIRED`. Verify that the request returns `400 INVALID_INPUT` and no stock changes occur.
-=======
-## Active Warehouse Scope
-
-Seed material across two active warehouses and verify the reservation succeeds when their combined quantity is sufficient. Seed adequate material only in an inactive warehouse and verify it is excluded, returning `INSUFFICIENT_STOCK`.
-
-## Machine Assignment
-
-This endpoint does not accept or validate a machine. Validate the selected machine and its availability when starting production.
->>>>>>> origin/develop
 
 ## FIFO Verification
 
