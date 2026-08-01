@@ -15,6 +15,10 @@ import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsRe
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
+import java.util.List;
 
 public interface WorkOrderUseCase {
     PageResponse<WorkOrderResponse> getWorkOrders(WorkOrderSearchRequest request);
@@ -36,4 +40,7 @@ public interface WorkOrderUseCase {
 
     PageResponse<WorkOrderEventResponse> getEvents(UUID workOrderId, int page, int size);
     WorkOrderEventResponse addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
+    List<WorkOrderStatusResponse> getWorkOrderStatuses();
+    List<WorkOrderPriorityResponse> getWorkOrderPriorities();
+    List<WorkOrderEventTypeResponse> getWorkOrderEventTypes();
 }

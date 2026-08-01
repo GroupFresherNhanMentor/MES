@@ -85,6 +85,12 @@ export const routes: Routes = [
         data: { title: 'Work Orders' },
       },
       {
+        path: 'work-orders/:id',
+        loadComponent: () =>
+          import('./features/work-orders/pages/work-order-detail/work-order-detail').then((m) => m.WorkOrderDetail),
+        data: { title: 'Work Order Details' },
+      },
+      {
         path: 'stock-balances',
         loadComponent: () =>
           import('./features/stock-balances/pages/stock-balance-list/stock-balance-list').then(
