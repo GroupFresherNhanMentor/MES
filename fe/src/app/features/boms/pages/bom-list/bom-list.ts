@@ -74,30 +74,17 @@ export class BomList implements OnInit {
     return role === 'ADMIN' || role === 'PLANNER';
   });
 
-  activeCount = computed(() =>
-    this.items().filter((i) => {
-      const name = (i.bomStatusName || '').trim().toUpperCase();
-      const id = (i.bomStatusId || '').trim().toUpperCase();
-      return name === 'ACTIVE' || id === 'BS-ACTIVE' || id === 'ACTIVE';
-    }).length,
-  );
-  draftCount = computed(() =>
-    this.items().filter((i) => {
-      const name = (i.bomStatusName || '').trim().toUpperCase();
-      const id = (i.bomStatusId || '').trim().toUpperCase();
-      return name === 'DRAFT' || id === 'BS-DRAFT' || id === 'DRAFT';
-    }).length,
-  );
-  totalComponentsCount = computed(() => this.items().reduce((acc, b) => acc + (b.items?.length || 0), 0));
+  activeCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'ACTIVE').length);
+  draftCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'DRAFT').length);
+  inactiveCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'INACTIVE').length);
 
   filteredItems = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     if (!query) return this.items();
-    return this.items().filter(
-      (item) =>
-        (item.finishedProductCode || '').toLowerCase().includes(query) ||
-        (item.finishedProductName || '').toLowerCase().includes(query) ||
-        (item.createdBy || '').toLowerCase().includes(query),
+    return this.items().filter(item =>
+      (item.finishedProductCode || '').toLowerCase().includes(query) ||
+      (item.finishedProductName || '').toLowerCase().includes(query) ||
+      (item.createdBy?.username || '').toLowerCase().includes(query),
     );
   });
 
@@ -187,10 +174,8 @@ export class BomList implements OnInit {
       panelClass: 'ff-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe((newBom: BomDto | null) => {
-      if (newBom && newBom.id) {
-        void this.router.navigate(['/boms', newBom.id]);
-      }
+    dialogRef.afterClosed().subscribe((created: boolean | null) => {
+      if (created) this.load();
     });
   }
 }

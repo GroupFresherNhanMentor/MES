@@ -43,11 +43,10 @@ export const API = {
     base: `${BASE}/boms`,
     byId: (id: string | number) => `${BASE}/boms/${id}`,
     activate: (id: string | number) => `${BASE}/boms/${id}/activate`,
+    deactivate: (id: string | number) => `${BASE}/boms/${id}/deactivate`,
     newVersion: (id: string | number) => `${BASE}/boms/${id}/new-version`,
     items: (bomId: string | number) => `${BASE}/boms/${bomId}/items`,
-    deleteItem: (bomId: string | number, itemId: string | number) =>
-      `${BASE}/boms/${bomId}/items/${itemId}`,
-    statuses: `${BASE}/boms/statuses`,
+    statuses: `${BASE}/bom-statuses`,
   },
   workOrders: {
     base: `${BASE}/work-orders`,

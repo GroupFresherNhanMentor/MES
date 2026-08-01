@@ -92,11 +92,10 @@ public class ProductService implements ProductUseCase {
         if (!unitOfMeasureRepository.existsById(request.getUnitId())) {
             throw new UnitOfMeasureNotFoundException("Unit of measure not found: " + request.getUnitId());
         }
-        if (!productStatusRepository.existsById(request.getProductStatusId())) {
-            throw new ProductStatusNotFoundException("Product status not found: " + request.getProductStatusId());
-        }
+        ProductStatus activeStatus = productStatusRepository.findByName(ProductStatusConstants.ACTIVE)
+                .orElseThrow(() -> new ProductStatusNotFoundException("ACTIVE status not found"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        var product = Product.create(request.getCode(), request.getName(), request.getVersion(), request.getProductTypeId(), request.getUnitId(), request.getProductStatusId(), currentUserId);
+        var product = Product.create(request.getCode(), request.getName(), request.getVersion(), request.getProductTypeId(), request.getUnitId(), activeStatus.getId(), currentUserId);
         productRepository.save(product);
     }
 

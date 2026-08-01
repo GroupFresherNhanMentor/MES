@@ -23,6 +23,4 @@ public class CreateProductRequest {
     UUID productTypeId;
     @NotNull
     UUID unitId;
-    @NotNull
-    UUID productStatusId;
 }

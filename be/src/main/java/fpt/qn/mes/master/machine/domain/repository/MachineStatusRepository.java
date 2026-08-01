@@ -9,6 +9,7 @@ import fpt.qn.mes.master.machine.domain.repository.criteria.MachineStatusSearchC
 
 public interface MachineStatusRepository {
     Optional<MachineStatus> findById(UUID id);
+    Optional<MachineStatus> findByName(String name);
     boolean existsById(UUID id);
     boolean existsByName(String name);
     MachineStatus save(MachineStatus status);

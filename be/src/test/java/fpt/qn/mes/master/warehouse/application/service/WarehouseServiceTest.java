@@ -52,8 +52,9 @@ class WarehouseServiceTest {
 
     @Test
     void createWarehouse_Success() {
+        WarehouseStatus activeStatus = WarehouseStatus.builder().id(statusId).name(WarehouseStatusConstants.ACTIVE).build();
         when(warehouseRepository.existsByCode("WH-TEST")).thenReturn(false);
-        when(warehouseStatusRepository.existsById(statusId)).thenReturn(true);
+        when(warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)).thenReturn(Optional.of(activeStatus));
         when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(warehouseRepository.save(any(Warehouse.class))).thenReturn(warehouse);
 
@@ -61,7 +62,6 @@ class WarehouseServiceTest {
         req.setCode("WH-TEST");
         req.setName("Test");
         req.setAddress("123 Test St");
-        req.setWarehouseStatusId(statusId);
 
         assertDoesNotThrow(() -> warehouseService.createWarehouse(req));
         verify(warehouseRepository).save(any(Warehouse.class));
@@ -74,19 +74,17 @@ class WarehouseServiceTest {
         req.setCode("WH-TEST");
         req.setName("Test");
         req.setAddress("123 Test St");
-        req.setWarehouseStatusId(statusId);
         assertThrows(WarehouseConflictException.class, () -> warehouseService.createWarehouse(req));
     }
 
     @Test
-    void createWarehouse_StatusNotFound_ThrowsConflict() {
+    void createWarehouse_ActiveStatusNotFound_ThrowsStatusNotFoundException() {
         when(warehouseRepository.existsByCode("WH-TEST")).thenReturn(false);
-        when(warehouseStatusRepository.existsById(statusId)).thenReturn(false);
+        when(warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)).thenReturn(Optional.empty());
         var req = new CreateWarehouseRequest();
         req.setCode("WH-TEST");
         req.setName("Test");
         req.setAddress("123 Test St");
-        req.setWarehouseStatusId(statusId);
         assertThrows(WarehouseStatusNotFoundException.class, () -> warehouseService.createWarehouse(req));
     }
 

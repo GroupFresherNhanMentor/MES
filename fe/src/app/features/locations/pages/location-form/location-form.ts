@@ -3,18 +3,15 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
 import type { LocationDto } from '../../../../core/models/location.model';
 
-interface Status { id: string; name: string; }
-
 @Component({
   selector: 'app-location-form',
-  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatSelectModule, MatDialogModule, MatSnackBarModule],
+  imports: [FormsModule, MatButtonModule, MatFormFieldModule, MatInputModule, MatDialogModule, MatSnackBarModule],
   template: `
   <h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} Location</h2>
   <mat-dialog-content>
@@ -27,17 +24,11 @@ interface Status { id: string; name: string; }
         <mat-label>Name</mat-label>
         <input matInput [(ngModel)]="name" name="name" required>
       </mat-form-field>
-      <mat-form-field appearance="outline">
-        <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="statusId" name="status" required>
-          @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
-        </mat-select>
-      </mat-form-field>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name || !statusId">Save</button>
+    <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!code || !name">Save</button>
   </mat-dialog-actions>
   `
 })
@@ -50,24 +41,13 @@ export class LocationFormComponent {
 
   code = '';
   name = '';
-  statusId = '';
-  originalStatusId = '';
-  statuses: Status[] = [];
 
   constructor() {
     const d = this.data as any;
     if (d?.warehouseId) this.warehouseId = d.warehouseId;
-    this.api.get<{ items: Status[] }>('/api/location-statuses?page=0&size=50').subscribe(r => {
-      if (r.success) {
-        this.statuses = r.data.items;
-        if (!this.data && this.statuses.length) this.statusId = this.statuses[0].id;
-      }
-    });
     if (this.data) {
       this.code = this.data.code;
       this.name = this.data.name || '';
-      this.statusId = (this.data as any).locationStatus?.id || this.data.locationStatusId || '';
-      this.originalStatusId = this.statusId;
     }
   }
 
@@ -75,12 +55,12 @@ export class LocationFormComponent {
     const url = `/api/warehouses/${this.warehouseId}/locations`;
     const editId = this.data?.id;
     if (editId) {
-      this.api.put(`${url}/${editId}`, { name: this.name, locationStatusId: this.statusId }).subscribe({
+      this.api.put(`${url}/${editId}`, { name: this.name }).subscribe({
         next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
         error: e => this.snackBar.open(e?.error?.message || 'Error updating location', 'OK', { duration: 4000 })
       });
     } else {
-      this.api.post(url, { code: this.code, name: this.name, locationStatusId: this.statusId }).subscribe({
+      this.api.post(url, { code: this.code, name: this.name }).subscribe({
         next: r => { if (r.success) { this.snackBar.open('Created', 'OK', { duration: 2000 }); this.dialogRef.close(true); } },
         error: e => this.snackBar.open(e?.error?.message || 'Error creating location', 'OK', { duration: 4000 })
       });

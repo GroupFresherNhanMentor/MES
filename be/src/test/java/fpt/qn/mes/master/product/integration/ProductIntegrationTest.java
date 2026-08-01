@@ -193,7 +193,6 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
         req.setVersion("v1.0-" + code);
         req.setProductTypeId(productTypeId);
         req.setUnitId(unitId);
-        req.setProductStatusId(statusId);
         return req;
     }
 }

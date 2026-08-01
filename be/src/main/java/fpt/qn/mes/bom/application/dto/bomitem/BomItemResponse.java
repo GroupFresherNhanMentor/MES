@@ -1,12 +1,20 @@
-package fpt.qn.mes.bom.application.dto.response;
+package fpt.qn.mes.bom.application.dto.bomitem;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@Getter @Builder @NoArgsConstructor @AllArgsConstructor @FieldDefaults(level = AccessLevel.PRIVATE)
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class BomItemResponse {
     UUID id;
     UUID bomId;
@@ -14,7 +22,6 @@ public class BomItemResponse {
     String materialProductCode;
     String materialProductName;
     BigDecimal quantityPerUnit;
-    UUID unitId;
-    String unit;
+    String unitName;
     BigDecimal scrapRate;
 }

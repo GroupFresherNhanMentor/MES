@@ -28,6 +28,7 @@ import fpt.qn.mes.master.product.application.exception.ProductTypeNotFoundExcept
 import fpt.qn.mes.master.product.application.exception.UnitOfMeasureNotFoundException;
 import fpt.qn.mes.master.product.application.mapper.ProductDtoMapper;
 import fpt.qn.mes.master.product.application.port.out.MovementStockCheckPort;
+import fpt.qn.mes.master.product.domain.constants.ProductStatusConstants;
 import fpt.qn.mes.master.product.domain.entities.Product;
 import fpt.qn.mes.master.product.domain.entities.ProductStatus;
 import fpt.qn.mes.master.product.domain.repository.ProductRepository;
@@ -73,7 +74,6 @@ class ProductServiceTest {
         createReq.setVersion("v1.0");
         createReq.setProductTypeId(typeId);
         createReq.setUnitId(unitId);
-        createReq.setProductStatusId(statusId);
     }
 
     // ── createProduct ─────────────────────────────────────────────────────────
@@ -84,7 +84,8 @@ class ProductServiceTest {
         when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(true);
         when(unitOfMeasureRepository.existsById(unitId)).thenReturn(true);
-        when(productStatusRepository.existsById(statusId)).thenReturn(true);
+        when(productStatusRepository.findByName(ProductStatusConstants.ACTIVE))
+                .thenReturn(Optional.of(ProductStatus.builder().id(statusId).name("ACTIVE").build()));
         when(currentUserPort.getCurrentUserId()).thenReturn(userId);
         when(productRepository.save(any())).thenReturn(product);
 
@@ -132,12 +133,12 @@ class ProductServiceTest {
     }
 
     @Test
-    void createProduct_throwsNotFound_whenProductStatusDoesNotExist() {
+    void createProduct_throwsNotFound_whenActiveStatusMissing() {
         when(productRepository.existsByCode("TEST-001")).thenReturn(false);
         when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(true);
         when(unitOfMeasureRepository.existsById(unitId)).thenReturn(true);
-        when(productStatusRepository.existsById(statusId)).thenReturn(false);
+        when(productStatusRepository.findByName(ProductStatusConstants.ACTIVE)).thenReturn(Optional.empty());
 
         assertThrows(ProductStatusNotFoundException.class, () -> productService.createProduct(createReq));
         verify(productRepository, never()).save(any());
