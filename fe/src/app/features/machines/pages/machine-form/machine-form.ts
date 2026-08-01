@@ -39,13 +39,6 @@ interface Status { id: string; name: string; }
           @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
         </mat-select>
       </mat-form-field>
-      @if (!data) {
-      <mat-form-field appearance="outline">
-        <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="statusId" name="status" required>
-          @for (s of statuses; track s.id) { <mat-option [value]="s.id">{{ s.name }}</mat-option> }
-        </mat-select>
-      </mat-form-field>
     </div>
   </mat-dialog-content>
   <mat-dialog-actions align="end">

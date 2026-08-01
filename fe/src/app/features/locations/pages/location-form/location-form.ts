@@ -75,20 +75,8 @@ export class LocationFormComponent {
     const url = `/api/warehouses/${this.warehouseId}/locations`;
     const editId = this.data?.id;
     if (editId) {
-      this.api.put(`${url}/${editId}`, { name: this.name }).subscribe({
-        next: () => {
-          if (this.statusId !== this.originalStatusId) {
-            const newName = this.statuses.find(s => s.id === this.statusId)?.name || '';
-            const ep = newName === 'ACTIVE' ? 'activate' : 'deactivate';
-            this.api.put(`${url}/${editId}/${ep}`, {}).subscribe({
-              next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
-              error: e => this.snackBar.open(e?.error?.message || 'Error updating status', 'OK', { duration: 4000 })
-            });
-          } else {
-            this.snackBar.open('Updated', 'OK', { duration: 2000 });
-            this.dialogRef.close(true);
-          }
-        },
+      this.api.put(`${url}/${editId}`, { name: this.name, locationStatusId: this.statusId }).subscribe({
+        next: () => { this.snackBar.open('Updated', 'OK', { duration: 2000 }); this.dialogRef.close(true); },
         error: e => this.snackBar.open(e?.error?.message || 'Error updating location', 'OK', { duration: 4000 })
       });
     } else {
