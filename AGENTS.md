@@ -24,13 +24,12 @@ mes/
 ├── be/                    # Spring Boot backend
 │   └── src/main/java/fpt/qn/mes/
 │       ├── common/        # Shared: ApiResponse, AppException, BaseRepository
-│       ├── auth/
+│       ├── auth/          # Authentication, roles, role-based access control
 │       ├── bom/
 │       ├── inventory/
 │       ├── maintenance/
 │       ├── quality/
 │       ├── workorder/
-│       ├── role/
 │       ├── user/
 │       └── master/        # line, location, machine, product, warehouse
 ├── docs/

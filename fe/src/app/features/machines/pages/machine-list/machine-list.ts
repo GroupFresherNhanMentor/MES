@@ -1,10 +1,11 @@
 import { Component, inject, signal } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatCardModule } from '@angular/material/card';
@@ -16,12 +17,14 @@ import { ApiService } from '../../../../core/services/api';
 import type { MachineDto } from '../../../../core/models/machine.model';
 import { MachineFormComponent } from '../machine-form/machine-form';
 
+interface LookupEntry { id: string; name: string; }
+
 @Component({
   selector: 'app-machine-list',
   imports: [
-    NgClass, FormsModule,
+    DatePipe, NgClass, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
-    MatInputModule, MatPaginatorModule,
+    MatInputModule, MatSelectModule, MatPaginatorModule,
     MatSnackBarModule, MatCardModule, MatDialogModule, MatTooltipModule,
   ],
   templateUrl: './machine-list.html',
@@ -36,13 +39,28 @@ export class MachineList {
   page = signal(0);
   size = signal(20);
   keyword = signal('');
-  displayedColumns = ['code', 'name', 'machineStatusName', 'actions'];
+  filterStatusId = signal('');
+  statuses = signal<LookupEntry[]>([]);
+  retiredId = '';
+  availableId = '';
 
-  constructor() { this.load(); }
+  displayedColumns = ['code', 'name', 'productionLine', 'status', 'createdBy', 'createdAt', 'actions'];
+
+  constructor() {
+    this.api.get<{ items: LookupEntry[] }>('/api/machine-statuses?page=0&size=50').subscribe(r => {
+      if (r.success) {
+        this.statuses.set(r.data.items);
+        this.retiredId = r.data.items.find(s => s.name === 'RETIRED')?.id || '';
+        this.availableId = r.data.items.find(s => s.name === 'AVAILABLE')?.id || '';
+      }
+    });
+    this.load();
+  }
 
   load() {
     let url = `/api/machines?page=${this.page()}&size=${this.size()}`;
-    if (this.keyword()) url += `&keyword=${encodeURIComponent(this.keyword())}`;
+    if (this.keyword()) url += `&code=${encodeURIComponent(this.keyword())}&name=${encodeURIComponent(this.keyword())}`;
+    if (this.filterStatusId()) url += `&machineStatusId=${this.filterStatusId()}`;
     this.api.get<{ items: MachineDto[]; totalElements: number }>(url).subscribe(r => {
       if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
     });
@@ -59,9 +77,16 @@ export class MachineList {
     this.dialog.open(MachineFormComponent, { width: '500px', panelClass: 'ff-dialog-panel', data: m }).afterClosed().subscribe(r => { if (r) this.load(); });
   }
 
-  deactivate(m: MachineDto) {
-    this.api.put(`/api/machines/${m.id}/deactivate`, {}).subscribe(r => {
-      if (r.success) { this.snackBar.open('Deactivated', 'OK', { duration: 2000 }); this.load(); }
+  isRetired(m: MachineDto): boolean {
+    return ['RETIRED','INACTIVE'].includes((m.machineStatus?.name || m.machineStatusName || '').toUpperCase());
+  }
+
+  toggleStatus(m: MachineDto) {
+    const target = this.isRetired(m) ? this.availableId : this.retiredId;
+    this.api.patch(`/api/machines/${m.id}/status`, { statusId: target }).subscribe(r => {
+      if (r.success) { this.snackBar.open(this.isRetired(m) ? 'Deactivated' : 'Activated', 'OK', { duration: 2000 }); this.load(); }
     });
   }
+
+  statusName(id: string) { return this.statuses().find(s => s.id === id)?.name ?? ''; }
 }

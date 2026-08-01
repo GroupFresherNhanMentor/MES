@@ -5,6 +5,7 @@ export interface WarehouseDto {
   address?: string;
   warehouseStatusId: string;
   warehouseStatusName: string;
+  warehouseStatus?: { id: string; name: string; description?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,21 +1,16 @@
 package fpt.qn.mes.bom.infrastructure.seed;
 
 import static fpt.qn.mes.jooq.Tables.BOM_STATUSES;
-
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

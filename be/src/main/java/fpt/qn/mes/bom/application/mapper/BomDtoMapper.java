@@ -1,6 +1,7 @@
 package fpt.qn.mes.bom.application.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import fpt.qn.mes.bom.application.dto.response.BomResponse;
 import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
@@ -12,5 +13,6 @@ public interface BomDtoMapper {
 
     BomResponse toDto(Bom bom);
 
+    @Mapping(target = "unit", source = "unitName")
     BomItemResponse toDto(BomItem bomItem);
 }

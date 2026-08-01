@@ -1,6 +1,6 @@
 package fpt.qn.mes.bom.application.service;
 
-import fpt.qn.mes.common.util.PaginationUtils;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -9,10 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.application.dto.request.CreateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.request.CreateBomRequest;
-import fpt.qn.mes.bom.application.dto.response.BomResponse;
+import fpt.qn.mes.bom.application.dto.request.UpdateBomItemRequest;
 import fpt.qn.mes.bom.application.dto.response.BomItemResponse;
-import fpt.qn.mes.bom.application.exception.BomAlreadyExistsException;
+import fpt.qn.mes.bom.application.dto.response.BomResponse;
 import fpt.qn.mes.bom.application.exception.BomNotFoundException;
+import fpt.qn.mes.bom.application.exception.DuplicateBomItemException;
 import fpt.qn.mes.bom.application.exception.EmptyBomException;
 import fpt.qn.mes.bom.application.exception.InvalidBomStatusException;
 import fpt.qn.mes.bom.application.mapper.BomDtoMapper;
@@ -22,14 +23,17 @@ import fpt.qn.mes.bom.domain.entities.BomItem;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.service.LookupEntry;
+import fpt.qn.mes.common.service.LookupRepository;
+import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.product.application.port.in.ProductUseCase;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-import fpt.qn.mes.common.service.LookupEntry;
-import fpt.qn.mes.common.service.LookupRepository;
-import java.util.List;
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import org.springframework.context.ApplicationEventPublisher;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +45,7 @@ public class BomService implements BomUseCase {
     ProductUseCase productUseCase;
     CurrentUserPort currentUserPort;
     LookupRepository lookupRepository;
+    ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional(readOnly = true)
@@ -78,11 +83,17 @@ public class BomService implements BomUseCase {
         // 1. Verify product exists
         productUseCase.getProductById(request.getFinishedProductId());
 
-        // 2. Verify version does not already exist
-        if (bomRepository.existsByFinishedProductIdAndVersion(request.getFinishedProductId(), request.getVersion())) {
-            throw new BomAlreadyExistsException(
-                    "BOM version " + request.getVersion() + " already exists for product " + request.getFinishedProductId()
-            );
+        // 2. Resolve or auto-increment version number
+        int maxVersion = bomRepository.findMaxVersionByFinishedProductId(request.getFinishedProductId());
+        int version;
+        if (request.getVersion() != null && request.getVersion() > 0) {
+            if (bomRepository.existsByFinishedProductIdAndVersion(request.getFinishedProductId(), request.getVersion())) {
+                version = maxVersion + 1;
+            } else {
+                version = request.getVersion();
+            }
+        } else {
+            version = maxVersion + 1;
         }
 
         // 3. Resolve status ID (default to DRAFT if not provided)
@@ -95,7 +106,7 @@ public class BomService implements BomUseCase {
         // 4. Create and save entity
         Bom bom = Bom.create(
                 request.getFinishedProductId(),
-                request.getVersion(),
+                version,
                 statusId,
                 currentUserId
         );
@@ -141,6 +152,16 @@ public class BomService implements BomUseCase {
         bom.updateStatus(activeStatusId);
         Bom savedBom = bomRepository.save(bom);
 
+        if (eventPublisher != null) {
+            UUID currentUserId = null;
+            try {
+                currentUserId = currentUserPort.getCurrentUserId();
+            } catch (Exception ignored) {
+            }
+            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_BOM, "BOM", savedBom.getId(),
+                    "{\"status\":\"DRAFT\"}", "{\"status\":\"ACTIVE\"}", null));
+        }
+
         return mapper.toDto(savedBom);
     }
 
@@ -177,7 +198,8 @@ public class BomService implements BomUseCase {
                         newBom.getId(),
                         sourceItem.getMaterialProductId(),
                         sourceItem.getQuantityPerUnit(),
-                        sourceItem.getUnit(),
+                        sourceItem.getUnitId(),
+                        sourceItem.getUnitName(),
                         sourceItem.getScrapRate()
                 );
                 newBom.getItems().add(clonedItem);
@@ -202,16 +224,79 @@ public class BomService implements BomUseCase {
             throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
         }
 
+        boolean alreadyExists = bom.getItems() != null && bom.getItems().stream()
+                .anyMatch(i -> i.getMaterialProductId().equals(request.getMaterialProductId()));
+        if (alreadyExists) {
+            throw new DuplicateBomItemException("Material component already exists in this BOM. Edit the item in the table instead.");
+        }
+
+        UUID unitId = null;
+        String unitName = request.getUnit();
+        if (unitName != null && !unitName.isBlank()) {
+            unitId = lookupRepository.findAll("units_of_measure").stream()
+                    .filter(u -> u.getName().equalsIgnoreCase(unitName.trim()))
+                    .map(LookupEntry::getId)
+                    .findFirst()
+                    .orElse(null);
+        }
+
         BomItem item = BomItem.create(
                 bomId,
                 request.getMaterialProductId(),
                 request.getQuantityPerUnit(),
-                request.getUnit(),
+                unitId,
+                unitName,
                 request.getScrapRate()
         );
 
         BomItem savedItem = bomRepository.saveItem(item);
-        return mapper.toDto(savedItem);
+        return bomRepository.findItemById(savedItem.getId())
+                .map(mapper::toDto)
+                .orElseGet(() -> mapper.toDto(savedItem));
+    }
+
+    @Override
+    @Transactional
+    public BomItemResponse updateBomItem(UUID bomId, UUID itemId, UpdateBomItemRequest request) {
+        Bom bom = bomRepository.findById(bomId)
+                .orElseThrow(() -> new BomNotFoundException("BOM not found: " + bomId));
+
+        UUID draftStatusId = bomRepository.findStatusIdByName("DRAFT")
+                .orElse(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+
+        if (!draftStatusId.equals(bom.getBomStatusId())) {
+            throw new InvalidBomStatusException("Only DRAFT BOMs can be modified; create a new version instead");
+        }
+
+        BomItem existingItem = bomRepository.findItemById(itemId)
+                .orElseThrow(() -> new BomNotFoundException("BOM item not found: " + itemId));
+
+        UUID unitId = existingItem.getUnitId();
+        String unitName = request.getUnit() != null ? request.getUnit() : existingItem.getUnitName();
+        if (request.getUnit() != null && !request.getUnit().isBlank()) {
+            unitId = lookupRepository.findAll("units_of_measure").stream()
+                    .filter(u -> u.getName().equalsIgnoreCase(request.getUnit().trim()))
+                    .map(LookupEntry::getId)
+                    .findFirst()
+                    .orElse(unitId);
+        }
+
+        BomItem updatedItem = BomItem.builder()
+                .id(existingItem.getId())
+                .bomId(bomId)
+                .materialProductId(existingItem.getMaterialProductId())
+                .materialProductCode(existingItem.getMaterialProductCode())
+                .materialProductName(existingItem.getMaterialProductName())
+                .quantityPerUnit(request.getQuantityPerUnit())
+                .unitId(unitId)
+                .unitName(unitName)
+                .scrapRate(request.getScrapRate() != null ? request.getScrapRate() : existingItem.getScrapRate())
+                .build();
+
+        BomItem savedItem = bomRepository.saveItem(updatedItem);
+        return bomRepository.findItemById(savedItem.getId())
+                .map(mapper::toDto)
+                .orElseGet(() -> mapper.toDto(savedItem));
     }
 
     @Override

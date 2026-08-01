@@ -116,11 +116,11 @@ public class ProductPersistenceAdapter extends BaseRepository<ProductsRecord> im
     private Condition buildCondition(ProductSearchCriteria criteria) {
         Condition condition = DSL.noCondition();
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(PRODUCTS.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(PRODUCTS.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(PRODUCTS.CODE.containsIgnoreCase(criteria.getCode())
+        .or(PRODUCTS.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(PRODUCTS.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getVersion() != null && !criteria.getVersion().isBlank()) {
             condition = condition.and(PRODUCTS.VERSION.containsIgnoreCase(criteria.getVersion()));
         }

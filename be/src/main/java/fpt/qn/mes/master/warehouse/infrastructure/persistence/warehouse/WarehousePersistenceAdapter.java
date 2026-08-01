@@ -134,11 +134,11 @@ public class WarehousePersistenceAdapter extends BaseRepository<WarehousesRecord
     private Condition buildCondition(WarehouseSearchCriteria criteria) {
         Condition condition = DSL.noCondition();
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(WAREHOUSES.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(WAREHOUSES.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(WAREHOUSES.CODE.containsIgnoreCase(criteria.getCode())
+        .or(WAREHOUSES.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(WAREHOUSES.NAME.containsIgnoreCase(criteria.getName()));
+}
         if (criteria.getWarehouseStatusId() != null) {
             condition = condition.and(WAREHOUSES.WAREHOUSE_STATUS_ID.eq(criteria.getWarehouseStatusId()));
         }

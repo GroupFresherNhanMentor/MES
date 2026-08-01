@@ -8,4 +8,7 @@ public interface AuthUseCase {
     TokenResponse login(LoginRequest request);
 
     TokenResponse refresh(String refreshToken);
+
+    void logout(String accessToken, String refreshToken);
 }
+

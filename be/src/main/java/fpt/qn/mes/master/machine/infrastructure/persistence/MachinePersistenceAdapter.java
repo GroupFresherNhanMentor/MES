@@ -123,11 +123,11 @@ public class MachinePersistenceAdapter extends BaseRepository<MachinesRecord> im
             condition = condition.and(MACHINES.MACHINE_STATUS_ID.eq(criteria.getMachineStatusId()));
         }
         if (criteria.getCode() != null && !criteria.getCode().isBlank()) {
-            condition = condition.and(MACHINES.CODE.containsIgnoreCase(criteria.getCode()));
-        }
-        if (criteria.getName() != null && !criteria.getName().isBlank()) {
-            condition = condition.and(MACHINES.NAME.containsIgnoreCase(criteria.getName()));
-        }
+    condition = condition.and(MACHINES.CODE.containsIgnoreCase(criteria.getCode())
+        .or(MACHINES.NAME.containsIgnoreCase(criteria.getCode())));
+} else if (criteria.getName() != null && !criteria.getName().isBlank()) {
+    condition = condition.and(MACHINES.NAME.containsIgnoreCase(criteria.getName()));
+}
         return condition;
     }
 }

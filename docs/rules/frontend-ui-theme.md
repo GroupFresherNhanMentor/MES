@@ -77,3 +77,64 @@ Hệ thống MES có các trạng thái quy trình sản xuất được chuẩn
    - Table Headers (`.mat-mdc-header-cell`): Chữ màu `#ea580c` (Primary Orange), font-weight `bold`, size `17px`, uppercase, letter-spacing `0.5px`, viền dưới `#44403c`.
    - Modals/Dialogs Popup: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`. Thẻ Popup được bo góc 16px, có viền tối `#44403c`, tiêu đề phân cách rõ ràng và bóng đổ độ sâu lớn (`box-shadow: 0 20px 40px rgba(0,0,0,0.6)`).
    - SnackBar Popup Notifications: Tất cả thông báo nổi (`MatSnackBar`) được cố định hiển thị ở **Góc trên cùng bên phải (Top-Right Toast)** với lề `24px`, nền gradient tối sang trọng `linear-gradient(135deg, #292524 -> #1c1917)`, viền màu cam chính `#ea580c`, bo góc 10px, hiệu ứng phát sáng nhẹ và chữ đậm độ tương phản cao.
+   - Modals/Dialogs: Sử dụng `panelClass: 'ff-dialog-panel'` khi mở `MatDialog`.
+
+---
+
+## 📋 4. Table Data Display Rules (chống tràn layout)
+
+1. **Table Scroll Ngang**: `.mat-mdc-card-content` phải có `overflow-x: auto` — bảng nhiều cột cuộn ngang trong card, KHÔNG tràn ra ngoài.
+2. **Table Width**: `.mat-mdc-table` dùng `width: 100%; min-width: 800px; table-layout: fixed;` — cột cố định, không bị bóp méo.
+3. **Text Truncation**: `.mat-mdc-cell` dùng `overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;` — nội dung dài hiển thị `...`.
+4. **Cột Actions**: KHÔNG truncate — luôn hiện đủ nút thao tác (`white-space: nowrap`).
+5. **Cột CreatedBy/CreatedAt**: `max-width: 140px` (cột ngắn gọn).
+6. **Header Cell**: cũng truncate `white-space: nowrap; overflow: hidden`.
+
+---
+
+## 🪟 5. Dialog / Modal Rules
+
+1. **Mọi `MatDialog.open()` PHẢI truyền `panelClass: 'ff-dialog-panel'`** — bao gồm cả Add lẫn Edit modal của tất cả pages.
+2. Dialog styles (đã khai báo trong styles.scss):
+   - Bo góc `16px`, nền `#292524`, viền `#44403c`
+   - `box-shadow: 0 20px 40px rgba(0,0,0,0.6)`
+   - Title màu trắng `#fafaf9`, size `20px`
+3. **Save Button trong form PHẢI dùng `class="ff-btn-primary"`** (gradient cam), không dùng `color="primary"`.
+
+---
+
+## 🔄 6. Status Toggle Button (Activate/Deactivate)
+
+1. Mỗi list page có **1 nút toggle duy nhất** trong cột Actions:
+   - Record đang `ACTIVE` → hiện nút **Deactivate** (`.ff-action-btn-delete`, icon `block`)
+   - Record đang `INACTIVE`/`RETIRED` → hiện nút **Activate** (`.ff-action-btn-edit`, icon `check_circle`)
+2. Logic check status PHẢI đọc từ nested object của backend:
+   - Product: `p.productStatus?.name`
+   - Warehouse: `w.warehouseStatus?.name`
+   - Location: `l.locationStatus?.name`
+   - Line: `l.lineStatus?.name`
+   - Machine: `m.machineStatus?.name`
+3. **Machine status mapping** (8 trạng thái):
+   - `AVAILABLE` / `RUNNING` / `IN_USE` → `ff-badge--active` (xanh lá)
+   - `UNDER_MAINTENANCE` → `ff-badge--pending` (vàng cam)
+   - `BROKEN` / `DOWN` / `RETIRED` / `INACTIVE` → `ff-badge--cancelled` (đỏ)
+   - `MAINTENANCE` → `ff-badge--idle` (xanh dương)
+
+---
+
+## 📊 7. Table Columns — Hiển thị đầy đủ data backend
+
+Mỗi list page PHẢI hiển thị đầy đủ cột dữ liệu hữu ích mà backend trả:
+
+| Page | Bắt buộc có cột |
+|------|----------------|
+| Product | code, name, type, unit, version, status, createdBy, createdAt |
+| Warehouse | code, name, address, status, createdBy, createdAt |
+| Location | code, name, warehouse, status, createdBy, createdAt |
+| Production Line | code, name, status, createdBy, createdAt |
+| Machine | code, name, productionLine, status, createdBy, createdAt |
+
+Quy ước đọc nested object từ backend:
+- Status: `{entity}Status?.name` (vd: `warehouseStatus?.name`)
+- Type/Unit/Line: `productType?.name`, `unit?.name`, `productionLine?.code`
+- CreatedBy: `createdBy?.fullName`

@@ -1,12 +1,15 @@
 package fpt.qn.mes.master.product.infrastructure.seed;
 
+import static fpt.qn.mes.jooq.Tables.PRODUCTS;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_STATUSES;
 import static fpt.qn.mes.jooq.Tables.PRODUCT_TYPES;
 import static fpt.qn.mes.jooq.Tables.UNITS_OF_MEASURE;
 
 import java.io.InputStream;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import fpt.qn.mes.common.util.UuidV7;
 import org.jooq.DSLContext;
@@ -36,6 +39,7 @@ public class ProductMasterDataSeeder implements ApplicationRunner {
         seedProductTypes();
         seedProductStatuses();
         seedUnitsOfMeasure();
+        seedProducts();
     }
 
     private void seedProductTypes() {
@@ -72,6 +76,61 @@ public class ProductMasterDataSeeder implements ApplicationRunner {
         }
         step.onConflictDoNothing().execute();
         log.info("Seeded units_of_measure");
+    }
+
+    private void seedProducts() {
+        List<Map<String, Object>> rows = loadJson("products.json");
+        if (rows.isEmpty()) return;
+
+        for (Map<String, Object> row : rows) {
+            String code = (String) row.get("code");
+            String name = (String) row.get("name");
+            String typeName = (String) row.get("productType");
+            String unitName = (String) row.get("unit");
+            String statusName = (String) row.get("productStatus");
+            String version = (String) row.getOrDefault("version", "1");
+
+            UUID typeId = ctx.select(PRODUCT_TYPES.ID)
+                    .from(PRODUCT_TYPES)
+                    .where(PRODUCT_TYPES.NAME.eq(typeName))
+                    .fetchOne(PRODUCT_TYPES.ID);
+
+            UUID unitId = ctx.select(UNITS_OF_MEASURE.ID)
+                    .from(UNITS_OF_MEASURE)
+                    .where(UNITS_OF_MEASURE.NAME.eq(unitName))
+                    .fetchOne(UNITS_OF_MEASURE.ID);
+
+            UUID statusId = ctx.select(PRODUCT_STATUSES.ID)
+                    .from(PRODUCT_STATUSES)
+                    .where(PRODUCT_STATUSES.NAME.eq(statusName))
+                    .fetchOne(PRODUCT_STATUSES.ID);
+
+            if (typeId != null && unitId != null && statusId != null) {
+                ctx.insertInto(PRODUCTS,
+                                PRODUCTS.ID,
+                                PRODUCTS.CODE,
+                                PRODUCTS.NAME,
+                                PRODUCTS.PRODUCT_TYPE_ID,
+                                PRODUCTS.UNIT_ID,
+                                PRODUCTS.PRODUCT_STATUS_ID,
+                                PRODUCTS.VERSION,
+                                PRODUCTS.CREATED_AT,
+                                PRODUCTS.UPDATED_AT)
+                        .values(
+                                UuidV7.generate(),
+                                code,
+                                name,
+                                typeId,
+                                unitId,
+                                statusId,
+                                version,
+                                OffsetDateTime.now(),
+                                OffsetDateTime.now())
+                        .onConflictDoNothing()
+                        .execute();
+            }
+        }
+        log.info("Seeded initial products");
     }
 
     private List<Map<String, Object>> loadJson(String file) {
