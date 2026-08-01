@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
 import { adminGuard } from './core/guards/admin-guard';
+import { reportGuard } from './core/guards/report-guard';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { AuthLayout } from './layout/auth-layout/auth-layout';
 
@@ -118,10 +119,53 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [adminGuard],
+        canActivate: [reportGuard],
         loadComponent: () =>
-          import('./features/reports/pages/report-list/report-list').then((m) => m.ReportList),
-        data: { title: 'Reports' },
+          import('./features/reports/pages/reports-shell/reports-shell').then((m) => m.ReportsShellComponent),
+        data: { title: 'Operational Reports' },
+        children: [
+          { path: '', redirectTo: 'inventory-summary', pathMatch: 'full' },
+          {
+            path: 'inventory-summary',
+            loadComponent: () =>
+              import('./features/reports/pages/inventory-summary/inventory-summary').then(
+                (m) => m.InventorySummaryComponent,
+              ),
+          },
+          {
+            path: 'material-shortage',
+            loadComponent: () =>
+              import('./features/reports/pages/material-shortage/material-shortage').then(
+                (m) => m.MaterialShortageComponent,
+              ),
+          },
+          {
+            path: 'production-output',
+            loadComponent: () =>
+              import('./features/reports/pages/production-output/production-output').then(
+                (m) => m.ProductionOutputComponent,
+              ),
+          },
+          {
+            path: 'defect-rate',
+            loadComponent: () =>
+              import('./features/reports/pages/defect-rate/defect-rate').then((m) => m.DefectRateComponent),
+          },
+          {
+            path: 'machine-downtime',
+            loadComponent: () =>
+              import('./features/reports/pages/machine-downtime/machine-downtime').then(
+                (m) => m.MachineDowntimeComponent,
+              ),
+          },
+          {
+            path: 'stock-movement-history',
+            loadComponent: () =>
+              import('./features/reports/pages/stock-movement-history/stock-movement-history').then(
+                (m) => m.StockMovementHistoryComponent,
+              ),
+          },
+        ],
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
