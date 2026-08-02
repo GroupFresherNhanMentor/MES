@@ -109,8 +109,10 @@ public class BomService implements BomUseCase {
         var inactiveStatus = bomStatusRepository.findByName(BomStatusConstants.INACTIVE)
                 .orElseThrow(() -> new BomStatusNotFoundException("INACTIVE status not found in bom_statuses"));
 
-        if (!draftStatus.getId().equals(bom.getBomStatus().getId())) {
-            throw new InvalidBomStatusException("Only DRAFT BOMs can be activated");
+        boolean isDraft = draftStatus.getId().equals(bom.getBomStatus().getId());
+        boolean isInactive = inactiveStatus.getId().equals(bom.getBomStatus().getId());
+        if (!isDraft && !isInactive) {
+            throw new InvalidBomStatusException("Only DRAFT or INACTIVE BOMs can be activated");
         }
         if (bom.getItems() == null || bom.getItems().isEmpty()) {
             throw new EmptyBomException("Cannot activate an empty BOM (must contain at least 1 item)");

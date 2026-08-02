@@ -73,7 +73,7 @@ export class BomDetail implements OnInit {
     return (sum / items.length).toFixed(1);
   });
 
-  canActivate = computed(() => this.canWrite() && this.isDraft() && this.itemsCount() > 0);
+  canActivate = computed(() => this.canWrite() && (this.isDraft() || this.isInactive()) && this.itemsCount() > 0);
   canDeactivate = computed(() => this.canWrite() && this.isActive());
   canNewVersion = computed(() => this.canWrite() && !this.isDraft());
 
