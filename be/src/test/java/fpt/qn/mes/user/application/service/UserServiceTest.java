@@ -12,15 +12,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
@@ -46,12 +49,17 @@ class UserServiceTest {
     @Mock
     AdministrativeAccessGuardUseCase guard;
 
-    UserService service;
+    @Mock
+    CurrentUserPort currentUserPort;
 
-    @BeforeEach
-    void setUp() {
-        service = new UserService(repository, passwordPort, mapper, guard);
-    }
+    @Mock
+    ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    JsonSerializerPort jsonSerializer;
+
+    @InjectMocks
+    UserService service;
 
 
 

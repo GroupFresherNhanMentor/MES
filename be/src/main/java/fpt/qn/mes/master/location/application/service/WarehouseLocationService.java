@@ -2,10 +2,14 @@ package fpt.qn.mes.master.location.application.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.location.application.dto.warehouselocation.WarehouseLocationResponse;
@@ -35,6 +39,8 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
     LocationStatusRepository locationStatusRepository;
     WarehouseLocationDtoMapper mapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,7 +81,10 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
         var activeStatus = locationStatusRepository.findByName(LocationStatusConstants.ACTIVE)
                 .orElseThrow(() -> new LocationStatusNotFoundException("ACTIVE status not found in location_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseLocationRepository.save(WarehouseLocation.create(warehouseId, request.getCode(), request.getName(), activeStatus.getId(), currentUserId));
+        var location = WarehouseLocation.create(warehouseId, request.getCode(), request.getName(), activeStatus.getId(), currentUserId);
+        warehouseLocationRepository.save(location);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_LOCATION,
+                "WAREHOUSE_LOCATION", location.getId(), null, jsonSerializer.toJson(location), null));
     }
 
     @Override
@@ -88,7 +97,10 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
             throw new LocationStatusNotFoundException("Location status not found: " + request.getLocationStatusId());
         }
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseLocationRepository.update(WarehouseLocation.update(existing, request.getName(), request.getLocationStatusId(), currentUserId));
+        var updated = WarehouseLocation.update(existing, request.getName(), request.getLocationStatusId(), currentUserId);
+        warehouseLocationRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_LOCATION,
+                "WAREHOUSE_LOCATION", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
@@ -99,7 +111,10 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
         var activeStatus = locationStatusRepository.findByName(LocationStatusConstants.ACTIVE)
                 .orElseThrow(() -> new LocationStatusNotFoundException("ACTIVE status not found in location_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseLocationRepository.update(WarehouseLocation.activate(existing, activeStatus.getId(), currentUserId));
+        var activated = WarehouseLocation.activate(existing, activeStatus.getId(), currentUserId);
+        warehouseLocationRepository.update(activated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_LOCATION,
+                "WAREHOUSE_LOCATION", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(activated), null));
     }
 
     @Override
@@ -112,6 +127,9 @@ public class WarehouseLocationService implements WarehouseLocationUseCase {
                 .orElseThrow(() -> new LocationStatusNotFoundException("INACTIVE status not found in location_statuses"));
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseLocationRepository.update(WarehouseLocation.deactivate(existing, inactiveStatus.getId(), currentUserId));
+        var deactivated = WarehouseLocation.deactivate(existing, inactiveStatus.getId(), currentUserId);
+        warehouseLocationRepository.update(deactivated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_LOCATION,
+                "WAREHOUSE_LOCATION", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(deactivated), null));
     }
 }

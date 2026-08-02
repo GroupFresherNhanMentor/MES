@@ -2,10 +2,14 @@ package fpt.qn.mes.master.line.application.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.line.application.dto.line.LineResponse;
@@ -37,6 +41,8 @@ public class LineService implements LineUseCase {
     LineMachinePort lineMachinePort;
     LineDtoMapper mapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -76,7 +82,10 @@ public class LineService implements LineUseCase {
         var activeStatus = lineStatusRepository.findByName(LineStatusConstants.ACTIVE)
                 .orElseThrow(() -> new LineStatusNotFoundException("ACTIVE status not found in line_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        lineRepository.save(Line.create(request.getCode(), request.getName(), activeStatus.getId(), currentUserId));
+        var line = Line.create(request.getCode(), request.getName(), activeStatus.getId(), currentUserId);
+        lineRepository.save(line);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_LINE,
+                "LINE", line.getId(), null, jsonSerializer.toJson(line), null));
     }
 
     @Override
@@ -89,7 +98,10 @@ public class LineService implements LineUseCase {
             throw new LineStatusNotFoundException("Line status not found: " + request.getLineStatusId());
         }
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        lineRepository.update(Line.update(existing, request.getName(), request.getLineStatusId(), currentUserId));
+        var updated = Line.update(existing, request.getName(), request.getLineStatusId(), currentUserId);
+        lineRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
@@ -100,7 +112,10 @@ public class LineService implements LineUseCase {
         var activeStatus = lineStatusRepository.findByName(LineStatusConstants.ACTIVE)
                 .orElseThrow(() -> new LineStatusNotFoundException("ACTIVE status not found in line_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        lineRepository.update(Line.activate(existing, activeStatus.getId(), currentUserId));
+        var activated = Line.activate(existing, activeStatus.getId(), currentUserId);
+        lineRepository.update(activated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(activated), null));
     }
 
     @Override
@@ -117,6 +132,9 @@ public class LineService implements LineUseCase {
                 .orElseThrow(() -> new LineStatusNotFoundException("INACTIVE status not found in line_statuses"));
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        lineRepository.update(Line.deactivate(existing, inactiveStatus.getId(), currentUserId));
+        var deactivated = Line.deactivate(existing, inactiveStatus.getId(), currentUserId);
+        lineRepository.update(deactivated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(deactivated), null));
     }
 }

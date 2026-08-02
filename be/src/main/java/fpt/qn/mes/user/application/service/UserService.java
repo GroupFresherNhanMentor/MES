@@ -2,10 +2,15 @@ package fpt.qn.mes.user.application.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.user.application.exception.UsernameAlreadyExistsException;
 import fpt.qn.mes.auth.application.port.out.PasswordPort;
 import fpt.qn.mes.auth.application.port.in.AdministrativeAccessGuardUseCase;
@@ -30,6 +35,9 @@ public class UserService implements UserUseCase {
     PasswordPort passwordPort;
     UserDtoMapper userDtoMapper;
     AdministrativeAccessGuardUseCase administrativeAccessGuard;
+    CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -68,7 +76,11 @@ public class UserService implements UserUseCase {
                 request.getUsername(),
                 passwordPort.encode(request.getPassword()),
                 request.getFullName());
-        return userDtoMapper.toDto(userRepository.save(user));
+        User saved = userRepository.save(user);
+        UUID actorId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.CREATE_USER,
+                "USER", saved.getId(), null, jsonSerializer.toJson(saved), null));
+        return userDtoMapper.toDto(saved);
     }
 
     @Override
@@ -77,7 +89,11 @@ public class UserService implements UserUseCase {
         administrativeAccessGuard.lock();
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return userDtoMapper.toDto(userRepository.update(user.updateFullName(request.getFullName())));
+        User updated = userRepository.update(user.updateFullName(request.getFullName()));
+        UUID actorId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.UPDATE_USER,
+                "USER", id, jsonSerializer.toJson(user), jsonSerializer.toJson(updated), null));
+        return userDtoMapper.toDto(updated);
     }
 
     @Override
@@ -88,6 +104,9 @@ public class UserService implements UserUseCase {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.activate();
         userRepository.update(user);
+        UUID actorId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.ACTIVATE_USER,
+                "USER", id, null, jsonSerializer.toJson(user), null));
     }
 
     @Override
@@ -99,5 +118,8 @@ public class UserService implements UserUseCase {
         user.deactivate();
         userRepository.update(user);
         administrativeAccessGuard.assertAdministrativeAccessRemains();
+        UUID actorId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.DEACTIVATE_USER,
+                "USER", id, null, jsonSerializer.toJson(user), null));
     }
 }
