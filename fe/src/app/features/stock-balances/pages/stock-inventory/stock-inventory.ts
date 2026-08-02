@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import type { StockBalanceDto } from '../../../../core/models/stock-balance.model';
 import type { PageResponse } from '../../../../core/models/api.model';
@@ -96,9 +97,11 @@ interface LookupEntry {
           </div>
 
           <div class="flex items-center gap-3">
-            <button mat-raised-button class="ff-btn-primary" (click)="openStockIn()">
-              <mat-icon>add</mat-icon> Stock In
-            </button>
+            @if (canWarehouseManage) {
+              <button mat-raised-button class="ff-btn-primary" (click)="openStockIn()">
+                <mat-icon>add</mat-icon> Stock In
+              </button>
+            }
             <button mat-icon-button (click)="load()" matTooltip="Refresh list" class="!text-slate-500">
               <mat-icon>refresh</mat-icon>
             </button>
@@ -240,9 +243,13 @@ interface LookupEntry {
             <ng-container matColumnDef="actions">
               <th mat-header-cell *matHeaderCellDef class="!font-semibold !text-slate-700 !text-center">Action</th>
               <td mat-cell *matCellDef="let s" class="!text-center">
-                <button mat-stroked-button color="primary" class="!text-xs" (click)="openStockAdjustment(s)" matTooltip="Adjust this stock balance">
-                  <mat-icon class="!text-base">tune</mat-icon> Adjust
-                </button>
+                @if (canWarehouseManage) {
+                  <button mat-stroked-button color="primary" class="!text-xs" (click)="openStockAdjustment(s)" matTooltip="Adjust this stock balance">
+                    <mat-icon class="!text-base">tune</mat-icon> Adjust
+                  </button>
+                } @else {
+                  <span class="text-slate-400 text-xs">—</span>
+                }
               </td>
             </ng-container>
 
@@ -277,6 +284,7 @@ interface LookupEntry {
 })
 export class StockInventoryComponent {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
 
   items = signal<StockBalanceDto[]>([]);
@@ -295,6 +303,10 @@ export class StockInventoryComponent {
   stockStatuses = signal<LookupEntry[]>([]);
 
   displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt', 'actions'];
+
+  get canWarehouseManage(): boolean {
+    return this.auth.hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN');
+  }
 
   totalQuantity = computed(() => {
     return this.items().reduce((acc, item) => acc + (item.quantity || 0), 0);

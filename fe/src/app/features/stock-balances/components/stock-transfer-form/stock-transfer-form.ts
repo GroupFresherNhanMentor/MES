@@ -346,6 +346,9 @@ export class StockTransferFormComponent implements OnInit {
       return;
     }
 
+    if (!this.submissionIdempotencyKey) {
+      this.submissionIdempotencyKey = crypto.randomUUID();
+    }
     this.submitting.set(true);
 
     const payload = {
@@ -358,7 +361,7 @@ export class StockTransferFormComponent implements OnInit {
       quantity: qty,
     };
 
-    this.api.post((API as any).stockTransfers.base || '/api/stock-transfers', payload).subscribe({
+    this.api.post((API as any).stockTransfers.base || '/api/stock-transfers', payload, { idempotencyKey: this.submissionIdempotencyKey }).subscribe({
       next: (r: any) => {
         this.submitting.set(false);
         const message = r?.message || 'Stock transfer completed successfully';
@@ -372,4 +375,6 @@ export class StockTransferFormComponent implements OnInit {
       }
     });
   }
+
+  private submissionIdempotencyKey: string | null = null;
 }

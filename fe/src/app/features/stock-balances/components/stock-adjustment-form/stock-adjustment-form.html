@@ -1,0 +1,64 @@
+<h2 mat-dialog-title class="!text-lg !font-bold">Adjust Stock Balance</h2>
+<mat-dialog-content>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" style="margin-bottom: 16px;"></mat-progress-bar>
+  }
+
+  @if (data?.stockBalance) {
+    <div style="padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 16px; font-size: 13px;">
+      <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+        <span style="color:#64748b;">Product:</span>
+        <span style="font-weight:600; color:#1e293b;">{{ data?.stockBalance?.product?.name }} ({{ data?.stockBalance?.product?.code }})</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+        <span style="color:#64748b;">Warehouse / Location:</span>
+        <span style="font-family: monospace; color:#334155;">{{ data?.stockBalance?.warehouse?.name }} / {{ data?.stockBalance?.location?.code }}</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+        <span style="color:#64748b;">Current Balance:</span>
+        <span style="font-family: monospace; font-weight:700; color:#0f172a;">{{ data?.stockBalance?.quantity | number:'1.0-4' }}</span>
+      </div>
+      @if (data?.stockBalance?.lot?.lotNumber) {
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:#64748b;">Lot Number:</span>
+          <span style="font-family: monospace; color:#1d4ed8;">{{ data?.stockBalance?.lot?.lotNumber }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <form [formGroup]="form" style="display:flex; flex-direction:column; gap:12px; padding-top:4px;">
+    @if (!data?.stockBalance) {
+      <mat-form-field appearance="outline">
+        <mat-label>Stock Balance</mat-label>
+        <mat-select formControlName="stockBalanceId" required>
+          @for (sb of stockBalancesList(); track sb.id) {
+            <mat-option [value]="sb.id">
+              {{ sb.product?.name }} — {{ sb.warehouse?.code }}/{{ sb.location?.code }} (Qty: {{ sb.quantity }})
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Quantity Adjustment (+ or -)</mat-label>
+      <input matInput type="number" formControlName="quantityAdjustment" required step="0.01" placeholder="e.g. 5 or -2.5">
+      <mat-hint>Enter positive number to add stock, negative number to reduce stock</mat-hint>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Reason</mat-label>
+      <input matInput formControlName="reason" required placeholder="e.g. Cycle count adjustment, damage, audit correction">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Reference No. (Optional)</mat-label>
+      <input matInput formControlName="referenceNo" placeholder="e.g. ADJ-2026-08">
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button class="ff-btn-primary" (click)="onSubmit()" [disabled]="form.invalid || submitting()">Submit Adjustment</button>
+</mat-dialog-actions>
