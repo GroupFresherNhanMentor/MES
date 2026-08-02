@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -26,7 +27,6 @@ import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
@@ -53,7 +53,6 @@ class ReserveWorkOrderMaterialsServiceTest {
     @InjectMocks WorkOrderService service;
 
     UUID workOrderId;
-    UUID machineId;
     UUID materialId;
     UUID plannedStatusId;
     UUID readyStatusId;
@@ -63,12 +62,10 @@ class ReserveWorkOrderMaterialsServiceTest {
     UUID actorId;
     UUID warehouseId;
     WorkOrder workOrder;
-    ReserveWorkOrderMaterialsRequest request;
 
     @BeforeEach
     void setUp() {
         workOrderId = UUID.randomUUID();
-        machineId = UUID.randomUUID();
         materialId = UUID.randomUUID();
         plannedStatusId = UUID.randomUUID();
         readyStatusId = UUID.randomUUID();
@@ -82,14 +79,10 @@ class ReserveWorkOrderMaterialsServiceTest {
                 .plannedQuantity(BigDecimal.TEN)
                 .workOrderStatusId(plannedStatusId)
                 .build();
-        request = new ReserveWorkOrderMaterialsRequest();
-        request.setMachineId(machineId);
-
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(workOrder));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
         when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
                 .thenReturn(WarehouseResponse.builder().id(warehouseId).code("RAW_MATERIAL_WAREHOUSE").build());
-        when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RESERVE")).thenReturn(reserveMovementTypeId);
@@ -119,7 +112,7 @@ class ReserveWorkOrderMaterialsServiceTest {
                         new ReservationStock(newerBalance, warehouseId, locationId, materialId, newerLot,
                                 BigDecimal.valueOf(5), null)));
 
-        var result = service.reserveMaterials(workOrderId, request);
+        var result = service.reserveMaterials(workOrderId);
 
         assertEquals(workOrderId, result.getWorkOrderId());
         assertEquals("READY_TO_PRODUCE", result.getStatus());
@@ -127,6 +120,7 @@ class ReserveWorkOrderMaterialsServiceTest {
                 eq(availableStatusId), eq(reservedStatusId), eq(reserveMovementTypeId), eq(actorId));
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "READY_TO_PRODUCE",
                 "RESERVE_MATERIAL");
+        verifyNoInteractions(machineUseCase);
     }
 
     @Test
@@ -149,11 +143,12 @@ class ReserveWorkOrderMaterialsServiceTest {
         when(repository.hasActiveTransition(plannedStatusId, shortageStatusId)).thenReturn(true);
 
         var exception = assertThrows(InsufficientMaterialException.class,
-                () -> service.reserveMaterials(workOrderId, request));
+                () -> service.reserveMaterials(workOrderId));
 
         assertEquals("INSUFFICIENT_STOCK", exception.getErrorCode().getCode());
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "MATERIAL_SHORTAGE",
                 "RESERVE_MATERIAL");
         verify(reservationPort, org.mockito.Mockito.never()).applyReservation(any(), any(), any(), any(), any(), any(), any());
+        verifyNoInteractions(machineUseCase);
     }
 }

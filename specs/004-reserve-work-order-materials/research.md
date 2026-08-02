@@ -34,7 +34,7 @@
 
 ## Decision 3: Use pessimistic row locking with deterministic FIFO allocation
 
-**Decision**: Lock the Work Order row, the requested machine row when its availability is checked, and all eligible `AVAILABLE` stock balance rows using `SELECT FOR UPDATE`. Select lots in FIFO order by `stock_lots.created_at`, with deterministic tie-breakers for equal timestamps.
+**Decision**: Lock the Work Order row and all eligible `AVAILABLE` stock balance rows using `SELECT FOR UPDATE`. Select lots in FIFO order by `stock_lots.created_at`, with deterministic tie-breakers for equal timestamps. Machine availability is locked and checked only at start.
 
 **Rationale**:
 
@@ -51,7 +51,7 @@
 
 ## Decision 4: Make reservation all-or-nothing and persist shortage status
 
-**Decision**: Validate every material and machine before changing stock. On shortage, write only the `MATERIAL_SHORTAGE` status and its audit record, then return a structured `INSUFFICIENT_STOCK` error without stock or material reservation changes. Configure the service transaction so the expected shortage exception does not roll back the shortage status record.
+**Decision**: Validate every material before changing stock. On shortage, write only the `MATERIAL_SHORTAGE` status and its audit record, then return a structured `INSUFFICIENT_STOCK` error without stock or material reservation changes. Configure the service transaction so the expected shortage exception does not roll back the shortage status record.
 
 **Rationale**:
 

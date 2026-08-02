@@ -6,7 +6,6 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
@@ -25,7 +24,7 @@ public interface WorkOrderUseCase {
     WorkOrderResponse getWorkOrderById(UUID id);
     WorkOrderResponse createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
     WorkOrderResponse updateWorkOrder(UUID id, UpdateWorkOrderRequest request);
-    ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId, ReserveWorkOrderMaterialsRequest request);
+    ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId);
     WorkOrderResponse releaseMaterials(UUID workOrderId);
     WorkOrderResponse cancelWorkOrder(UUID workOrderId);
     WorkOrderResponse startWorkOrder(UUID workOrderId, StartWorkOrderRequest request);

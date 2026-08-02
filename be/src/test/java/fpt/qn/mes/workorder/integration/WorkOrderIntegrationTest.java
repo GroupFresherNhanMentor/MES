@@ -54,7 +54,6 @@ import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.MachineNotAvailableException;
 import fpt.qn.mes.workorder.application.service.WorkOrderService;
@@ -89,7 +88,7 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void reserveMaterials_returns401WithoutAuthentication() {
-        var request = new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", jsonHeaders());
+        var request = new HttpEntity<>(jsonHeaders());
 
         assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST, request, String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
@@ -103,7 +102,7 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         headers.setBearerAuth(generateAdminToken());
 
         assertThatThrownBy(() -> restTemplate.exchange(url(), HttpMethod.POST,
-                new HttpEntity<>("{\"machineId\":\"" + UUID.randomUUID() + "\"}", headers), String.class))
+                new HttpEntity<>(headers), String.class))
                 .isInstanceOf(HttpStatusCodeException.class)
                 .satisfies(error -> assertThat(((HttpStatusCodeException) error).getStatusCode())
                         .isEqualTo(HttpStatus.FORBIDDEN));
@@ -246,7 +245,6 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         UUID warehouseId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
         UUID lotId = UUID.randomUUID();
-        UUID machineId = UUID.randomUUID();
         UUID bomId = UUID.randomUUID();
         UUID workOrderMaterialId = UUID.randomUUID();
 
@@ -262,8 +260,6 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                 .where(PRODUCT_STATUSES.NAME.eq("ACTIVE")).fetchOne(PRODUCT_STATUSES.ID);
         UUID activeWarehouseStatusId = dsl.select(WAREHOUSE_STATUSES.ID).from(WAREHOUSE_STATUSES)
                 .where(WAREHOUSE_STATUSES.NAME.eq("ACTIVE")).fetchOne(WAREHOUSE_STATUSES.ID);
-        UUID activeMachineStatusId = dsl.select(MACHINE_STATUSES.ID).from(MACHINE_STATUSES)
-                .where(MACHINE_STATUSES.NAME.eq("AVAILABLE")).fetchOne(MACHINE_STATUSES.ID);
         UUID activeBomStatusId = dsl.select(BOM_STATUSES.ID).from(BOM_STATUSES)
                 .where(BOM_STATUSES.NAME.eq("ACTIVE")).fetchOne(BOM_STATUSES.ID);
         UUID plannedStatusId = dsl.select(WORK_ORDER_STATUSES.ID).from(WORK_ORDER_STATUSES)
@@ -297,8 +293,6 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                         WAREHOUSE_LOCATIONS.CODE, WAREHOUSE_LOCATIONS.NAME, WAREHOUSE_LOCATIONS.LOCATION_STATUS_ID)
                 .values(locationId, warehouseId, "RAW_LOC_" + locationId, "Raw location", activeLocationStatusId)
                 .execute();
-        dsl.insertInto(MACHINES).columns(MACHINES.ID, MACHINES.CODE, MACHINES.NAME, MACHINES.MACHINE_STATUS_ID)
-                .values(machineId, "M_" + machineId, "Available machine", activeMachineStatusId).execute();
         dsl.insertInto(BOMS).columns(BOMS.ID, BOMS.FINISHED_PRODUCT_ID, BOMS.VERSION, BOMS.BOM_STATUS_ID,
                         BOMS.CREATED_BY)
                 .values(bomId, finishedProductId, 1, activeBomStatusId, userId).execute();
@@ -326,9 +320,7 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
                 new UsernamePasswordAuthenticationToken(principal, "n/a",
                         java.util.List.of(new SimpleGrantedAuthority("ROLE_PLANNER"))));
         try {
-            var request = new ReserveWorkOrderMaterialsRequest();
-            request.setMachineId(machineId);
-            var response = workOrderService.reserveMaterials(workOrderId, request);
+            var response = workOrderService.reserveMaterials(workOrderId);
 
             assertThat(response.getStatus()).isEqualTo("READY_TO_PRODUCE");
             assertThat(dsl.select(WORK_ORDERS.WORK_ORDER_STATUS_ID).from(WORK_ORDERS)

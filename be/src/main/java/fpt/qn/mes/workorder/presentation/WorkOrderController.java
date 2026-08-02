@@ -22,7 +22,6 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
@@ -84,10 +83,8 @@ public class WorkOrderController {
 
     @PreAuthorize("hasRole('PLANNER')")
     @PostMapping("/{id}/reserve-materials")
-    public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(
-            @PathVariable UUID id,
-            @Valid @RequestBody ReserveWorkOrderMaterialsRequest req) {
-        var result = workOrderUseCase.reserveMaterials(id, req);
+    public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(@PathVariable UUID id) {
+        var result = workOrderUseCase.reserveMaterials(id);
         return ResponseEntity.ok(ApiResponse.success(result,
                 "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
     }
