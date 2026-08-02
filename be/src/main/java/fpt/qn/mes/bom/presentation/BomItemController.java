@@ -28,7 +28,7 @@ public class BomItemController {
     BomItemUseCase bomItemUseCase;
 
     @PutMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PreAuthorize("hasRole('PLANNER')")
     public ResponseEntity<ApiResponse<Void>> updateBomItems(
             @PathVariable UUID bomId, @Valid @RequestBody List<UpdateBomItemRequest> items) {
         bomItemUseCase.updateBomItems(bomId, items);

@@ -45,28 +45,28 @@ public class BomController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PreAuthorize("hasRole('PLANNER')")
     public ResponseEntity<ApiResponse<Void>> createBom(@Valid @RequestBody CreateBomRequest request) {
         bomUseCase.createBom(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
     }
 
     @PostMapping("/{id}/activate")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PreAuthorize("hasRole('PLANNER')")
     public ResponseEntity<ApiResponse<Void>> activateBom(@PathVariable UUID id) {
         bomUseCase.activateBom(id);
         return ResponseEntity.ok(ApiResponse.success("Activated"));
     }
 
     @PostMapping("/{id}/deactivate")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PreAuthorize("hasRole('PLANNER')")
     public ResponseEntity<ApiResponse<Void>> deactivateBom(@PathVariable UUID id) {
         bomUseCase.deactivateBom(id);
         return ResponseEntity.ok(ApiResponse.success("Deactivated"));
     }
 
     @PostMapping("/{id}/new-version")
-    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PreAuthorize("hasRole('PLANNER')")
     public ResponseEntity<ApiResponse<BomResponse>> createNewVersion(@PathVariable UUID id) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(bomUseCase.createNewVersion(id), "Created"));
     }
