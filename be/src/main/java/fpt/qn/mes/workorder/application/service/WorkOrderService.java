@@ -27,7 +27,6 @@ import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
@@ -317,12 +316,7 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional(noRollbackFor = InsufficientMaterialException.class)
-    public ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId,
-            ReserveWorkOrderMaterialsRequest request) {
-        if (request == null || request.getMachineId() == null) {
-            throw new InvalidWorkOrderReservationException("machineId is required");
-        }
-
+    public ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId) {
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
         String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
@@ -336,10 +330,6 @@ public class WorkOrderService implements WorkOrderUseCase {
                 ? rawMaterialWarehouseCode
                 : "RAW_MATERIAL_WAREHOUSE";
         var warehouse = warehouseUseCase.getWarehouseByCode(warehouseCode);
-        if (!machineUseCase.isAvailableForReservation(request.getMachineId())) {
-            throw new MachineNotAvailableException(
-                    "Machine must be AVAILABLE before the Work Order can be reserved");
-        }
 
         UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
                 "AVAILABLE stock status is not configured");

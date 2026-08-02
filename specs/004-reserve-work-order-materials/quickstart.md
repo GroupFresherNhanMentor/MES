@@ -14,7 +14,6 @@ docker-compose up -d
 - A finished product with an active BOM and an existing Work Order in `PLANNED` status.
 - `work_order_materials` populated for the Work Order.
 - `AVAILABLE` stock balances for every required material in the configured warehouse.
-- A machine with status `AVAILABLE`.
 
 ## Start the Backend
 
@@ -31,9 +30,7 @@ Replace the UUID values with seeded data and use a valid Planner token:
 
 ```bash
 curl -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"machineId":"{availableMachineId}"}'
+  -H "Authorization: Bearer ${PLANNER_TOKEN}"
 ```
 
 Expected result:
@@ -51,9 +48,7 @@ Use a Work Order whose required quantity exceeds the available quantity in the c
 
 ```bash
 curl -i -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
-  -H "Authorization: Bearer ${PLANNER_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{"machineId":"{availableMachineId}"}'
+  -H "Authorization: Bearer ${PLANNER_TOKEN}"
 ```
 
 Expected result:
@@ -69,9 +64,9 @@ Expected result:
 
 Seed sufficient stock in another warehouse but insufficient stock in `RAW_MATERIAL_WAREHOUSE`. Repeat the request and verify that the other warehouse is ignored and the response remains `INSUFFICIENT_STOCK`.
 
-## Machine Guard
+## Machine Selection
 
-Use a machine with status `DOWN`, `RUNNING`, `UNDER_MAINTENANCE`, or `RETIRED`. Verify that the request returns `400 INVALID_INPUT` and no stock changes occur.
+Reservation does not select or validate a machine. Call `POST /api/work-orders/{id}/start` with a machine ID after the Work Order reaches `READY_TO_PRODUCE`; start performs the availability and active-run checks.
 
 ## FIFO Verification
 

@@ -936,20 +936,13 @@ deduplicated; any missing ID rejects the complete mutation.
 ### POST `/work-orders/{id}/reserve-materials`
 > **Roles:** `PLANNER`
 
-**Request body:**
-```json
-{
-  "machineId": "uuid"
-}
-```
-
 **Business rules:**
 * The system resolves the source warehouse configured with code `RAW_MATERIAL_WAREHOUSE`. The client must not provide `sourceWarehouseId`.
 * Only `AVAILABLE` stock balances within the resolved source warehouse may be considered for reservation.
 * When multiple lots contain the same material, lots must be selected in FIFO order by `stock_lots.created_at`.
 * The Work Order must be in `PLANNED` or `MATERIAL_SHORTAGE` status.
-* The specified machine must exist and have status `AVAILABLE`.
-* The Work Order moves to `READY_TO_PRODUCE` only when all required materials are available and the specified machine is available.
+* The Work Order moves to `READY_TO_PRODUCE` when all required materials are available.
+* Machine selection, availability validation, and production-run locking occur only at `POST /work-orders/{id}/start`.
 * Reservation uses pessimistic locking (`SELECT FOR UPDATE`) for the relevant stock balances.
 * The operation must run in one transaction. Partial reservation is not allowed and stock quantity must never become negative.
 * On success, `AVAILABLE` quantities are moved to `RESERVED`, `work_order_materials.reserved_quantity` is updated, and `RESERVE` stock movements are created for the selected lots.
