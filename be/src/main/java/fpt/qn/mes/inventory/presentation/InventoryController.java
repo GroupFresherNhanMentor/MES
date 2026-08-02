@@ -78,7 +78,7 @@ public class InventoryController {
 
     @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager) (FR-INV-003)")
     @GetMapping("/api/stock-adjustments/pending")
-    @PreAuthorize("hasAnyRole('FACTORY_MANAGER','FACTORY_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> getPendingAdjustments(
             @ModelAttribute @Valid StockAdjustmentApprovalSearchRequest request) {
         PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(request);
