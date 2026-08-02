@@ -115,22 +115,26 @@
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef class="!text-center">Actions</th>
           <td mat-cell *matCellDef="let a" class="!text-center">
-            <div class="flex items-center justify-center gap-2">
-              <button mat-stroked-button
-                      class="!border-success !text-success"
-                      [disabled]="actionInProgress()"
-                      (click)="approve(a.id)">
-                <mat-icon class="!text-base">check_circle</mat-icon>
-                Approve
-              </button>
-              <button mat-stroked-button
-                      class="!border-error !text-error"
-                      [disabled]="actionInProgress()"
-                      (click)="reject(a.id)">
-                <mat-icon class="!text-base">cancel</mat-icon>
-                Reject
-              </button>
-            </div>
+            @if (canApproveAdjustments) {
+              <div class="flex items-center justify-center gap-2">
+                <button mat-stroked-button
+                        class="!border-success !text-success"
+                        [disabled]="actionInProgress()"
+                        (click)="approve(a.id)">
+                  <mat-icon class="!text-base">check_circle</mat-icon>
+                  Approve
+                </button>
+                <button mat-stroked-button
+                        class="!border-error !text-error"
+                        [disabled]="actionInProgress()"
+                        (click)="reject(a.id)">
+                  <mat-icon class="!text-base">cancel</mat-icon>
+                  Reject
+                </button>
+              </div>
+            } @else {
+              <span class="text-text-muted text-xs">Requires Factory Manager approval</span>
+            }
           </td>
         </ng-container>
 

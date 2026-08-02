@@ -14,6 +14,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import { JoinWithPipe } from '../../../../shared/pipes/join-with.pipe';
 import type { StockAdjustmentApprovalDto } from '../../../../core/models/stock-adjustment.model';
@@ -35,7 +36,12 @@ interface LookupItem { id: string; name: string; code?: string; }
 })
 export class StockAdjustmentList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private snackBar = inject(MatSnackBar);
+
+  get canApproveAdjustments(): boolean {
+    return this.auth.hasAnyRole('FACTORY_MANAGER', 'ADMIN');
+  }
 
   items = signal<StockAdjustmentApprovalDto[]>([]);
   total = signal(0);
