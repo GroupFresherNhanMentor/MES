@@ -1,5 +1,6 @@
 package fpt.qn.mes.auth.support;
 
+import static fpt.qn.mes.jooq.Tables.AUDIT_LOGS;
 import static fpt.qn.mes.jooq.Tables.ROLES;
 import static fpt.qn.mes.jooq.Tables.USERS;
 import static fpt.qn.mes.jooq.Tables.USER_ROLES;
@@ -63,6 +64,13 @@ public class AuthTestData {
     }
 
     public void deleteIdentity(Identity identity) {
+        if (identity == null || identity.getUserId() == null) return;
+        ctx.deleteFrom(AUDIT_LOGS)
+                .where(AUDIT_LOGS.ACTOR_ID.eq(identity.getUserId()))
+                .execute();
+        ctx.deleteFrom(USER_ROLES)
+                .where(USER_ROLES.USER_ID.eq(identity.getUserId()))
+                .execute();
         ctx.deleteFrom(USERS)
                 .where(USERS.ID.eq(identity.getUserId()))
                 .execute();
