@@ -33,7 +33,9 @@ import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
@@ -69,6 +71,12 @@ class WorkOrderServiceTest {
 
     @Mock
     AuditLogPort auditLogPort;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    JsonSerializerPort jsonSerializer;
 
     @InjectMocks
     WorkOrderService service;

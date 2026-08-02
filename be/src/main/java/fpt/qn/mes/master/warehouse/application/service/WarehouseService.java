@@ -7,10 +7,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseManagerResponse;
@@ -45,6 +49,8 @@ public class WarehouseService implements WarehouseUseCase {
     WarehouseLocationPort warehouseLocationPort;
     WarehouseDtoMapper mapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -101,7 +107,10 @@ public class WarehouseService implements WarehouseUseCase {
         var activeStatus = warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)
                 .orElseThrow(() -> new WarehouseStatusNotFoundException("ACTIVE status not found in warehouse_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.save(Warehouse.create(request.getCode(), request.getName(), request.getAddress(), activeStatus.getId(), currentUserId));
+        var warehouse = Warehouse.create(request.getCode(), request.getName(), request.getAddress(), activeStatus.getId(), currentUserId);
+        warehouseRepository.save(warehouse);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_WAREHOUSE,
+                "WAREHOUSE", warehouse.getId(), null, jsonSerializer.toJson(warehouse), null));
     }
 
     @Override
@@ -114,7 +123,10 @@ public class WarehouseService implements WarehouseUseCase {
             throw new WarehouseStatusNotFoundException("Warehouse status not found: " + request.getWarehouseStatusId());
         }
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.update(Warehouse.update(existing, request.getName(), request.getAddress(), request.getWarehouseStatusId(), currentUserId));
+        var updated = Warehouse.update(existing, request.getName(), request.getAddress(), request.getWarehouseStatusId(), currentUserId);
+        warehouseRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_WAREHOUSE,
+                "WAREHOUSE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
@@ -125,7 +137,10 @@ public class WarehouseService implements WarehouseUseCase {
         var activeStatus = warehouseStatusRepository.findByName(WarehouseStatusConstants.ACTIVE)
                 .orElseThrow(() -> new WarehouseStatusNotFoundException("ACTIVE status not found in warehouse_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.update(Warehouse.activate(existing, activeStatus.getId(), currentUserId));
+        var activated = Warehouse.activate(existing, activeStatus.getId(), currentUserId);
+        warehouseRepository.update(activated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_WAREHOUSE,
+                "WAREHOUSE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(activated), null));
     }
 
     @Override
@@ -138,8 +153,11 @@ public class WarehouseService implements WarehouseUseCase {
                 .orElseThrow(() -> new WarehouseStatusNotFoundException("INACTIVE status not found in warehouse_statuses"));
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        warehouseRepository.update(Warehouse.deactivate(existing, inactiveStatus.getId(), currentUserId));
+        var deactivated = Warehouse.deactivate(existing, inactiveStatus.getId(), currentUserId);
+        warehouseRepository.update(deactivated);
         warehouseLocationPort.deactivateAllByWarehouseId(id, currentUserId);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_WAREHOUSE,
+                "WAREHOUSE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(deactivated), null));
     }
 
     @Override
@@ -154,6 +172,8 @@ public class WarehouseService implements WarehouseUseCase {
         }
         UUID currentUserId = currentUserPort.getCurrentUserId();
         warehouseRepository.assignManager(warehouseId, request.getUserId(), currentUserId);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ASSIGN_WAREHOUSE_MANAGER,
+                "WAREHOUSE", warehouseId, null, jsonSerializer.toJson(request), null));
     }
 
     @Override
@@ -162,7 +182,10 @@ public class WarehouseService implements WarehouseUseCase {
         if (!warehouseRepository.existsById(warehouseId)) {
             throw new WarehouseNotFoundException("Warehouse not found: " + warehouseId);
         }
+        UUID currentUserId = currentUserPort.getCurrentUserId();
         warehouseRepository.removeManager(warehouseId, userId);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.REMOVE_WAREHOUSE_MANAGER,
+                "WAREHOUSE", warehouseId, null, jsonSerializer.toJson(userId), null));
     }
 
     @Override

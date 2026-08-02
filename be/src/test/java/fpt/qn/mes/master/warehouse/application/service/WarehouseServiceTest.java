@@ -14,7 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.create.CreateWarehouseRequest;
 import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.master.warehouse.application.exception.WarehouseConflictException;
@@ -36,6 +38,8 @@ class WarehouseServiceTest {
     @Mock WarehouseLocationPort warehouseLocationPort;
     @Mock WarehouseDtoMapper mapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
     @InjectMocks WarehouseService warehouseService;
 
     UUID id = UUID.randomUUID();
