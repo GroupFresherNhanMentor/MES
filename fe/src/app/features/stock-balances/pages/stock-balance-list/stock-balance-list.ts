@@ -18,11 +18,14 @@ import { API } from '../../../../configs/api-endpoints';
 import type { StockBalanceDto } from '../../../../core/models/stock-balance.model';
 import type { PageResponse } from '../../../../core/models/api.model';
 import { StockInFormComponent } from '../../components/stock-in-form/stock-in-form';
+import { StockAdjustmentFormComponent } from '../../components/stock-adjustment-form/stock-adjustment-form';
+import { StockTransferFormComponent } from '../../components/stock-transfer-form/stock-transfer-form';
 
 interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-stock-balance-list',
+  standalone: true,
   imports: [
     DatePipe, DecimalPipe, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
@@ -42,6 +45,10 @@ interface LookupEntry { id: string; name: string; }
           <div class="toolbar flex items-center gap-3 flex-wrap">
             <button mat-raised-button class="ff-btn-primary" (click)="openStockIn()">
               <mat-icon>add</mat-icon> Stock In
+            </button>
+
+            <button mat-stroked-button color="accent" (click)="openStockTransfer()">
+              <mat-icon>swap_horiz</mat-icon> Stock Transfer
             </button>
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-52">
@@ -135,6 +142,20 @@ interface LookupEntry { id: string; name: string; }
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="!text-center">Action</th>
+              <td mat-cell *matCellDef="let s" class="!text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button mat-stroked-button color="primary" class="!text-xs" (click)="openStockAdjustment(s)">
+                    <mat-icon class="!text-base">tune</mat-icon> Adjust
+                  </button>
+                  <button mat-stroked-button color="accent" class="!text-xs" (click)="openStockTransfer(s)" [disabled]="s.stockStatus?.name !== 'AVAILABLE'">
+                    <mat-icon class="!text-base">swap_horiz</mat-icon> Transfer
+                  </button>
+                </div>
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="cursor-default"></tr>
 
@@ -177,7 +198,7 @@ export class StockBalanceList {
   warehouses = signal<LookupEntry[]>([]);
   stockStatuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt'];
+  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt', 'actions'];
 
   constructor() {
     this.loadLookups();
@@ -234,6 +255,26 @@ export class StockBalanceList {
     this.dialog.open(StockInFormComponent, {
       width: '600px',
       panelClass: 'ff-dialog-panel',
+    }).afterClosed().subscribe(res => {
+      if (res) this.load();
+    });
+  }
+
+  openStockAdjustment(stockBalance: StockBalanceDto) {
+    this.dialog.open(StockAdjustmentFormComponent, {
+      width: '500px',
+      panelClass: 'ff-dialog-panel',
+      data: { stockBalance }
+    }).afterClosed().subscribe(res => {
+      if (res) this.load();
+    });
+  }
+
+  openStockTransfer(stockBalance?: StockBalanceDto) {
+    this.dialog.open(StockTransferFormComponent, {
+      width: '600px',
+      panelClass: 'ff-dialog-panel',
+      data: { stockBalance }
     }).afterClosed().subscribe(res => {
       if (res) this.load();
     });

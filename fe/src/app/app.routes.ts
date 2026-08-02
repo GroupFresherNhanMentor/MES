@@ -86,6 +86,14 @@ export const routes: Routes = [
         data: { title: 'Stock Balances' },
       },
       {
+        path: 'stock-inventory',
+        loadComponent: () =>
+          import('./features/stock-balances/pages/stock-inventory/stock-inventory').then(
+            (m) => m.StockInventoryComponent,
+          ),
+        data: { title: 'Stock Inventory' },
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/pages/stock-movement-list/stock-movement-list').then(
