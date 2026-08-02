@@ -249,6 +249,7 @@ class WorkOrderServiceTest {
                 .plannedQuantity(BigDecimal.valueOf(100)) // Same quantity so no recalculation
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
@@ -261,6 +262,7 @@ class WorkOrderServiceTest {
 
         // Assert
         assertNotNull(result);
+        verify(repository).findForUpdate(id);
         verify(repository).update(any(WorkOrder.class));
     }
 
@@ -305,6 +307,7 @@ class WorkOrderServiceTest {
                 ))
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.update(any(WorkOrder.class))).thenReturn(updatedEntity);
@@ -332,9 +335,11 @@ class WorkOrderServiceTest {
                 .workOrderStatusId(plannedStatusId)
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.hasActiveTransition(statusId, plannedStatusId)).thenReturn(true);
         when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
         when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
@@ -349,6 +354,25 @@ class WorkOrderServiceTest {
     }
 
     @Test
+    @DisplayName("updateWorkOrder transition DRAFT to PLANNED should fail when transition is inactive")
+    void updateWorkOrder_transitionDraftToPlannedInactive_shouldThrowException() {
+        UUID id = sampleEntity.getId();
+        UUID plannedStatusId = UUID.randomUUID();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .workOrderStatusId(plannedStatusId)
+                .build();
+
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.hasActiveTransition(statusId, plannedStatusId)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderStateException.class,
+                () -> service.updateWorkOrder(id, req));
+    }
+
+    @Test
     @DisplayName("updateWorkOrder transition DRAFT to IN_PROGRESS via PUT should throw InvalidWorkOrderStateException")
     void updateWorkOrder_transitionToInProgress_shouldThrowException() {
         // Arrange
@@ -358,7 +382,7 @@ class WorkOrderServiceTest {
                 .workOrderStatusId(inProgressStatusId)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.findStatusNameById(inProgressStatusId)).thenReturn(Optional.of("IN_PROGRESS"));
 
@@ -378,7 +402,7 @@ class WorkOrderServiceTest {
                 .plannedQuantity(BigDecimal.ZERO)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
 
         // Act & Assert
@@ -399,7 +423,7 @@ class WorkOrderServiceTest {
                 .plannedEndDate(now)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
 
         // Act & Assert
@@ -418,7 +442,7 @@ class WorkOrderServiceTest {
                 .code("WO-2026-NEW")
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("IN_PROGRESS"));
 
         // Act & Assert
@@ -437,7 +461,7 @@ class WorkOrderServiceTest {
                 .code("WO-EXISTING")
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.existsByCodeAndIdNot("WO-EXISTING", id)).thenReturn(true);
 

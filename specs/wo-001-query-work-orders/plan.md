@@ -1,4 +1,4 @@
-# Implementation Plan: Query Work Orders (`GET /api/v1/work-orders`)
+# Implementation Plan: Query Work Orders (`GET /api/work-orders`)
 
 **Branch**: `wo-001-query-work-orders` | **Date**: 2026-07-28 | **Spec**: [spec.md](file:///D:/Programming/FPT-Software/OJT/MES/MES/specs/wo-001-query-work-orders/spec.md)
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the `GET /api/v1/work-orders` REST API endpoint in the Spring Boot backend using Clean Architecture (Presentation ➔ Application Ports ➔ Service ➔ Domain ➔ jOOQ Persistence Adapter). The endpoint supports 0-based pagination, dynamic filtering by `finishedProductId` and `statusId`, case-insensitive fuzzy trigram search on `code`, and role-based access control (RBAC) via Spring Security for roles `ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, and `AUDITOR`.
+Implement the `GET /api/work-orders` REST API endpoint in the Spring Boot backend using Clean Architecture (Presentation ➔ Application Ports ➔ Service ➔ Domain ➔ jOOQ Persistence Adapter). The endpoint supports 0-based pagination, dynamic filtering by `finishedProductId` and `statusId`, case-insensitive fuzzy trigram search on `code`, and role-based access control (RBAC) via Spring Security for roles `ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, and `AUDITOR`.
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ Implement the `GET /api/v1/work-orders` REST API endpoint in the Spring Boot bac
 
 **Constraints**: Clean Architecture layers, No Lombok on domain entities, No Java Records, No Method References, No JPA/Hibernate, explicit constructor injection, standard `ApiResponse<T>` envelope
 
-**Scale/Scope**: 1 REST Endpoint (`GET /api/v1/work-orders`) with 5 query parameters (`page`, `size`, `finishedProductId`, `statusId`, `code`)
+**Scale/Scope**: 1 REST Endpoint (`GET /api/work-orders`) with 5 query parameters (`page`, `size`, `finishedProductId`, `statusId`, `code`)
 
 ## Constitution Check
 

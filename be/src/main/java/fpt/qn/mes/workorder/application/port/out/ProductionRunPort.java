@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 
 public interface ProductionRunPort {
 
+    boolean lockMachine(UUID machineId);
+
     UUID createProductionRun(UUID workOrderId, UUID machineId, UUID productionLineId, UUID operatorId);
 
     Optional<UUID> findActiveProductionRunId(UUID workOrderId);

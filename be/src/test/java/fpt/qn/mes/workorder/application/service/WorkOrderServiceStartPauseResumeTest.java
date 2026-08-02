@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,17 +93,21 @@ class WorkOrderServiceStartPauseResumeTest {
     @Test
     @DisplayName("startWorkOrder should start production successfully when READY_TO_PRODUCE and machine AVAILABLE")
     void startWorkOrder_Success() {
+        UUID assignedOperatorId = UUID.randomUUID();
         StartWorkOrderRequest req = StartWorkOrderRequest.builder()
                 .machineId(machineId)
+                .operatorId(assignedOperatorId)
                 .build();
 
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.READY_TO_PRODUCE));
+        when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(repository.hasActiveTransition(readyStatusId, inProgressStatusId)).thenReturn(true);
+        when(productionRunPort.lockMachine(machineId)).thenReturn(true);
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(productionRunPort.isMachineRunning(machineId)).thenReturn(false);
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
-        when(productionRunPort.createProductionRun(workOrderId, machineId, null, actorId)).thenReturn(runId);
-        when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(productionRunPort.createProductionRun(workOrderId, machineId, null, assignedOperatorId)).thenReturn(runId);
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
@@ -110,9 +115,11 @@ class WorkOrderServiceStartPauseResumeTest {
 
         assertNotNull(result);
         assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
-        verify(productionRunPort).createProductionRun(workOrderId, machineId, null, actorId);
+        verify(productionRunPort).createProductionRun(workOrderId, machineId, null, assignedOperatorId);
         verify(productionRunPort).updateMachineStatus(machineId, "RUNNING");
-        verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "START", actorId);
+        verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "START", assignedOperatorId);
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
+                WorkOrderStatusConstants.READY_TO_PRODUCE, WorkOrderStatusConstants.IN_PROGRESS, "START_PRODUCTION");
     }
 
     @Test
@@ -135,6 +142,9 @@ class WorkOrderServiceStartPauseResumeTest {
 
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.READY_TO_PRODUCE));
+        when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(repository.hasActiveTransition(readyStatusId, inProgressStatusId)).thenReturn(true);
+        when(productionRunPort.lockMachine(machineId)).thenReturn(true);
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(false);
 
         assertThrows(MachineNotAvailableException.class, () -> workOrderService.startWorkOrder(workOrderId, req));
@@ -150,6 +160,9 @@ class WorkOrderServiceStartPauseResumeTest {
 
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.READY_TO_PRODUCE));
+        when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(repository.hasActiveTransition(readyStatusId, inProgressStatusId)).thenReturn(true);
+        when(productionRunPort.lockMachine(machineId)).thenReturn(true);
         when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(true);
         when(productionRunPort.isMachineRunning(machineId)).thenReturn(true);
 
@@ -157,13 +170,39 @@ class WorkOrderServiceStartPauseResumeTest {
     }
 
     @Test
+    @DisplayName("startWorkOrder should reject an unknown machine before checking availability")
+    void startWorkOrder_MachineLockNotAcquired() {
+        StartWorkOrderRequest req = StartWorkOrderRequest.builder()
+                .machineId(machineId)
+                .build();
+
+        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
+        when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.READY_TO_PRODUCE));
+        when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(repository.hasActiveTransition(readyStatusId, inProgressStatusId)).thenReturn(true);
+        when(productionRunPort.lockMachine(machineId)).thenReturn(false);
+
+        assertThrows(MachineNotAvailableException.class, () -> workOrderService.startWorkOrder(workOrderId, req));
+
+        verify(machineUseCase, never()).isAvailableForReservation(machineId);
+    }
+
+    @Test
     @DisplayName("pauseWorkOrder should pause IN_PROGRESS work order")
     void pauseWorkOrder_Success() {
-        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.IN_PROGRESS));
+        WorkOrder inProgressWorkOrder = WorkOrder.builder()
+                .id(workOrderId)
+                .code("WO-START-001")
+                .plannedQuantity(BigDecimal.valueOf(100))
+                .workOrderStatusId(inProgressStatusId)
+                .createdAt(Instant.now())
+                .build();
+        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(inProgressWorkOrder));
+        when(repository.findStatusNameById(inProgressStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.IN_PROGRESS));
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.PAUSED)).thenReturn(Optional.of(pausedStatusId));
+        when(repository.hasActiveTransition(inProgressStatusId, pausedStatusId)).thenReturn(true);
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(pausedStatusId).build());
 
@@ -172,16 +211,46 @@ class WorkOrderServiceStartPauseResumeTest {
         assertNotNull(result);
         assertEquals(pausedStatusId, result.getWorkOrderStatusId());
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "PAUSE", actorId);
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
+                WorkOrderStatusConstants.IN_PROGRESS, WorkOrderStatusConstants.PAUSED, "PAUSE_PRODUCTION");
+    }
+
+    @Test
+    @DisplayName("pauseWorkOrder should reject a work order without an active production run")
+    void pauseWorkOrder_ActiveRunMissing() {
+        WorkOrder inProgressWorkOrder = WorkOrder.builder()
+                .id(workOrderId)
+                .code("WO-START-001")
+                .plannedQuantity(BigDecimal.valueOf(100))
+                .workOrderStatusId(inProgressStatusId)
+                .createdAt(Instant.now())
+                .build();
+        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(inProgressWorkOrder));
+        when(repository.findStatusNameById(inProgressStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.IN_PROGRESS));
+        when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
+        when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.empty());
+
+        assertThrows(InvalidWorkOrderStateException.class, () -> workOrderService.pauseWorkOrder(workOrderId));
+
+        verify(productionRunPort, never()).recordWorkOrderEvent(any(), any(), any(), any());
     }
 
     @Test
     @DisplayName("resumeWorkOrder should resume PAUSED work order")
     void resumeWorkOrder_Success() {
-        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
-        when(repository.findStatusNameById(readyStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.PAUSED));
+        WorkOrder pausedWorkOrder = WorkOrder.builder()
+                .id(workOrderId)
+                .code("WO-START-001")
+                .plannedQuantity(BigDecimal.valueOf(100))
+                .workOrderStatusId(pausedStatusId)
+                .createdAt(Instant.now())
+                .build();
+        when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(pausedWorkOrder));
+        when(repository.findStatusNameById(pausedStatusId)).thenReturn(Optional.of(WorkOrderStatusConstants.PAUSED));
         when(currentUserPort.getCurrentUserId()).thenReturn(actorId);
         when(productionRunPort.findActiveProductionRunId(workOrderId)).thenReturn(Optional.of(runId));
         when(repository.findStatusIdByName(WorkOrderStatusConstants.IN_PROGRESS)).thenReturn(Optional.of(inProgressStatusId));
+        when(repository.hasActiveTransition(pausedStatusId, inProgressStatusId)).thenReturn(true);
         when(repository.findById(workOrderId)).thenReturn(Optional.of(mockWorkOrder));
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(WorkOrderResponse.builder().id(workOrderId).code("WO-START-001").workOrderStatusId(inProgressStatusId).build());
 
@@ -190,5 +259,7 @@ class WorkOrderServiceStartPauseResumeTest {
         assertNotNull(result);
         assertEquals(inProgressStatusId, result.getWorkOrderStatusId());
         verify(productionRunPort).recordWorkOrderEvent(workOrderId, runId, "RESUME", actorId);
+        verify(auditLogPort).recordStatusTransition(actorId, workOrderId,
+                WorkOrderStatusConstants.PAUSED, WorkOrderStatusConstants.IN_PROGRESS, "RESUME_PRODUCTION");
     }
 }

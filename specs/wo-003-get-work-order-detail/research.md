@@ -1,4 +1,4 @@
-# Technical Research: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Technical Research: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 This document records technical decisions for fetching Work Order detail with embedded materials and event history.
 

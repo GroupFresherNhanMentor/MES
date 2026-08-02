@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement backend endpoints `POST /api/v1/work-orders/{id}/start`, `POST /api/v1/work-orders/{id}/pause`, and `POST /api/v1/work-orders/{id}/resume` in the Spring Boot 4-layer Clean Architecture.
+Implement backend endpoints `POST /api/work-orders/{id}/start`, `POST /api/work-orders/{id}/pause`, and `POST /api/work-orders/{id}/resume` in the Spring Boot 4-layer Clean Architecture.
 The implementation will handle Work Order status transitions (`READY_TO_PRODUCE` → `IN_PROGRESS` ⇄ `PAUSED`), Machine status updates (`AVAILABLE` → `RUNNING`), production run tracking in `production_runs` (`start_time = now()`), event logging in `work_order_events`, and machine concurrency safeguards using database pessimistic locking (`SELECT FOR UPDATE`).
 
 ## Technical Context

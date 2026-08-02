@@ -19,7 +19,7 @@ description: "Implementation tasks for the Reserve Work Order Materials endpoint
 
 - [X] T001 Verify the implementation scope and acceptance rules against `specs/004-reserve-work-order-materials/spec.md`, `specs/004-reserve-work-order-materials/plan.md`, and `specs/004-reserve-work-order-materials/contracts/reserve-work-order-materials-api.json`.
 - [X] T002 [P] Add the configurable raw-material warehouse code with default `RAW_MATERIAL_WAREHOUSE` under `app` in `be/src/main/resources/application.yaml`.
-- [X] T003 [P] Reconcile the versioned endpoint, Planner role, request body, response message, and reservation rules in `docs/api-endpoints.md` with `specs/004-reserve-work-order-materials/contracts/reserve-work-order-materials-api.json`.
+- [X] T003 [P] Reconcile the canonical endpoint, Planner role, request body, response message, and reservation rules in `docs/api-endpoints.md` with `specs/004-reserve-work-order-materials/contracts/reserve-work-order-materials-api.json`.
 
 ---
 
@@ -46,7 +46,7 @@ description: "Implementation tasks for the Reserve Work Order Materials endpoint
 
 **Goal**: Let a Planner reserve every required material from `RAW_MATERIAL_WAREHOUSE` using FIFO allocation and move a valid Work Order to `READY_TO_PRODUCE` only when its designated machine is `AVAILABLE`.
 
-**Independent Test**: With a `PLANNED` Work Order, sufficient `AVAILABLE` stock in the configured warehouse, and an `AVAILABLE` machine, call the versioned endpoint and verify HTTP 200, all stock/material updates, FIFO movement rows, and `READY_TO_PRODUCE` response.
+**Independent Test**: With a `PLANNED` Work Order, sufficient `AVAILABLE` stock in the configured warehouse, and an `AVAILABLE` machine, call the endpoint and verify HTTP 200, all stock/material updates, FIFO movement rows, and `READY_TO_PRODUCE` response.
 
 ### Tests for User Story 1 (REQUIRED)
 
@@ -61,7 +61,7 @@ description: "Implementation tasks for the Reserve Work Order Materials endpoint
 - [X] T017 [US1] Implement one bounded jOOQ query that selects all eligible `AVAILABLE` stock balances for the Work Order material product IDs within the configured warehouse, joins `stock_lots`, orders FIFO by `created_at` with deterministic UUID/location tie-breakers, and applies `FOR UPDATE` in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderReservationPersistenceAdapter.java`.
 - [X] T018 [US1] Implement locked stock allocation writes that decrement source `AVAILABLE` balances, increment or insert same-location `RESERVED` balances, update `work_order_materials.reserved_quantity`, and insert one linked `RESERVE` movement per lot in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderReservationPersistenceAdapter.java`.
 - [X] T019 [US1] Implement the successful reservation orchestration with `@Transactional`, Work Order row locking, warehouse-by-code resolution, machine availability validation, FIFO allocation validation, status transition, response creation, and delegation to reservation/audit ports in `be/src/main/java/fpt/qn/mes/workorder/application/service/WorkOrderService.java`.
-- [X] T020 [US1] Add the Planner-only versioned action mapping `POST /api/v1/work-orders/{id}/reserve-materials` with `@Valid` request handling and `ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>>` delegation in `be/src/main/java/fpt/qn/mes/workorder/presentation/ReserveWorkOrderMaterialsController.java`.
+- [X] T020 [US1] Add the Planner-only action mapping `POST /api/work-orders/{id}/reserve-materials` with `@Valid` request handling and `ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>>` delegation in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`.
 - [X] T021 [US1] Add the `RESERVE_MATERIAL` success transition audit insert with actor ID, Work Order ID, old status, new status, and immutable timestamp in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/AuditLogPersistenceAdapter.java`.
 - [X] T022 [US1] Run the focused unit, controller, and integration tests from `be` and fix all success-path failures before marking User Story 1 complete in `specs/004-reserve-work-order-materials/quickstart.md`.
 
@@ -113,7 +113,7 @@ description: "Implementation tasks for the Reserve Work Order Materials endpoint
 
 - [X] T034 [US3] Lock the Work Order row before status validation and lock candidate stock rows in deterministic product/lot/location order to prevent duplicate reservations, deadlocks, and negative quantities in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderPersistenceAdapter.java` and `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderReservationPersistenceAdapter.java`.
 - [X] T035 [US3] Complete audit persistence for both `PLANNED`/`MATERIAL_SHORTAGE` to `READY_TO_PRODUCE` and shortage transitions, ensuring no update/delete API exists for audit rows in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/AuditLogPersistenceAdapter.java`.
-- [X] T036 [US3] Enforce `@PreAuthorize("hasRole('PLANNER')")` on the versioned reservation controller and verify authentication principal handling in `be/src/main/java/fpt/qn/mes/workorder/presentation/ReserveWorkOrderMaterialsController.java`.
+- [X] T036 [US3] Enforce `@PreAuthorize("hasRole('PLANNER')")` on the reservation action and verify authentication handling in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`.
 - [X] T037 [US3] Complete stock movement traceability and deterministic destination-balance upsert for every selected lot in `be/src/main/java/fpt/qn/mes/inventory/domain/entities/StockMovement.java`, `be/src/main/java/fpt/qn/mes/inventory/infrastructure/persistence/InventoryRecordMapper.java`, and `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/WorkOrderReservationPersistenceAdapter.java`.
 - [ ] T038 [US3] Run the full Work Order integration suite with PostgreSQL/Testcontainers and resolve transaction-boundary, lock-timeout, race-condition, duplicate-write, and audit consistency failures in `be/src/test/java/fpt/qn/mes/workorder/integration/WorkOrderIntegrationTest.java`.
 
@@ -189,7 +189,7 @@ Task T033: Concurrency integration tests in be/src/test/java/fpt/qn/mes/workorde
 
 1. Complete Phase 1 setup and Phase 2 foundational contracts.
 2. Write and fail T014-T016 before implementation.
-3. Implement FIFO locked allocation, success orchestration, versioned Planner endpoint, and success audit through T017-T021.
+3. Implement FIFO locked allocation, success orchestration, canonical Planner endpoint, and success audit through T017-T021.
 4. Run T022 and the success scenarios in `specs/004-reserve-work-order-materials/quickstart.md`.
 5. Stop and validate the MVP before adding shortage and concurrency enhancements.
 

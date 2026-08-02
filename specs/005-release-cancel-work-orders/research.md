@@ -57,8 +57,8 @@ Which Work Order statuses permit material release and cancellation?
 ## Research Topic 4: REST Endpoint Design & Response Format
 
 ### Decision
-- `POST /api/v1/work-orders/{id}/release-materials` -> Returns `ApiResponse<WorkOrderDto>`.
-- `POST /api/v1/work-orders/{id}/cancel` -> Returns `ApiResponse<WorkOrderDto>`.
+- `POST /api/work-orders/{id}/release-materials` -> Returns `ApiResponse<WorkOrderDto>`.
+- `POST /api/work-orders/{id}/cancel` -> Returns `ApiResponse<WorkOrderDto>`.
 
 ### Response Payload Structure
 Consistent with existing endpoints:

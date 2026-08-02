@@ -1,4 +1,4 @@
-# Data Model & Contracts: Create Work Order (`POST /api/v1/work-orders`)
+# Data Model & Contracts: Create Work Order (`POST /api/work-orders`)
 
 ## 1. Domain Entities
 

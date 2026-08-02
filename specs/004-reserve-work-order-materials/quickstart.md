@@ -30,7 +30,7 @@ The API is expected to be available at `http://localhost:8080`.
 Replace the UUID values with seeded data and use a valid Planner token:
 
 ```bash
-curl -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-materials" \
+curl -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
   -H "Authorization: Bearer ${PLANNER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"machineId":"{availableMachineId}"}'
@@ -50,7 +50,7 @@ Expected result:
 Use a Work Order whose required quantity exceeds the available quantity in the configured warehouse:
 
 ```bash
-curl -i -X POST "http://localhost:8080/api/v1/work-orders/{workOrderId}/reserve-materials" \
+curl -i -X POST "http://localhost:8080/api/work-orders/{workOrderId}/reserve-materials" \
   -H "Authorization: Bearer ${PLANNER_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"machineId":"{availableMachineId}"}'

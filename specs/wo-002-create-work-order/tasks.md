@@ -1,4 +1,4 @@
-# Tasks: Create Work Order (`POST /api/v1/work-orders`)
+# Tasks: Create Work Order (`POST /api/work-orders`)
 
 **Input**: Design documents from `specs/wo-002-create-work-order/`
 
@@ -43,7 +43,7 @@
 ### Tests for User Story 1 (REQUIRED)
 
 - [x] T005 [P] [US1] Unit test: `WorkOrderServiceTest` for `createWorkOrder` happy path in `be/src/test/java/fpt/qn/mes/workorder/application/service/WorkOrderServiceTest.java`
-- [x] T006 [P] [US1] Controller test: `WorkOrderControllerTest` for `POST /api/v1/work-orders` HTTP 201 response in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
+- [x] T006 [P] [US1] Controller test: `WorkOrderControllerTest` for `POST /api/work-orders` HTTP 201 response in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
 
 ### Implementation for User Story 1
 
@@ -60,7 +60,7 @@
 
 ## Phase 4: User Story 2 - Role Access Control & Audit Logging (Priority: P2)
 
-**Goal**: Restrict `POST /api/v1/work-orders` exclusively to `ROLE_PLANNER` and write audit log `CREATE_WORK_ORDER`.
+**Goal**: Restrict `POST /api/work-orders` exclusively to `ROLE_PLANNER` and write audit log `CREATE_WORK_ORDER`.
 
 **Independent Test**: Run `WorkOrderControllerTest` verifying HTTP 403 Forbidden for `ADMIN`, `OPERATOR`, `GUEST` and HTTP 201 for `PLANNER`.
 

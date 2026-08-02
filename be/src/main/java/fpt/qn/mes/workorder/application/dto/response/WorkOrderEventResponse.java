@@ -1,6 +1,5 @@
 package fpt.qn.mes.workorder.application.dto.response;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,14 +11,9 @@ import lombok.Getter;
 public class WorkOrderEventResponse {
     UUID id;
     UUID workOrderId;
+    UUID productionRunId;
     UUID eventTypeId;
-    UUID machineId;
-    UUID productionLineId;
     UUID operatorId;
-    BigDecimal actualQuantity;
-    BigDecimal goodQuantity;
-    BigDecimal defectQuantity;
-    BigDecimal scrapQuantity;
     Instant eventTimestamp;
     String note;
 }

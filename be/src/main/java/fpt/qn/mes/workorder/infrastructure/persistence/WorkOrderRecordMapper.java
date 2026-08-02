@@ -77,6 +77,7 @@ public class WorkOrderRecordMapper {
         return WorkOrderEvent.builder()
                 .id(r.getId())
                 .workOrderId(r.getWorkOrderId())
+                .productionRunId(r.getProductionRunId())
                 .eventTypeId(r.getEventTypeId())
                 .operatorId(r.getOperatorId())
                 .eventTimestamp(r.getEventTimestamp() != null ? r.getEventTimestamp().toInstant() : null)
@@ -85,6 +86,15 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrderEventsRecord toRecord(WorkOrderEvent e) {
-        return null;
+        if (e == null) return null;
+        WorkOrderEventsRecord r = new WorkOrderEventsRecord();
+        r.setId(e.getId());
+        r.setWorkOrderId(e.getWorkOrderId());
+        r.setProductionRunId(e.getProductionRunId());
+        r.setEventTypeId(e.getEventTypeId());
+        r.setOperatorId(e.getOperatorId());
+        r.setEventTimestamp(e.getEventTimestamp() != null ? e.getEventTimestamp().atOffset(ZoneOffset.UTC) : null);
+        r.setNote(e.getNote());
+        return r;
     }
 }

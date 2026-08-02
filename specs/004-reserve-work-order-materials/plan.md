@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the Planner-only `POST /api/v1/work-orders/{id}/reserve-materials` action. The service will resolve the configured `RAW_MATERIAL_WAREHOUSE`, validate the Work Order and requested `machineId`, calculate all remaining material requirements, lock the Work Order/machine/eligible stock rows pessimistically, and either atomically reserve every material and move the Work Order to `READY_TO_PRODUCE` or persist `MATERIAL_SHORTAGE` without changing stock. Every status transition will create a `RESERVE_MATERIAL` audit record.
+Implement the Planner-only `POST /api/work-orders/{id}/reserve-materials` action. The service will resolve the configured `RAW_MATERIAL_WAREHOUSE`, validate the Work Order and requested `machineId`, calculate all remaining material requirements, lock the Work Order/machine/eligible stock rows pessimistically, and either atomically reserve every material and move the Work Order to `READY_TO_PRODUCE` or persist `MATERIAL_SHORTAGE` without changing stock. Every status transition will create a `RESERVE_MATERIAL` audit record.
 
 The design uses a dedicated Work Order reservation use case and persistence output boundary rather than the existing generic inventory movement operation. It also closes the existing traceability and error-contract gaps by mapping `stock_movements.work_order_id`, carrying structured shortage details, and exposing `INSUFFICIENT_STOCK`.
 
