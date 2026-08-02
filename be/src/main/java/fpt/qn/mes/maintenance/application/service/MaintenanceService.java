@@ -155,6 +155,7 @@ public class MaintenanceService implements MaintenanceUseCase {
     }
 
     @Override
+    @Transactional // Đảm bảo tính Transactional cho cả Ticket và Downtime
     public void cancelTicket(UUID ticketId) {
         UUID openStatusId = repository.findStatusIdByName("OPEN")
                 .orElseThrow(() -> new BusinessException("Status 'OPEN' does not exist"));
@@ -164,9 +165,37 @@ public class MaintenanceService implements MaintenanceUseCase {
         MaintenanceTicket ticket = repository.findById(ticketId)
                 .orElseThrow(() -> new MaintenanceTicketNotFoundException("Maintenance ticket not found"));
 
+        // 1. Cập nhật trạng thái Ticket sang CANCELLED
         ticket.cancel(openStatusId, cancelledStatusId);
         repository.save(ticket);
 
+        // 2. BỔ SUNG LOGIC: Tìm Downtime đang hoạt động (Active) liên kết với Ticket này và đóng lại
+        repository.findActiveDowntimeByTicketId(ticketId).ifPresent(downtime -> {
+            java.time.Instant now = java.time.Instant.now();
+
+            // Cập nhật thời gian kết thúc
+            downtime.setEndTime(now);
+
+            // Tính toán tổng số phút chết (Downtime Minutes)
+            if (downtime.getStartTime() != null) {
+                long minutes = java.time.Duration.between(downtime.getStartTime(), now).toMinutes();
+                downtime.setTotalDowntimeMinutes((Long) minutes);
+            }
+
+            // Điền thông tin lý do hủy hệ thống theo yêu cầu
+            downtime.setRootCause("Ticket cancelled");
+            downtime.setActionTaken("Ticket cancelled");
+
+            // Lưu cập nhật thông tin xuống DB thông qua Adapter
+            repository.updateDowntime(downtime);
+
+            // (Tùy chọn) Nếu nghiệp vụ cần khôi phục lại trạng thái Máy về trạng thái trước đó (ví dụ: OPERATIONAL):
+            // repository.findMachineStatusIdByName("OPERATIONAL").ifPresent(statusId -> {
+            //     repository.updateMachineStatus(downtime.getMachineId(), statusId);
+            // });
+        });
+
+        // 3. Publish Audit Log
         UUID currentUserId = currentUserPort.getCurrentUserId();
         eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CANCEL_MAINTENANCE_TICKET,
                 "MAINTENANCE_TICKET", ticketId,

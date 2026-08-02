@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import fpt.qn.mes.maintenance.application.dto.request.MaintenanceTicketSearchQuery;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceEngineerResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceMetadataResponse;
 import fpt.qn.mes.maintenance.domain.entities.MachineDowntime;
 import fpt.qn.mes.maintenance.domain.entities.MaintenanceTicket;
@@ -44,6 +45,7 @@ public interface MaintenanceRepository {
     List<MaintenanceMetadataResponse> findAllTicketStatuses();
     List<MaintenanceMetadataResponse> findAllTicketPriorities();
     List<MaintenanceMetadataResponse> findAllTicketTypes();
+    List<MaintenanceEngineerResponse> findMaintenanceEngineers();
 
     // =========================================================================
     // 5. EXTERNAL MODULE / SECURITY INTERACTION BOUNDS
