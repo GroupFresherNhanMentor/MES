@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.jooq.DSLContext;
-import org.jooq.OrderField;
 import org.jooq.Result;
 import org.jooq.Table;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
-import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
 import fpt.qn.mes.inventory.domain.repository.criteria.StockBalanceSearchCriteria;
 import fpt.qn.mes.inventory.infrastructure.persistence.InventoryRecordMapper;
@@ -49,15 +48,15 @@ class StockBalanceSearchTest {
 
         when(dslContext.fetchCount(any(Table.class), any(List.class))).thenReturn(0);
         when(dslContext.selectFrom(any(Table.class))
-                .where(any(List.class))
-                .orderBy((OrderField<?>) any())
+                .where(any(org.jooq.Condition.class))
+                .orderBy(org.mockito.ArgumentMatchers.anyCollection())
                 .limit(anyInt())
                 .offset(anyInt())
                 .fetch()).thenReturn(mock(Result.class));
 
-        List<StockBalance> response = adapter.search(criteria);
+        PaginationResult<StockBalance> response = adapter.search(criteria);
 
         assertThat(response).isNotNull();
-        assertThat(response).isEmpty();
+        assertThat(response.getItems()).isEmpty();
     }
 }

@@ -5,17 +5,17 @@ import java.util.UUID;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.user.application.dto.request.CreateUserRequest;
 import fpt.qn.mes.user.application.dto.request.UpdateUserRequest;
-import fpt.qn.mes.user.application.dto.response.UserDto;
+import fpt.qn.mes.user.application.dto.response.UserResponse;
 
 public interface UserUseCase {
 
-    PageResponse<UserDto> getUsers(int page, int size);
+    PageResponse<UserResponse> getUsers(int page, int size);
 
-    UserDto getUserById(UUID id);
+    UserResponse getUserById(UUID id);
 
-    UserDto createUser(CreateUserRequest request);
+    UserResponse createUser(CreateUserRequest request);
 
-    UserDto updateUser(UUID id, UpdateUserRequest request);
+    UserResponse updateUser(UUID id, UpdateUserRequest request);
 
     void activateUser(UUID id);
 

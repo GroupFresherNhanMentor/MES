@@ -1,12 +1,11 @@
 package fpt.qn.mes.workorder.presentation;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,23 +16,28 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fpt.qn.mes.auth.application.security.AppUserPrincipal;
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventDto;
-import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialDto;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/work-orders")
@@ -45,7 +49,7 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderDto>>> getAll(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderResponse>>> getAll(
             @Valid WorkOrderSearchRequest request) {
         var response = workOrderUseCase.getWorkOrders(request);
         return ResponseEntity.ok(ApiResponse.success(response, "OK"));
@@ -53,26 +57,81 @@ public class WorkOrderController {
 
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> getById(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> getById(@PathVariable UUID id) {
         var response = workOrderUseCase.getWorkOrderById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Work Order details retrieved successfully"));
     }
 
     @PreAuthorize("hasRole('PLANNER')")
     @PostMapping
-    public ResponseEntity<ApiResponse<WorkOrderDto>> create(
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> create(
             @Valid @RequestBody CreateWorkOrderRequest req,
-            @AuthenticationPrincipal fpt.qn.mes.auth.application.security.AppUserPrincipal principal) {
+            @AuthenticationPrincipal AppUserPrincipal principal) {
         UUID currentUserId = principal != null ? principal.getId() : null;
         var result = workOrderUseCase.createWorkOrder(req, currentUserId);
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.success(result, "Work Order created successfully"));
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<WorkOrderDto>> update(
-            @PathVariable UUID id, @RequestBody UpdateWorkOrderRequest req) {
-        throw new UnsupportedOperationException("Not implemented");
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> update(
+            @PathVariable UUID id, @Valid @RequestBody UpdateWorkOrderRequest req) {
+        var result = workOrderUseCase.updateWorkOrder(id, req);
+        return ResponseEntity.ok(ApiResponse.success(result, "Work Order updated successfully"));
+    }
+
+    @PreAuthorize("hasRole('PLANNER')")
+    @PostMapping("/{id}/reserve-materials")
+    public ResponseEntity<ApiResponse<ReserveWorkOrderMaterialsResponse>> reserveMaterials(@PathVariable UUID id) {
+        var result = workOrderUseCase.reserveMaterials(id);
+        return ResponseEntity.ok(ApiResponse.success(result,
+                "Materials reserved successfully. Work Order is now READY_TO_PRODUCE."));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/release-materials")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> releaseMaterials(@PathVariable UUID id) {
+        var response = workOrderUseCase.releaseMaterials(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Materials released successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> cancel(@PathVariable UUID id) {
+        var response = workOrderUseCase.cancelWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Work order cancelled successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/start")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> start(
+            @PathVariable UUID id, @Valid @RequestBody StartWorkOrderRequest request) {
+        var response = workOrderUseCase.startWorkOrder(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production started successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/pause")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> pause(@PathVariable UUID id) {
+        var response = workOrderUseCase.pauseWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production paused successfully"));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
+    @PostMapping("/{id}/resume")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> resume(@PathVariable UUID id) {
+        var response = workOrderUseCase.resumeWorkOrder(id);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production resumed successfully"));
+    }
+
+    @PreAuthorize("hasRole('OPERATOR')")
+    @PostMapping("/{id}/complete")
+    public ResponseEntity<ApiResponse<WorkOrderResponse>> complete(@PathVariable UUID id,
+            @Valid @RequestBody CompleteWorkOrderRequest request) {
+        // Completion is restricted to Operators; all business and transactional work remains in the use case.
+        var response = workOrderUseCase.completeWorkOrder(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Production completed successfully"));
     }
 
     @DeleteMapping("/{id}")
@@ -81,14 +140,14 @@ public class WorkOrderController {
     }
 
     @GetMapping("/{workOrderId}/materials")
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderMaterialDto>>> getMaterials(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderMaterialResponse>>> getMaterials(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/{workOrderId}/materials")
-    public ResponseEntity<ApiResponse<WorkOrderMaterialDto>> addMaterial(
+    public ResponseEntity<ApiResponse<WorkOrderMaterialResponse>> addMaterial(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderMaterialRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
@@ -100,30 +159,33 @@ public class WorkOrderController {
     }
 
     @GetMapping("/{workOrderId}/events")
-    public ResponseEntity<ApiResponse<PageResponse<WorkOrderEventDto>>> getEvents(
+    public ResponseEntity<ApiResponse<PageResponse<WorkOrderEventResponse>>> getEvents(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @PostMapping("/{workOrderId}/events")
-    public ResponseEntity<ApiResponse<WorkOrderEventDto>> addEvent(
+    public ResponseEntity<ApiResponse<WorkOrderEventResponse>> addEvent(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderEventRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderStatusResponse>>> getWorkOrderStatuses() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderStatuses(), "OK"));
     }
 
     @GetMapping("/priorities")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderPriorities() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderPriorityResponse>>> getWorkOrderPriorities() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderPriorities(), "OK"));
     }
 
     @GetMapping("/event-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderEventTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderEventTypeResponse>>> getWorkOrderEventTypes() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderEventTypes(), "OK"));
     }
 }

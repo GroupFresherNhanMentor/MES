@@ -136,14 +136,14 @@ Factory Manager xem báo cáo | Auditor xem audit log
 **Actor:** Mọi user (login), Admin (quản lý user/role).
 
 **FR-AUTH-001 — Login**
-- Input: `username, password`. Output: `accessToken, refreshToken (optional), user profile, roles, permissions`.
+- Input: `username, password`. Output: `userId, username, accessToken, refreshToken`.
 - Sai password → lỗi authentication failed. Đúng → JWT hợp lệ.
 
 **FR-AUTH-002 — Role-based access control**
 - API giới hạn theo role (VD: chỉ Admin tạo user, chỉ duy nhất Planner tạo Work Order). Sai quyền → HTTP 403.
-- **Quyết định triển khai:** Permission tính theo role qua map tĩnh trong code (`Map<Role, Set<Permission>>`) ở mức Must Have — không bắt buộc phải có UI quản lý permission động, dù bảng `permissions`/`role_permissions` đã có sẵn trong schema (kế thừa từ `diagram.puml`) cho hướng mở rộng sau này.
+- **Quyết định triển khai:** Spring Security chỉ nạp các authority dạng `ROLE_<ROLE_NAME>` từ `user_roles`; controller khai báo trực tiếp các role được phép truy cập.
 
-**Data model:** `users, roles, permissions, user_roles, role_permissions`
+**Data model:** `users, roles, user_roles, permissions, role_permissions` (`permissions` và `role_permissions` được giữ để tương thích dữ liệu nhưng không tham gia authorization runtime)
 
 ---
 
@@ -220,7 +220,7 @@ Cài đặt cần transaction-safe (tránh 2 request cùng lúc sinh trùng `seq
 **Actor:** Hệ thống (tự động, mọi module khác gọi vào).
 
 **FR-MOV-001 — Create Stock Movement**
-- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
+- 14 movement type: `PURCHASE_IN, TRANSFER_IN, TRANSFER_OUT, RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP, ADJUSTMENT, SHIP_OUT, RETURN_TO_WAREHOUSE`.
 - Immutable — không update/delete (⚠️ hiện **không** được DB enforce, xem mục 2.6 #17). Quantity > 0.
 
 **Thiết kế cột vị trí (khác URS field list gốc):**
@@ -230,11 +230,11 @@ Thay vì `warehouseId/locationId` đơn, bảng dùng `from_warehouse_id/from_lo
 |---|---|---|
 | PURCHASE_IN | NULL | có |
 | TRANSFER_OUT / TRANSFER_IN | có | có (2 dòng cùng giá trị) |
-| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_PASS / ADJUSTMENT | có | = from (không đổi vị trí) |
+| RESERVE / RELEASE_RESERVATION / QC_HOLD / QC_RELEASE / ADJUSTMENT | có | = from (không đổi vị trí) |
 | CONSUME_IN_PRODUCTION / SCRAP / SHIP_OUT | có | NULL |
 | PRODUCTION_OUTPUT / RETURN_TO_WAREHOUSE | NULL | có |
 
-**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_PASS, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
+**Truy vết nguồn gốc nghiệp vụ:** dùng cột `work_order_id` (FK thật tới `work_orders`, thay cho `referenceType/referenceId` generic của URS gốc) — áp dụng cho `RESERVE, RELEASE_RESERVATION, ISSUE_TO_PRODUCTION, CONSUME_IN_PRODUCTION, PRODUCTION_OUTPUT, QC_HOLD, QC_RELEASE, SCRAP`; để NULL với 6 loại còn lại không gắn Work Order nào.
 
 **Data model:** `stock_movements, movement_types`
 
@@ -284,6 +284,13 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 - Transition không hợp lệ → reject. Mọi transition quan trọng → audit log.
 - **Thiết kế mở rộng:** bảng `work_order_status_transitions` lưu transition hợp lệ dưới dạng dữ liệu (data-driven), có cột `is_initial`/`is_final` trên `work_order_statuses` để xác định trạng thái đầu/cuối — không có trong URS, là cải tiến kiến trúc tự thêm. **Lưu ý khi seed dữ liệu:** không insert row `MATERIAL_RESERVED` vào `work_order_statuses`.
 
+**FR-WO-004 — Update Work Order**
+- **Quyền hạn:** ADMIN và PLANNER.
+- **Ràng buộc:** `plannedQuantity > 0` và `plannedStartDate < plannedEndDate`.
+- **Giới hạn API PUT:** API `PUT /api/work-orders/{id}` chỉ xử lý các chuyển đổi trạng thái lập kế hoạch đơn giản: `DRAFT ⇄ PLANNED`. Mọi trạng thái vận hành khác gửi qua PUT phải bị reject (HTTP 400 Bad Request).
+- **Hủy lệnh & Giải phóng vật tư:** Khi WO chuyển sang `CANCELLED` (thông qua Action Endpoint `/cancel`), hệ thống tự động hoàn trả vật tư từ `RESERVED` về `AVAILABLE` ở `stock_balances`, đồng thời ghi nhận stock movement log với loại hành động là `RELEASE_RESERVATION`.
+- **Xử lý thiếu hụt vật tư:** Khi reserve thiếu hàng, chuyển WO sang `MATERIAL_SHORTAGE`, trả về lỗi `INSUFFICIENT_STOCK` kèm danh sách nguyên vật liệu thiếu để Planner theo dõi. Planner có thể gọi lại API chuyên biệt `/reserve-materials` bất cứ lúc nào để hệ thống thực hiện reserve lại từ đầu bằng Pessimistic Locking.
+
 **Data model:** `work_orders, work_order_statuses, work_order_status_transitions, work_order_priorities, work_order_materials, production_runs, work_order_events, work_order_event_types`
 
 ---
@@ -293,8 +300,10 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 **Actor:** Planner.
 
 **FR-RES-001 — Reserve**
-- Đọc BOM → tính required → chỉ reserve nếu AVAILABLE đủ → chuyển AVAILABLE→RESERVED (ở `stock_balances`), tạo movement RESERVE, **WO chuyển sang `READY_TO_PRODUCE`** (đã bỏ `MATERIAL_RESERVED`, xem mục 3.6). Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
-- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at` (gap tự quyết định).
+- Đọc BOM → tính required → truy vấn và gom nguyên vật liệu khả dụng (`AVAILABLE`) từ tất cả các Kho đang hoạt động (`ACTIVE`) trong hệ thống theo thứ tự ngày nhập kho/tạo lô FIFO (`stock_lots.created_at ASC`).
+- Không yêu cầu truyền `machineId` hay Request Body tại bước reserve (kiểm tra trạng thái máy sản xuất được chuyển sang bước khởi chạy sản xuất `/start`).
+- Chuyển `AVAILABLE` → `RESERVED` (tại đúng `stock_balances` của từng Kho và Vị trí ô/kệ), cập nhật `work_order_materials.reserved_quantity`, tạo movement log `RESERVE` chi tiết cho từng kho xuất (`from_warehouse_id`, `to_warehouse_id`, `from_location_id`, `to_location_id`). Khi đủ 100% vật tư, **WO chuyển sang `READY_TO_PRODUCE`**. Thiếu → WO chuyển `MATERIAL_SHORTAGE`, không reserve gì, trả lỗi rõ thiếu bao nhiêu.
+- **Chiến lược chọn lot khi có nhiều lot cùng product:** FIFO theo `stock_lots.created_at ASC`.
 
 **FR-RES-002 — Release**
 - Chỉ release khi RESERVED; chuyển về AVAILABLE; tạo movement RELEASE_RESERVATION; không release nếu WO đã IN_PROGRESS/COMPLETED.
@@ -350,7 +359,7 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 - Chỉ áp dụng cho **output của Work Order** (bán thành phẩm/thành phẩm) — **không** áp dụng cho nguyên vật liệu Stock In.
 
 **FR-QC-002 — Pass QC**
-- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển `QUALITY_INSPECTION→AVAILABLE`, tạo movement `QC_PASS`. QC status: `PENDING_INSPECTION → PASSED`.
+- `passedQuantity > 0`, không vượt `quantity` còn lại. Chuyển `QUALITY_INSPECTION→AVAILABLE`, tạo movement `QC_RELEASE`. QC status: `PENDING_INSPECTION → PASSED`.
 
 **FR-QC-003 — Fail QC**
 - Bắt buộc `defectTypeId + reason`. `action ∈ {SCRAP, HOLD, REWORK}`:
@@ -428,9 +437,9 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 
 **Actor:** Hệ thống (tự động ghi), Admin/Factory Manager/Auditor (xem).
 
-**FR-AUD-001** — Ghi log cho 17 action: `CREATE_WORK_ORDER, RESERVE_MATERIAL, RELEASE_RESERVATION, START_PRODUCTION, PAUSE_PRODUCTION, RESUME_PRODUCTION, COMPLETE_PRODUCTION, QC_PASS, QC_FAIL, QC_HOLD, QC_RELEASE, SCRAP_STOCK, CREATE_MAINTENANCE_TICKET, START_MAINTENANCE, CLOSE_MAINTENANCE_TICKET, ADJUST_STOCK, ACTIVATE_BOM`.
+**FR-AUD-001** — Ghi log cho 17 action: `CREATE_WORK_ORDER, RESERVE_MATERIAL, RELEASE_RESERVATION, START_PRODUCTION, PAUSE_PRODUCTION, RESUME_PRODUCTION, COMPLETE_PRODUCTION, QC_PASS, QC_FAIL, QC_HOLD, SCRAP_STOCK, CREATE_MAINTENANCE_TICKET, START_MAINTENANCE, CLOSE_MAINTENANCE_TICKET, ADJUST_STOCK, ACTIVATE_BOM`.
 
-> `QC_RELEASE` trong audit log tương ứng với movement `QC_PASS` — đây là log hành động "QC Inspector pass", không phải tên movement.
+> `QC_PASS` trong audit log là log hành động "QC Inspector pass", không phải tên movement. Movement tương ứng là `QC_RELEASE`.
 - Không sửa/xóa (⚠️ không được DB enforce, xem mục 2.6 #17). Action quan trọng thiếu log = chưa đạt requirement.
 
 **Data model:** `audit_logs`
@@ -442,7 +451,7 @@ MATERIAL_SHORTAGE → READY_TO_PRODUCE → IN_PROGRESS ⇄ PAUSED → COMPLETED
 ### 4.1. Tổng quan theo domain
 
 ```
-AUTH            → users, roles, permissions, user_roles, role_permissions
+AUTH            → users, roles, user_roles, permissions, role_permissions
 MASTER DATA     → products (+ types/statuses/UOM), warehouses (+ managers/locations),
                    production_lines, machines
 INVENTORY       → stock_lots (+ lot_types), stock_balances (+ statuses)
@@ -461,7 +470,8 @@ AUDIT           → audit_logs, idempotency_keys
 | Nhóm | Bảng | Vai trò |
 |---|---|---|
 | Auth | `users` | Tài khoản đăng nhập |
-| | `roles`, `permissions`, `user_roles`, `role_permissions` | RBAC (permission tables kế thừa diagram.puml, không có trong URS mục 9) |
+| | `roles`, `user_roles` | Gán nhiều role cho user và phân quyền API theo role |
+| | `permissions`, `role_permissions` | Giữ lại để tương thích dữ liệu; runtime không sử dụng |
 | Master Data | `products`, `product_types`, `product_statuses` | Sản phẩm/vật tư |
 | | `units_of_measure` | Đơn vị tính (bổ sung theo URS mục 9) |
 | | `warehouses`, `warehouse_statuses`, `warehouse_managers` (bổ sung) | Kho |

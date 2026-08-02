@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Query Work Orders (`GET /api/v1/work-orders`)
+# Specification Quality Checklist: Query Work Orders (`GET /api/work-orders`)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-07-28

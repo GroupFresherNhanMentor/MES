@@ -1,119 +1,140 @@
 package fpt.qn.mes.master.line.application.service;
 
-import java.time.Instant;
 import java.util.UUID;
 
-import org.jooq.DSLContext;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
+import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.master.line.application.dto.request.CreateLineRequest;
-import fpt.qn.mes.master.line.application.dto.request.UpdateLineRequest;
-import fpt.qn.mes.master.line.application.dto.response.ProductionLineDto;
+import fpt.qn.mes.common.util.PaginationUtils;
+import fpt.qn.mes.master.line.application.dto.line.LineResponse;
+import fpt.qn.mes.master.line.application.dto.line.create.CreateLineRequest;
+import fpt.qn.mes.master.line.application.dto.line.search.LineSearchRequest;
+import fpt.qn.mes.master.line.application.dto.line.update.UpdateLineRequest;
 import fpt.qn.mes.master.line.application.exception.LineConflictException;
 import fpt.qn.mes.master.line.application.exception.LineNotFoundException;
+import fpt.qn.mes.master.line.application.exception.LineStatusNotFoundException;
 import fpt.qn.mes.master.line.application.mapper.LineDtoMapper;
 import fpt.qn.mes.master.line.application.port.in.LineUseCase;
-import fpt.qn.mes.master.line.domain.entities.ProductionLine;
-import fpt.qn.mes.master.line.domain.repository.ProductionLineRepository;
+import fpt.qn.mes.master.line.application.port.out.LineMachinePort;
+import fpt.qn.mes.master.line.domain.entities.Line;
+import fpt.qn.mes.master.line.domain.repository.LineRepository;
+import fpt.qn.mes.master.line.domain.repository.LineStatusRepository;
+import fpt.qn.mes.master.line.domain.constants.LineStatusConstants;
+import fpt.qn.mes.master.line.domain.repository.criteria.LineSearchCriteria;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-
-import static fpt.qn.mes.jooq.Tables.LINE_STATUSES;
-import static fpt.qn.mes.jooq.Tables.MACHINES;
 
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LineService implements LineUseCase {
 
-    ProductionLineRepository lineRepository;
+    LineRepository lineRepository;
+    LineStatusRepository lineStatusRepository;
+    LineMachinePort lineMachinePort;
     LineDtoMapper mapper;
-    DSLContext ctx;
+    CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<ProductionLineDto> getLines(int page, int size) {
-        UUID activeStatusId = getActiveStatusId();
-        return getLinesByStatus(page, size, activeStatusId);
-    }
+    public PageResponse<LineResponse> getLines(LineSearchRequest request) {
+        LineSearchCriteria criteria = LineSearchCriteria.builder()
+                .code(request.getCode())
+                .name(request.getName())
+                .lineStatusId(request.getLineStatusId())
+                .page(request.getPage())
+                .size(request.getSize())
+                .sort(request.getSort())
+                .build();
 
-    @Override
-    @Transactional(readOnly = true)
-    public PageResponse<ProductionLineDto> getLinesByStatus(int page, int size, UUID statusId) {
-        var result = lineRepository.findAllByStatus(page, size, statusId);
-        var items = result.getItems().stream().map(mapper::toDto).toList();
-        return PageResponse.<ProductionLineDto>builder()
+        var result = lineRepository.search(criteria);
+        var items = result.getItems().stream().map(line -> mapper.toDto(line)).toList();
+        return PageResponse.<LineResponse>builder()
                 .items(items).totalElements(result.getTotal())
-                .pageNumber(page).pageSize(size)
-                .totalPages((int) Math.ceil((double) result.getTotal() / size))
+                .pageNumber(request.getPage()).pageSize(request.getSize())
+                .totalPages(PaginationUtils.calculateTotalPages(result.getTotal(), request.getSize()))
                 .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProductionLineDto getLineById(UUID id) {
+    public LineResponse getLineById(UUID id) {
         return lineRepository.findById(id)
-                .map(mapper::toDto)
+                .map(line -> mapper.toDto(line))
                 .orElseThrow(() -> new LineNotFoundException("Line not found: " + id));
     }
 
     @Override
     @Transactional
-    public ProductionLineDto createLine(CreateLineRequest request, UUID currentUserId) {
+    public void createLine(CreateLineRequest request) {
         if (lineRepository.existsByCode(request.getCode())) {
             throw new LineConflictException("Line code already exists: " + request.getCode());
         }
-        var line = ProductionLine.create(request.getCode(), request.getName(), request.getLineStatusId(), currentUserId);
-        return mapper.toDto(lineRepository.save(line));
+        var activeStatus = lineStatusRepository.findByName(LineStatusConstants.ACTIVE)
+                .orElseThrow(() -> new LineStatusNotFoundException("ACTIVE status not found in line_statuses"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var line = Line.create(request.getCode(), request.getName(), activeStatus.getId(), currentUserId);
+        lineRepository.save(line);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_LINE,
+                "LINE", line.getId(), null, jsonSerializer.toJson(line), null));
     }
 
     @Override
     @Transactional
-    public ProductionLineDto updateLine(UUID id, UpdateLineRequest request, UUID currentUserId) {
+    public void updateLine(UUID id, UpdateLineRequest request) {
         var existing = lineRepository.findById(id)
                 .orElseThrow(() -> new LineNotFoundException("Line not found: " + id));
-        var updated = ProductionLine.builder()
-                .id(existing.getId()).code(existing.getCode())
-                .name(request.getName() != null ? request.getName() : existing.getName())
-                .lineStatusId(request.getLineStatusId() != null ? request.getLineStatusId() : existing.getLineStatusId())
-                .createdAt(existing.getCreatedAt()).createdBy(existing.getCreatedBy())
-                .updatedAt(Instant.now()).updatedBy(currentUserId)
-                .build();
-        return mapper.toDto(lineRepository.update(updated));
+
+        if (request.getLineStatusId() != null && !lineStatusRepository.existsById(request.getLineStatusId())) {
+            throw new LineStatusNotFoundException("Line status not found: " + request.getLineStatusId());
+        }
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var updated = Line.update(existing, request.getName(), request.getLineStatusId(), currentUserId);
+        lineRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
     @Transactional
-    public void deleteLine(UUID id) {
+    public void activateLine(UUID id) {
+        var existing = lineRepository.findById(id)
+                .orElseThrow(() -> new LineNotFoundException("Line not found: " + id));
+        var activeStatus = lineStatusRepository.findByName(LineStatusConstants.ACTIVE)
+                .orElseThrow(() -> new LineStatusNotFoundException("ACTIVE status not found in line_statuses"));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var activated = Line.activate(existing, activeStatus.getId(), currentUserId);
+        lineRepository.update(activated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(activated), null));
+    }
+
+    @Override
+    @Transactional
+    public void deactivateLine(UUID id) {
         var existing = lineRepository.findById(id)
                 .orElseThrow(() -> new LineNotFoundException("Line not found: " + id));
 
-        boolean hasMachines = ctx.fetchExists(
-                ctx.selectFrom(MACHINES).where(MACHINES.PRODUCTION_LINE_ID.eq(id)));
-        if (hasMachines) {
-            throw new LineConflictException("Cannot deactivate line — has active machines: " + id);
+        if (lineMachinePort.hasRunningMachines(id)) {
+            throw new LineConflictException("Cannot deactivate line with running machines: " + id);
         }
 
-        UUID inactiveStatusId = ctx.select(LINE_STATUSES.ID)
-                .from(LINE_STATUSES).where(LINE_STATUSES.NAME.eq("INACTIVE"))
-                .fetchOptionalInto(UUID.class)
-                .orElseThrow(() -> new IllegalStateException("INACTIVE not found in line_statuses"));
+        var inactiveStatus = lineStatusRepository.findByName(LineStatusConstants.INACTIVE)
+                .orElseThrow(() -> new LineStatusNotFoundException("INACTIVE status not found in line_statuses"));
 
-        var deactivated = ProductionLine.builder()
-                .id(id).code(existing.getCode()).name(existing.getName())
-                .lineStatusId(inactiveStatusId).createdAt(existing.getCreatedAt()).createdBy(existing.getCreatedBy())
-                .updatedAt(Instant.now()).updatedBy(existing.getUpdatedBy())
-                .build();
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var deactivated = Line.deactivate(existing, inactiveStatus.getId(), currentUserId);
         lineRepository.update(deactivated);
-    }
-
-    private UUID getActiveStatusId() {
-        return ctx.select(LINE_STATUSES.ID).from(LINE_STATUSES)
-                .where(LINE_STATUSES.NAME.eq("ACTIVE"))
-                .fetchOptionalInto(UUID.class)
-                .orElseThrow(() -> new IllegalStateException("ACTIVE not found in line_statuses"));
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_LINE,
+                "LINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(deactivated), null));
     }
 }

@@ -1,4 +1,4 @@
-# Quickstart & Verification Guide: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Quickstart & Verification Guide: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 This document describes how to execute automated tests and manual verification scenarios for retrieving Work Order detail.
 
@@ -26,7 +26,7 @@ Expected output:
 1. Issue HTTP request:
 
 ```http
-GET /api/v1/work-orders/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
+GET /api/work-orders/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 Authorization: Bearer <VALID_JWT_TOKEN>
 ```
 
@@ -43,7 +43,7 @@ Authorization: Bearer <VALID_JWT_TOKEN>
 1. Issue HTTP request with a non-existent UUID:
 
 ```http
-GET /api/v1/work-orders/99999999-9c0b-4ef8-bb6d-6bb9bd380a11
+GET /api/work-orders/99999999-9c0b-4ef8-bb6d-6bb9bd380a11
 Authorization: Bearer <VALID_JWT_TOKEN>
 ```
 

@@ -15,14 +15,56 @@ Every domain module follows this exact 4-layer structure. No exceptions.
 │   │   └── out/            # External dependency interfaces (output ports)
 │   ├── service/            # Implements use case interfaces
 │   ├── dto/
-│   │   ├── request/        # Inbound DTOs — validated request bodies
-│   │   └── response/       # Outbound DTOs — API response payloads
+│   │   └── {feature}/      # One sub-package per feature/entity (e.g. inspection, qcstatus)
+│   │       ├── {operation}/ # One sub-package per operation (create, search, pass, fail, …)
+│   │       │   ├── {Feature}{Operation}Request.java
+│   │       │   └── {Feature}{Operation}Response.java  # if operation-specific response needed
+│   │       └── {Feature}Response.java  # shared response DTO reused across operations
 │   ├── mapper/             # MapStruct domain ↔ DTO mappers
 │   └── exception/          # Module-scoped exceptions (extend AppException)
 ├── infrastructure/
-│   ├── persistence/        # jOOQ adapters + record mappers
+│   ├── persistence/
+│   │   ├── {entity}/       # One subfolder per entity — adapter + mapper together
+│   │   │   ├── {Entity}PersistenceAdapter.java
+│   │   │   └── {Entity}RecordMapper.java
+│   │   └── {CrossCuttingAdapter}.java  # adapters not tied to one entity (e.g. MovementStockCheckAdapter)
 │   └── {concern}/          # Other adapters (security, messaging, etc.)
 └── presentation/           # Spring MVC REST controllers
+```
+
+### DTO sub-package rules
+
+- **One sub-package per feature** inside `dto/` — never a flat `request/` or `response/` folder
+- **One sub-package per operation** inside the feature package (`create/`, `search/`, `pass/`, `fail/`, …)
+- **Request DTOs** live inside the operation sub-package: `dto/{feature}/{operation}/{Feature}{Operation}Request.java`
+- **Response DTOs** that are operation-specific live alongside the request: `dto/{feature}/{operation}/{Feature}{Operation}Response.java`
+- **Shared response DTOs** (returned by multiple operations or by GET endpoints) live directly in the feature package: `dto/{feature}/{Feature}Response.java`
+- Never share a request DTO across features (e.g. no `CreateLookupRequest` used by both QcStatus and QcAction) — each feature owns its own request class
+
+Example (quality module):
+```
+dto/
+├── inspection/
+│   ├── QualityInspectionResponse.java       # shared — used by GET list, GET by id, POST
+│   ├── QualityInspectionResultResponse.java # shared nested DTO
+│   ├── create/
+│   │   └── CreateQualityInspectionRequest.java
+│   ├── pass/
+│   │   ├── PassQcRequest.java
+│   │   └── PassQcResponse.java
+│   └── fail/
+│       ├── FailQcRequest.java
+│       └── FailQcResponse.java
+├── qcstatus/
+│   ├── QcStatusResponse.java
+│   ├── create/
+│   │   └── CreateQcStatusRequest.java
+│   └── search/
+│       └── QcStatusSearchRequest.java
+├── qcaction/
+│   └── …
+└── defecttype/
+    └── …
 ```
 
 ## Dependency Flow
@@ -79,13 +121,12 @@ Outer layers depend on inner layers. Inner layers never import outer layers.
 
 ```
 fpt.qn.mes
-├── auth/
+├── auth/              # Authentication, roles, role-based access control
 ├── bom/
 ├── inventory/
 ├── maintenance/
 ├── quality/
 ├── workorder/
-├── role/
 ├── user/
 ├── master/
 │   ├── line/
@@ -248,14 +289,23 @@ Product product; // ❌  reference foreign data by UUID instead
 ProductRepository productRepository; // ❌
 ```
 
+**Constants exception:** `*Constants.java` classes (containing only `public static final` fields — no behavior, no state) **may** be imported across modules. They carry no runtime coupling and compile down to literals. Prefer importing the constant over duplicating the string — it keeps a single source of truth and makes the dependency explicit.
+
+```java
+// ALLOWED — importing a constants class across modules
+import fpt.qn.mes.master.machine.domain.constants.MachineStatusConstants;
+
+ctx.fetchExists(MACHINES.join(MACHINE_STATUSES)
+    .where(MACHINE_STATUSES.NAME.eq(MachineStatusConstants.RUNNING)));
+```
+
 **Tier 3 — No circular dependencies**
 
 The dependency graph must be a directed acyclic graph (DAG). The allowed direction for this MES:
 
 ```
 auth
-role
-user ──────────────────────→ role
+user ──────────────────────→ auth
 master (product, machine, line, warehouse, location)
 bom ────────────────────────→ master/product
 inventory ──────────────────→ master (product, warehouse, location)
@@ -270,5 +320,6 @@ maintenance ────────────────→ master/machine
 |---------|-----------|
 | Import another module's `*UseCase` interface | Import another module's `*Service` class |
 | Import from `common/` | Import another module's `*Repository` or `*PersistenceAdapter` |
-| Reference foreign entities by `UUID` | Import and pass another module's domain entity |
-| Depend on a module that is "upstream" in the DAG | Create a circular dependency |
+| Import another module's `*Constants` class (static finals only) | Import and pass another module's domain entity |
+| Reference foreign entities by `UUID` | Create a circular dependency |
+| Depend on a module that is "upstream" in the DAG | |

@@ -1,20 +1,33 @@
 package fpt.qn.mes.inventory.application.mapper;
 
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.product.ProductResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.user.UserResponse;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseLocationResponse;
+import fpt.qn.mes.inventory.application.dto.warehouse.WarehouseResponse;
 import fpt.qn.mes.inventory.domain.entities.StockBalance;
-import fpt.qn.mes.inventory.domain.entities.StockLot;
 import fpt.qn.mes.inventory.domain.entities.StockMovement;
 
 @Mapper(componentModel = "spring")
 public interface InventoryDtoMapper {
 
-    StockLotDto toDto(StockLot stockLot);
+    @Mapping(target = "lot", source = "stockLot")
+    @Mapping(target = "createdBy", source = "createdByUser")
+    StockMovementResponse toDto(StockMovement movement);
 
-    StockMovementDto toDto(StockMovement stockMovement);
+    StockBalanceResponse toDto(StockBalance balance);
+    StockBalanceResponse.WarehouseInfo toWarehouseInfo(StockBalance.WarehouseRef ref);
+    StockBalanceResponse.LocationInfo toLocationInfo(StockBalance.LocationRef ref);
+    StockBalanceResponse.ProductInfo toProductInfo(StockBalance.ProductRef ref);
+    StockBalanceResponse.LotInfo toLotInfo(StockBalance.LotRef ref);
+    StockBalanceResponse.StockStatusInfo toStockStatusInfo(StockBalance.StockStatusRef ref);
 
-    StockBalanceDto toDto(StockBalance stockBalance);
+    ProductResponse toProductResponse(StockMovement.ProductRef ref);
+    WarehouseResponse toWarehouseResponse(StockMovement.WarehouseRef ref);
+    WarehouseLocationResponse toLocationResponse(StockMovement.WarehouseLocationRef ref);
+    UserResponse toUserResponse(StockMovement.UserRef ref);
 }

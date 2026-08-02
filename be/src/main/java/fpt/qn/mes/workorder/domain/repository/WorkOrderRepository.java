@@ -1,23 +1,28 @@
 package fpt.qn.mes.workorder.domain.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import fpt.qn.mes.common.dto.response.PaginationResult;
+import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderEventType;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
-
+import fpt.qn.mes.workorder.domain.entities.WorkOrderPriority;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 
 public interface WorkOrderRepository {
     Optional<WorkOrder> findById(UUID id);
+    Optional<WorkOrder> findForUpdate(UUID id);
     WorkOrder save(WorkOrder workOrder);
     WorkOrder update(WorkOrder workOrder);
     void deleteById(UUID id);
     PaginationResult<WorkOrder> findAll(WorkOrderSearchCriteria criteria);
 
     WorkOrderMaterial saveMaterial(WorkOrderMaterial material);
+    WorkOrderMaterial updateMaterial(WorkOrderMaterial material);
     Optional<WorkOrderMaterial> findMaterialById(UUID materialId);
     PaginationResult<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId, int page, int size);
     java.util.List<WorkOrderMaterial> findMaterialsByWorkOrderId(UUID workOrderId);
@@ -26,4 +31,13 @@ public interface WorkOrderRepository {
     WorkOrderEvent saveEvent(WorkOrderEvent event);
     PaginationResult<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId, int page, int size);
     java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId);
+    Optional<String> findStatusNameById(UUID id);
+    Optional<UUID> findStatusIdByName(String name);
+    boolean hasActiveTransition(UUID fromStatusId, UUID toStatusId);
+    boolean existsByCode(String code);
+    boolean existsByCodeAndIdNot(String code, UUID excludeId);
+
+    List<WorkOrderStatus> findAllStatuses();
+    List<WorkOrderPriority> findAllPriorities();
+    List<WorkOrderEventType> findAllEventTypes();
 }

@@ -1,33 +1,27 @@
-import type { LocationStatus } from '../../configs/constants';
-
 export interface LocationDto {
   id: string;
   warehouseId: string;
-  locationCode: string;
-  description?: string;
-  maxCapacity?: number;
-  currentLoad?: number;
-  status: LocationStatus;
-  warehouseName?: string;
+  code: string;
+  name: string;
+  locationStatusId: string;
+  locationStatusName: string;
+  locationStatus?: { id: string; name: string; description?: string } | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateLocationRequest {
-  locationCode: string;
-  description?: string;
-  maxCapacity?: number;
+  code: string;
+  name: string;
 }
 
 export interface UpdateLocationRequest {
-  description?: string;
-  maxCapacity?: number;
-  status?: LocationStatus;
+  name?: string;
 }
 
 export interface LocationListParams {
   keyword?: string;
-  status?: LocationStatus;
+  statusName?: string;
   page?: number;
   size?: number;
 }

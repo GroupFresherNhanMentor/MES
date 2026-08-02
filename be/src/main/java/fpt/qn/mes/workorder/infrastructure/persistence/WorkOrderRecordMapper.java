@@ -1,5 +1,7 @@
 package fpt.qn.mes.workorder.infrastructure.persistence;
 
+import java.time.ZoneOffset;
+
 import org.springframework.stereotype.Component;
 
 import fpt.qn.mes.jooq.tables.records.WorkOrderEventsRecord;
@@ -37,12 +39,12 @@ public class WorkOrderRecordMapper {
         r.setFinishedProductId(w.getFinishedProductId());
         r.setBomId(w.getBomId());
         r.setPlannedQuantity(w.getPlannedQuantity());
-        r.setPlannedStartDate(w.getPlannedStartDate() != null ? w.getPlannedStartDate().atOffset(java.time.ZoneOffset.UTC) : null);
-        r.setPlannedEndDate(w.getPlannedEndDate() != null ? w.getPlannedEndDate().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setPlannedStartDate(w.getPlannedStartDate() != null ? w.getPlannedStartDate().atOffset(ZoneOffset.UTC) : null);
+        r.setPlannedEndDate(w.getPlannedEndDate() != null ? w.getPlannedEndDate().atOffset(ZoneOffset.UTC) : null);
         r.setPriorityId(w.getPriorityId());
         r.setWorkOrderStatusId(w.getWorkOrderStatusId());
         r.setCreatedBy(w.getCreatedBy());
-        r.setCreatedAt(w.getCreatedAt() != null ? w.getCreatedAt().atOffset(java.time.ZoneOffset.UTC) : null);
+        r.setCreatedAt(w.getCreatedAt() != null ? w.getCreatedAt().atOffset(ZoneOffset.UTC) : null);
         return r;
     }
 
@@ -75,6 +77,7 @@ public class WorkOrderRecordMapper {
         return WorkOrderEvent.builder()
                 .id(r.getId())
                 .workOrderId(r.getWorkOrderId())
+                .productionRunId(r.getProductionRunId())
                 .eventTypeId(r.getEventTypeId())
                 .operatorId(r.getOperatorId())
                 .eventTimestamp(r.getEventTimestamp() != null ? r.getEventTimestamp().toInstant() : null)
@@ -83,6 +86,15 @@ public class WorkOrderRecordMapper {
     }
 
     public WorkOrderEventsRecord toRecord(WorkOrderEvent e) {
-        return null;
+        if (e == null) return null;
+        WorkOrderEventsRecord r = new WorkOrderEventsRecord();
+        r.setId(e.getId());
+        r.setWorkOrderId(e.getWorkOrderId());
+        r.setProductionRunId(e.getProductionRunId());
+        r.setEventTypeId(e.getEventTypeId());
+        r.setOperatorId(e.getOperatorId());
+        r.setEventTimestamp(e.getEventTimestamp() != null ? e.getEventTimestamp().atOffset(ZoneOffset.UTC) : null);
+        r.setNote(e.getNote());
+        return r;
     }
 }

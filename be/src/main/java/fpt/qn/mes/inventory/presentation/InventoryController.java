@@ -1,28 +1,31 @@
 package fpt.qn.mes.inventory.presentation;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.inventory.application.dto.request.CreateMovementRequest;
-import fpt.qn.mes.inventory.application.dto.request.CreateStockLotRequest;
-import fpt.qn.mes.inventory.application.dto.request.StockBalanceSearchRequest;
-import fpt.qn.mes.inventory.application.dto.response.StockBalanceDto;
-import fpt.qn.mes.inventory.application.dto.response.StockLotDto;
-import fpt.qn.mes.inventory.application.dto.response.StockMovementDto;
+import fpt.qn.mes.inventory.application.dto.response.StockTransferResponse;
+import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.StockAdjustmentApprovalResponse;
+import fpt.qn.mes.inventory.application.dto.stockadjustmentapproval.search.StockAdjustmentApprovalSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockbalance.StockBalanceResponse;
+import fpt.qn.mes.inventory.application.dto.stockbalance.search.StockBalanceSearchRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockInRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.create.StockTransferRequest;
+import fpt.qn.mes.inventory.application.dto.stockmovement.search.StockMovementSearchRequest;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -37,53 +40,75 @@ public class InventoryController {
 
     InventoryUseCase inventoryUseCase;
 
-    @GetMapping("/api/stock-lots")
-    public ResponseEntity<ApiResponse<PageResponse<StockLotDto>>> getStockLots(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @GetMapping("/api/stock-lots/{id}")
-    public ResponseEntity<ApiResponse<StockLotDto>> getStockLotById(@PathVariable UUID id) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @PostMapping("/api/stock-lots")
-    public ResponseEntity<ApiResponse<StockLotDto>> createStockLot(@Valid @RequestBody CreateStockLotRequest request) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
+    @Operation(summary = "Search stock movements with pagination and criteria filtering (FR-MOV-001)")
     @GetMapping("/api/stock-movements")
-    public ResponseEntity<ApiResponse<PageResponse<StockMovementDto>>> getMovements(
-            @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @PostMapping("/api/stock-movements")
-    public ResponseEntity<ApiResponse<StockMovementDto>> recordMovement(
-            @Valid @RequestBody CreateMovementRequest request, @AuthenticationPrincipal Jwt jwt) {
-        throw new UnsupportedOperationException("Not implemented");
-    }
-
-    @GetMapping("/api/stock-balances")
-    public ResponseEntity<ApiResponse<PageResponse<StockBalanceDto>>> getStockBalances(
-            @Valid StockBalanceSearchRequest request) {
-        PageResponse<StockBalanceDto> result = inventoryUseCase.getStockBalances(request);
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'FACTORY_MANAGER', 'ADMIN', 'OPERATOR', 'PLANNER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<PageResponse<StockMovementResponse>>> getMovements(
+            @ModelAttribute @Valid StockMovementSearchRequest request) {
+        PageResponse<StockMovementResponse> result = inventoryUseCase.getMovements(request);
         return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
-    @GetMapping("/api/lot-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getLotTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    @Operation(summary = "Record incoming stock physical receipt into warehouse (FR-INV-002)")
+    @PostMapping("/api/stock-in")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> recordStockIn(
+            @Valid @RequestBody StockInRequest request) {
+        inventoryUseCase.recordStockIn(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Stock received successfully"));
     }
 
-    @GetMapping("/api/stock-statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getStockStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    @Operation(summary = "Get stock balances (FR-INV-001)")
+    @GetMapping("/api/stock-balances")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'FACTORY_MANAGER', 'ADMIN', 'OPERATOR', 'PLANNER', 'AUDITOR', 'QC_INSPECTOR')")
+    public ResponseEntity<ApiResponse<PageResponse<StockBalanceResponse>>> getStockBalances(
+            @ModelAttribute @Valid StockBalanceSearchRequest request) {
+        PageResponse<StockBalanceResponse> result = inventoryUseCase.getStockBalances(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
     }
 
-    @GetMapping("/api/movement-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getMovementTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    @Operation(summary = "Submit a stock adjustment request (FR-INV-003)")
+    @PostMapping("/api/stock-adjustments")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> adjustStock(
+            @Valid @RequestBody CreateStockAdjustmentRequest request) {
+        inventoryUseCase.adjustStock(request);
+        return ResponseEntity.ok(ApiResponse.success("Stock adjustment processed"));
+    }
+
+    @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager) (FR-INV-003)")
+    @GetMapping("/api/stock-adjustments/pending")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> getPendingAdjustments(
+            @ModelAttribute @Valid StockAdjustmentApprovalSearchRequest request) {
+        PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "OK"));
+    }
+
+    @Operation(summary = "Approve a pending stock adjustment (Factory Manager) (FR-INV-003)")
+    @PostMapping("/api/stock-adjustments/{id}/approve")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<StockMovementResponse>> approveAdjustment(
+            @PathVariable UUID id) {
+        StockMovementResponse result = inventoryUseCase.approveAdjustment(id);
+        return ResponseEntity.ok(ApiResponse.success(result, "Adjustment approved and balance updated successfully"));
+    }
+
+    @Operation(summary = "Reject a pending stock adjustment (Factory Manager) (FR-INV-003)")
+    @PostMapping("/api/stock-adjustments/{id}/reject")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> rejectAdjustment(
+            @PathVariable UUID id) {
+        inventoryUseCase.rejectAdjustment(id);
+        return ResponseEntity.ok(ApiResponse.success("Adjustment rejected and request removed"));
+    }
+
+    @Operation(summary = "Transfer available inventory between warehouse locations (FR-INV-004)")
+    @PostMapping("/api/stock-transfers")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<StockTransferResponse>> transferStock(
+            @Valid @RequestBody StockTransferRequest request) {
+        StockTransferResponse result = inventoryUseCase.transferStock(request);
+        return ResponseEntity.ok(ApiResponse.success(result, "Stock transfer completed successfully"));
     }
 }

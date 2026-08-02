@@ -1,4 +1,4 @@
-# Data Model: Query Work Orders (`GET /api/v1/work-orders`)
+# Data Model: Query Work Orders (`GET /api/work-orders`)
 
 ## Domain Entities & DTOs
 

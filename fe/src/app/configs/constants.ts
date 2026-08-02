@@ -8,7 +8,7 @@ export const APP_CONSTANTS = {
   pageSizeOptions: [10, 20, 50, 100],
 } as const;
 
-export const PRODUCT_TYPES = ['RAW_MATERIAL', 'SUB_ASSEMBLY', 'FINISHED_GOOD', 'CONSUMABLE', 'PACKAGING'] as const;
+export const PRODUCT_TYPES = ['RAW_MATERIAL', 'SEMI_FINISHED', 'FINISHED_GOOD', 'CONSUMABLE', 'SPARE_PART'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
 export const PRODUCT_STATUSES = ['ACTIVE', 'INACTIVE', 'DISCONTINUED'] as const;
@@ -26,12 +26,14 @@ export type MachineStatus = (typeof MACHINE_STATUSES)[number];
 export const PRODUCTION_LINE_STATUSES = ['ACTIVE', 'INACTIVE'] as const;
 export type ProductionLineStatus = (typeof PRODUCTION_LINE_STATUSES)[number];
 
-export const BOM_STATUSES = ['DRAFT', 'ACTIVE', 'ARCHIVED'] as const;
+export const BOM_STATUSES = ['DRAFT', 'ACTIVE', 'INACTIVE'] as const;
 export type BomStatus = (typeof BOM_STATUSES)[number];
 
 export const WORK_ORDER_STATUSES = [
   'DRAFT',
-  'RELEASED',
+  'PLANNED',
+  'MATERIAL_SHORTAGE',
+  'READY_TO_PRODUCE',
   'IN_PROGRESS',
   'PAUSED',
   'COMPLETED',

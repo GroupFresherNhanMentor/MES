@@ -1,4 +1,4 @@
-# Technical Research & Decisions: Create Work Order (`POST /api/v1/work-orders`)
+# Technical Research & Decisions: Create Work Order (`POST /api/work-orders`)
 
 ## 1. Active BOM Lookup & Material Requirement Calculation
 

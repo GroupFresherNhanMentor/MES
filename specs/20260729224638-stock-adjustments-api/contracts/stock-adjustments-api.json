@@ -1,0 +1,152 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Stock Adjustments API",
+    "version": "1.0.0",
+    "description": "API endpoints for recording stock adjustments and processing threshold approvals."
+  },
+  "paths": {
+    "/api/stock-adjustments": {
+      "post": {
+        "summary": "Create or execute stock adjustment",
+        "operationId": "adjustStock",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockAdjustmentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Adjustment executed or submitted for threshold approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockAdjustmentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input, missing reason, or resulting negative balance"
+          }
+        }
+      }
+    },
+    "/api/stock-adjustments/pending": {
+      "get": {
+        "summary": "Get list of pending stock adjustment approval requests",
+        "operationId": "getPendingAdjustments",
+        "responses": {
+          "200": {
+            "description": "List of pending adjustments requiring Factory Manager approval",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StockAdjustmentApprovalDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stock-adjustments/{id}/approve": {
+      "post": {
+        "summary": "Factory Manager approves pending adjustment request",
+        "operationId": "approveAdjustment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Adjustment approved, stock balance updated, movement logged, pending record deleted"
+          },
+          "404": {
+            "description": "Pending adjustment not found"
+          }
+        }
+      }
+    },
+    "/api/stock-adjustments/{id}/reject": {
+      "post": {
+        "summary": "Factory Manager rejects pending adjustment request",
+        "operationId": "rejectAdjustment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Adjustment rejected, pending record deleted without balance modification"
+          },
+          "404": {
+            "description": "Pending adjustment not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StockAdjustmentRequest": {
+        "type": "object",
+        "required": ["productId", "warehouseId", "quantityAdjustment", "reason"],
+        "properties": {
+          "productId": { "type": "string", "format": "uuid" },
+          "warehouseId": { "type": "string", "format": "uuid" },
+          "locationId": { "type": "string", "format": "uuid" },
+          "stockBalanceId": { "type": "string", "format": "uuid" },
+          "quantityAdjustment": { "type": "number" },
+          "reason": { "type": "string", "minLength": 1 },
+          "referenceNo": { "type": "string" }
+        }
+      },
+      "StockAdjustmentResponse": {
+        "type": "object",
+        "properties": {
+          "requiresApproval": { "type": "boolean" },
+          "approvalId": { "type": "string", "format": "uuid" },
+          "movement": { "type": "object" },
+          "message": { "type": "string" }
+        }
+      },
+      "StockAdjustmentApprovalDto": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "productId": { "type": "string", "format": "uuid" },
+          "warehouseId": { "type": "string", "format": "uuid" },
+          "locationId": { "type": "string", "format": "uuid" },
+          "stockBalanceId": { "type": "string", "format": "uuid" },
+          "quantityAdjustment": { "type": "number" },
+          "reason": { "type": "string" },
+          "referenceNo": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

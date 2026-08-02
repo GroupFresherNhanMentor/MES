@@ -6,11 +6,24 @@ export const API = {
     refresh: `${BASE}/auth/refresh`,
     me: `${BASE}/auth/me`,
   },
+  users: {
+    base: `${BASE}/users`,
+    byId: (id: string) => `${BASE}/users/${id}`,
+    activate: (id: string) => `${BASE}/users/${id}/activate`,
+    deactivate: (id: string) => `${BASE}/users/${id}/deactivate`,
+    roles: (id: string) => `${BASE}/users/${id}/roles`,
+  },
+  roles: {
+    base: `${BASE}/roles`,
+  },
   products: {
     base: `${BASE}/products`,
     byId: (id: string | number) => `${BASE}/products/${id}`,
-    types: `${BASE}/products/types`,
-    statuses: `${BASE}/products/statuses`,
+    types: `${BASE}/product-types`,
+    statuses: `${BASE}/product-statuses`,
+    unitsOfMeasure: `${BASE}/units-of-measure`,
+    productTypes: `${BASE}/product-types`,
+    productStatuses: `${BASE}/product-statuses`,
     deactivate: (id: string | number) => `${BASE}/products/${id}/deactivate`,
   },
   warehouses: {
@@ -26,8 +39,8 @@ export const API = {
       `${BASE}/warehouses/${warehouseId}/locations/${id}/deactivate`,
   },
   productionLines: {
-    base: `${BASE}/production-lines`,
-    byId: (id: string | number) => `${BASE}/production-lines/${id}`,
+    base: `${BASE}/lines`,
+    byId: (id: string | number) => `${BASE}/lines/${id}`,
     deactivate: (id: string | number) => `${BASE}/production-lines/${id}/deactivate`,
   },
   machines: {
@@ -40,11 +53,10 @@ export const API = {
     base: `${BASE}/boms`,
     byId: (id: string | number) => `${BASE}/boms/${id}`,
     activate: (id: string | number) => `${BASE}/boms/${id}/activate`,
+    deactivate: (id: string | number) => `${BASE}/boms/${id}/deactivate`,
     newVersion: (id: string | number) => `${BASE}/boms/${id}/new-version`,
     items: (bomId: string | number) => `${BASE}/boms/${bomId}/items`,
-    deleteItem: (bomId: string | number, itemId: string | number) =>
-      `${BASE}/boms/${bomId}/items/${itemId}`,
-    statuses: `${BASE}/boms/statuses`,
+    statuses: `${BASE}/bom-statuses`,
   },
   workOrders: {
     base: `${BASE}/work-orders`,
@@ -56,12 +68,28 @@ export const API = {
     resume: (id: string | number) => `${BASE}/work-orders/${id}/resume`,
     complete: (id: string | number) => `${BASE}/work-orders/${id}/complete`,
     cancel: (id: string | number) => `${BASE}/work-orders/${id}/cancel`,
+    statuses: `${BASE}/work-orders/statuses`,
+    priorities: `${BASE}/work-orders/priorities`,
+    eventTypes: `${BASE}/work-orders/event-types`,
   },
   stockBalances: {
     base: `${BASE}/stock-balances`,
   },
   stockMovements: {
     base: `${BASE}/stock-movements`,
+    in: `${BASE}/stock-in`,
+  },
+  stockTransfers: {
+    base: `${BASE}/stock-transfers`,
+  },
+  stockAdjustments: {
+    base: `${BASE}/stock-adjustments`,
+    pending: `${BASE}/stock-adjustments/pending`,
+    approve: (id: string) => `${BASE}/stock-adjustments/${id}/approve`,
+    reject: (id: string) => `${BASE}/stock-adjustments/${id}/reject`,
+  },
+  stockLots: {
+    base: `${BASE}/stock-lots`,
   },
   qualityInspections: {
     base: `${BASE}/quality-inspections`,
@@ -72,9 +100,15 @@ export const API = {
     scrap: (id: string | number) => `${BASE}/quality-inspections/${id}/scrap`,
   },
   maintenanceTickets: {
-    base: `${BASE}/maintenance-tickets`,
-    start: (id: string | number) => `${BASE}/maintenance-tickets/${id}/start`,
-    close: (id: string | number) => `${BASE}/maintenance-tickets/${id}/close`,
+    base: `${BASE}/maintenance`,
+    byId: (id: string | number) => `${BASE}/maintenance/${id}`,
+    start: (id: string | number) => `${BASE}/maintenance/${id}/start`,
+    close: (id: string | number) => `${BASE}/maintenance/${id}/close`,
+    resolve: (id: string | number) => `${BASE}/maintenance/${id}/resolve`,
+    cancel: (id: string | number) => `${BASE}/maintenance/${id}/cancel`,
+    ticketStatuses: `${BASE}/maintenance/ticket-statuses`,
+    ticketPriorities: `${BASE}/maintenance/ticket-priorities`,
+    downtimeByTicket: (id: string | number) => `${BASE}/maintenance/${id}/downtime`,
   },
   reports: {
     inventory: `${BASE}/reports/inventory`,

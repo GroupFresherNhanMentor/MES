@@ -172,18 +172,26 @@ Available variants: `pending`, `active`, `completed`, `onhold`, `cancelled`, `pa
 
 ## Common Patterns
 
-### Page header + filter toolbar
+### Page header + filter toolbar (Inside Card Header)
 
 ```html
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-xl font-semibold text-text-primary">Products</h1>
-  <button mat-flat-button color="primary">
-    <mat-icon>add</mat-icon> Add Product
-  </button>
-</div>
-<div class="flex gap-3 items-center mb-4">
-  <mat-form-field appearance="outline" class="w-[200px]">...</mat-form-field>
-</div>
+<mat-card>
+  <mat-card-header class="!flex !items-center !justify-between !pb-4">
+    <mat-card-title class="!text-xl !font-semibold !text-text-primary">Product Management</mat-card-title>
+    
+    <div class="toolbar flex items-center gap-3">
+      <button mat-raised-button class="ff-btn-primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon> Add Product
+      </button>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-64">
+        <mat-label>Search</mat-label>
+        <input matInput [(ngModel)]="keyword" (keyup.enter)="search()" placeholder="code or name">
+        <mat-icon matSuffix class="text-text-muted">search</mat-icon>
+      </mat-form-field>
+    </div>
+  </mat-card-header>
+</mat-card>
 ```
 
 ### Card container

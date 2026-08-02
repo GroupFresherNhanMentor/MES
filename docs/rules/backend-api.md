@@ -16,13 +16,32 @@
 Every endpoint returns `ResponseEntity<ApiResponse<T>>`. Use the static factory methods:
 
 ```java
-// Success
+// Service returns data → pass data + message (two-arg overload)
 ResponseEntity.ok(ApiResponse.success(data, "OK"))
 ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(data, "Created"))
-ResponseEntity.ok(ApiResponse.success(null, "Deleted"))
+
+// Service returns void → pass message only (one-arg overload); return type is ApiResponse<Void>
+ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"))
+ResponseEntity.ok(ApiResponse.success("Deleted"))
+ResponseEntity.ok(ApiResponse.success("OK"))
 
 // Error (thrown as exception, handled by GlobalExceptionHandler)
-throw new AppException(HttpStatus.NOT_FOUND, "BOM_NOT_FOUND", "BOM not found: " + id)
+throw new AppException(404, ErrorCode.NOT_FOUND, "BOM not found: " + id)
+```
+
+### Void-return controller rule
+
+When the use case method is `void`, the controller return type must be `ResponseEntity<ApiResponse<Void>>` and the body uses the **one-arg** `ApiResponse.success(String message)`. **Never pass `null` as the data argument.**
+
+```java
+// FORBIDDEN — passing null explicitly
+return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(null, "Created"));
+
+// REQUIRED — use the one-arg overload; return type is ApiResponse<Void>
+public ResponseEntity<ApiResponse<Void>> createFoo(@Valid @RequestBody CreateFooRequest request) {
+    fooUseCase.createFoo(request);
+    return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
+}
 ```
 
 `ApiResponse<T>` shape:
@@ -62,7 +81,7 @@ Error shape:
 ## URL Conventions
 
 ```
-GET    /api/{resources}              list (paginated)
+GET    /api/{resources}              list (paginated unless approved legacy catalog)
 GET    /api/{resources}/{id}         single
 POST   /api/{resources}              create
 PUT    /api/{resources}/{id}         full update
@@ -93,6 +112,25 @@ Response uses `PageResponse<T>`:
 }
 ```
 
+All new list endpoints must be paginated. A legacy endpoint may retain an
+unpaginated `List<T>` response only when every condition below is met:
+
+- an existing public contract explicitly requires the response shape to remain
+  unchanged;
+- the endpoint returns bounded configuration/catalog data rather than an
+  operational dataset;
+- the feature plan records the exception in `Complexity Tracking`;
+- the query has deterministic database ordering;
+- an API compatibility test locks the existing response shape.
+
+`FactoryFlow_SRS.md` classifies roles as bounded RBAC configuration data,
+while `FactoryFlow_Manufacturing_Operations_Platform.md` requires pagination
+for large lists. The approved legacy exception is therefore limited to:
+
+- `GET /api/roles`
+
+This exception must not be copied to new endpoints.
+
 ## Validation
 
 Request DTOs use Jakarta Bean Validation annotations:
@@ -117,7 +155,7 @@ HTTP-semantic categories — the specific context is carried in the `message` fi
 | `NOT_FOUND` | 404 | Entity does not exist (all `*NotFoundException`) |
 | `INVALID_INPUT` | 400 | Validation errors, domain rule violations, bad arguments |
 | `UNAUTHORIZED` | 401 | Invalid/expired JWT token |
-| `FORBIDDEN` | 403 | Authenticated but lacks permission |
+| `FORBIDDEN` | 403 | Authenticated but does not have an allowed role |
 | `CONFLICT` | 409 | Duplicate creation (e.g., username already exists) |
 | `INTERNAL_SERVER_ERROR` | 500 | Unexpected errors |
 
@@ -126,14 +164,14 @@ HTTP-semantic categories — the specific context is carried in the `message` fi
 // Module-specific not-found exception
 public class BomNotFoundException extends AppException {
     public BomNotFoundException(String message) {
-        super(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, message);
+        super(404, ErrorCode.NOT_FOUND, message);
     }
 }
 
 // Conflict exception
 public class UsernameAlreadyExistsException extends AppException {
     public UsernameAlreadyExistsException(String message) {
-        super(HttpStatus.CONFLICT, ErrorCode.CONFLICT, message);
+        super(409, ErrorCode.CONFLICT, message);
     }
 }
 ```

@@ -1,12 +1,15 @@
 [
   { "from": "DRAFT",             "to": "PLANNED",           "description": "Submit work order for planning" },
+  { "from": "PLANNED",           "to": "DRAFT",             "description": "Revert work order back to draft for re-editing" },
   { "from": "PLANNED",           "to": "READY_TO_PRODUCE",  "description": "All materials reserved, work order ready for production" },
   { "from": "PLANNED",           "to": "MATERIAL_SHORTAGE", "description": "Insufficient stock to reserve all required materials" },
   { "from": "MATERIAL_SHORTAGE", "to": "READY_TO_PRODUCE",  "description": "Stock replenished and all materials successfully reserved" },
+  { "from": "READY_TO_PRODUCE",  "to": "PLANNED",           "description": "Reserved materials released before production starts" },
   { "from": "READY_TO_PRODUCE",  "to": "IN_PROGRESS",       "description": "Operator starts production on the factory floor" },
   { "from": "IN_PROGRESS",       "to": "PAUSED",            "description": "Production temporarily suspended" },
   { "from": "PAUSED",            "to": "IN_PROGRESS",       "description": "Production resumed after pause" },
   { "from": "IN_PROGRESS",       "to": "COMPLETED",         "description": "Operator completes production and records output quantities" },
+  { "from": "DRAFT",             "to": "CANCELLED",         "description": "Draft work order cancelled before planning" },
   { "from": "PLANNED",           "to": "CANCELLED",         "description": "Work order cancelled before material reservation" },
   { "from": "MATERIAL_SHORTAGE", "to": "CANCELLED",         "description": "Work order cancelled due to persistent material shortage" },
   { "from": "READY_TO_PRODUCE",  "to": "CANCELLED",         "description": "Work order cancelled before production starts" }

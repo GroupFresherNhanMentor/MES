@@ -41,7 +41,6 @@ export class BomCreateDialog implements OnInit {
 
   form = this.fb.group({
     finishedProductId: ['', [Validators.required]],
-    version: [1, [Validators.required, Validators.min(1)]],
   });
 
   ngOnInit(): void {
@@ -49,16 +48,14 @@ export class BomCreateDialog implements OnInit {
   }
 
   loadFinishedProducts(): void {
-    const productTypeIds = ['PT-FIN', 'PT-SUB'];
-    this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${productTypeIds.join(',')}`).subscribe((r) => {
-      if (r.success && r.data?.items) {
-        const filtered = r.data.items.filter((p) =>
-          p.productTypeName === 'FINISHED_GOOD' ||
-          p.productTypeName === 'SEMI_FINISHED' ||
-          p.productTypeId === 'PT-FIN' ||
-          p.productTypeId === 'PT-SUB'
-        );
-        this.productsList.set(filtered.length > 0 ? filtered : r.data.items);
+    this.api.get<any>(`${API.products.base}?size=100`).subscribe((r) => {
+      if (r.success && r.data) {
+        const rawItems: ProductDto[] = r.data?.items || (Array.isArray(r.data) ? r.data : []);
+        const filtered = rawItems.filter((p) => {
+          const typeName = (p.productType?.name || p.productTypeName || '').trim().toUpperCase();
+          return typeName === 'FINISHED_GOOD' || typeName === 'SEMI_FINISHED';
+        });
+        this.productsList.set(filtered.length > 0 ? filtered : rawItems);
       }
     });
   }
@@ -69,15 +66,14 @@ export class BomCreateDialog implements OnInit {
     this.loading.set(true);
     const payload = {
       finishedProductId: this.form.value.finishedProductId!,
-      version: this.form.value.version ?? 1,
     };
 
     this.errorMessage.set(null);
-    this.api.post<BomDto>(API.boms.base, payload).subscribe({
+    this.api.post<void>(API.boms.base, payload).subscribe({
       next: (r) => {
         this.loading.set(false);
-        if (r.success && r.data) {
-          this.dialogRef.close(r.data);
+        if (r.success) {
+          this.dialogRef.close(true);
         }
       },
       error: (err) => {

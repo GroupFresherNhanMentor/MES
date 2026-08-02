@@ -3,20 +3,43 @@ package fpt.qn.mes.workorder.application.port.in;
 import java.util.UUID;
 
 import fpt.qn.mes.common.dto.response.PageResponse;
-import fpt.qn.mes.workorder.application.dto.request.*;
-import fpt.qn.mes.workorder.application.dto.response.*;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
+import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
+import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
+import java.util.List;
 
 public interface WorkOrderUseCase {
-    PageResponse<WorkOrderDto> getWorkOrders(WorkOrderSearchRequest request);
-    WorkOrderDto getWorkOrderById(UUID id);
-    WorkOrderDto createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
-    WorkOrderDto updateWorkOrder(UUID id, UpdateWorkOrderRequest request);
+    PageResponse<WorkOrderResponse> getWorkOrders(WorkOrderSearchRequest request);
+    WorkOrderResponse getWorkOrderById(UUID id);
+    WorkOrderResponse createWorkOrder(CreateWorkOrderRequest request, UUID currentUserId);
+    WorkOrderResponse updateWorkOrder(UUID id, UpdateWorkOrderRequest request);
+    ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId);
+    WorkOrderResponse releaseMaterials(UUID workOrderId);
+    WorkOrderResponse cancelWorkOrder(UUID workOrderId);
+    WorkOrderResponse startWorkOrder(UUID workOrderId, StartWorkOrderRequest request);
+    WorkOrderResponse pauseWorkOrder(UUID workOrderId);
+    WorkOrderResponse resumeWorkOrder(UUID workOrderId);
+    WorkOrderResponse completeWorkOrder(UUID workOrderId, CompleteWorkOrderRequest request);
     void deleteWorkOrder(UUID id);
 
-    PageResponse<WorkOrderMaterialDto> getMaterials(UUID workOrderId, int page, int size);
-    WorkOrderMaterialDto addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest request);
+    PageResponse<WorkOrderMaterialResponse> getMaterials(UUID workOrderId, int page, int size);
+    WorkOrderMaterialResponse addMaterial(UUID workOrderId, CreateWorkOrderMaterialRequest request);
     void deleteMaterial(UUID workOrderId, UUID materialId);
 
-    PageResponse<WorkOrderEventDto> getEvents(UUID workOrderId, int page, int size);
-    WorkOrderEventDto addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
+    PageResponse<WorkOrderEventResponse> getEvents(UUID workOrderId, int page, int size);
+    WorkOrderEventResponse addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
+    List<WorkOrderStatusResponse> getWorkOrderStatuses();
+    List<WorkOrderPriorityResponse> getWorkOrderPriorities();
+    List<WorkOrderEventTypeResponse> getWorkOrderEventTypes();
 }

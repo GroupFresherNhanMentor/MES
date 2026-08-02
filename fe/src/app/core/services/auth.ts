@@ -10,6 +10,22 @@ import { ApiResponse } from '../models/api.model';
 import { LoginRequest, LoginResponse, RefreshTokenRequest, RefreshTokenResponse } from '../models/auth.model';
 import { UserDto } from '../models/user.model';
 
+function parseJwtPayload(token: string): any {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -32,7 +48,17 @@ export class AuthService {
       tap((data) => {
         this.store(APP_CONSTANTS.tokenKey, data.accessToken);
         this.store(APP_CONSTANTS.refreshTokenKey, data.refreshToken);
-        this.store(APP_CONSTANTS.userKey, JSON.stringify(data.user));
+        const decoded = parseJwtPayload(data.accessToken);
+        const roles: string[] = decoded?.roles || [];
+        const user = {
+          id: decoded?.sub || '00000000-0000-0000-0000-000000000001',
+          username: decoded?.username || payload.username,
+          fullName: decoded?.username || payload.username,
+          role: roles[0] || 'ADMIN',
+          roles: roles,
+          status: 'ACTIVE',
+        };
+        this.store(APP_CONSTANTS.userKey, JSON.stringify(user));
         this.isLoggedIn.set(true);
       }),
     );
@@ -75,6 +101,13 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  hasAnyRole(...roles: string[]): boolean {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    const userRoles = user.roles && user.roles.length > 0 ? user.roles : (user.role ? [user.role] : []);
+    return roles.some((r) => userRoles.includes(r));
   }
 
   clearAll(): void {

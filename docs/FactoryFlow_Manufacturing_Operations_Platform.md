@@ -189,9 +189,8 @@ Hệ thống phải cho phép user đăng nhập bằng username/password.
 **Output:**
 - accessToken
 - refreshToken (optional)
-- user profile
-- roles
-- permissions
+- userId
+- username
 
 **Acceptance criteria:**
 - Given user nhập đúng username/password, When gọi API login, Then hệ thống trả về JWT token hợp lệ.
@@ -635,13 +634,13 @@ QC Inspector có thể pass QC.
 - passedQuantity phải > 0.
 - passedQuantity không được vượt số lượng còn lại: quantity − sum(pass) − sum(SCRAP) − sum(HOLD).
 - Pass QC chuyển stock từ QUALITY_INSPECTION sang AVAILABLE với số lượng = passedQuantity.
-- Tạo movement QC_PASS.
+- Tạo movement QC_RELEASE.
 - Mỗi lần pass ghi 1 dòng `quality_inspection_results` với `isPass = true`.
 
 **API:** `POST /api/quality-inspections/{inspectionId}/pass`
 
 **Acceptance criteria:**
-- Given 100 finished goods đang QUALITY_INSPECTION, When QC pass 95, Then 95 chuyển AVAILABLE And movement QC_PASS được tạo.
+- Given 100 finished goods đang QUALITY_INSPECTION, When QC pass 95, Then 95 chuyển AVAILABLE And movement QC_RELEASE được tạo.
 
 #### FR-QC-003 — Fail QC
 QC Inspector có thể fail QC.
@@ -800,7 +799,7 @@ Hệ thống phải ghi audit log cho các action quan trọng:
 - PAUSE_PRODUCTION
 - RESUME_PRODUCTION
 - COMPLETE_PRODUCTION
-- QC_PASS
+- QC_PASS (tên ở audit log, tương ứng movement QC_RELEASE)
 - QC_FAIL
 - QC_HOLD
 - SCRAP_STOCK
@@ -852,7 +851,7 @@ Hệ thống phải validate:
 - Date hợp lệ
 - Status transition hợp lệ
 - Duplicate code
-- Permission
+- Role authorization
 - Stock không âm
 - Machine availability
 - BOM active
@@ -1127,7 +1126,7 @@ Nhóm phải demo được flow sau:
 **TC-008 — QC pass chuyển stock available**
 - Given 95 finished goods đang QUALITY_INSPECTION
 - When QC Inspector pass 95
-- Then 95 finished goods chuyển AVAILABLE And movement QC_PASS được tạo
+- Then 95 finished goods chuyển AVAILABLE And movement QC_RELEASE được tạo
 
 ---
 

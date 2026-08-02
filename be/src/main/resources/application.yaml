@@ -2,6 +2,8 @@
 spring:
   application:
     name: project-management-system
+  profiles:
+    active: dev
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mes}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
@@ -11,14 +13,19 @@ spring:
   flyway:
     locations: classpath:db/migration
     baseline-on-migrate: false
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        include: "health,info"
   endpoint:
     shutdown:
-      access: unrestricted
+      access: none
     health:
       probes:
         enabled: true
@@ -28,8 +35,12 @@ management:
     livenessstate:
       enabled: true
 app:
+  inventory:
+    raw-material-warehouse-code: ${RAW_MATERIAL_WAREHOUSE_CODE:RAW_MATERIAL_WAREHOUSE}
   jwt:
-    secret: ${JWT_SECRET:k8wT5KF1ZrFojvpXJbhXOcYVv44lCKvOwQudCRY6HjxxTGH3WQbQDHEFZjhS+mCE}
+    secret: ${JWT_SECRET:this-is-a-dev-only-secret-key-at-least-32-chars}
+    issuer: ${JWT_ISSUER:factoryflow}
+    audience: ${JWT_AUDIENCE:factoryflow-api}
     access-token-expiration: ${JWT_ACCESS_EXPIRATION:900000}     # 15 minutes
     refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
   cors:
@@ -39,3 +50,9 @@ logging:
   level:
     fpt.qn.mes: DEBUG
     org.springframework.security: INFO
+
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}

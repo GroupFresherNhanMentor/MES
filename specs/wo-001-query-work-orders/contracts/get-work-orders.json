@@ -1,5 +1,5 @@
 {
-  "endpoint": "/api/v1/work-orders",
+  "endpoint": "/api/work-orders",
   "method": "GET",
   "summary": "Query Work Orders with pagination and filters",
   "roles": ["ADMIN", "PLANNER", "OPERATOR", "FACTORY_MANAGER", "AUDITOR"],

@@ -1,4 +1,4 @@
-# Implementation Plan: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Implementation Plan: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 **Branch**: `specs/wo-003-get-work-order-detail`
 
@@ -12,7 +12,7 @@
 
 - **Tech Stack**: Java 25, Spring Boot 4.1.0, jOOQ 3.21, PostgreSQL 18.
 - **Architecture**: Clean Architecture (`presentation` -> `application.port.in` -> `application.service` -> `domain.repository` <- `infrastructure.persistence`).
-- **Endpoint**: `GET /api/v1/work-orders/{id}`
+- **Endpoint**: `GET /api/work-orders/{id}`
 - **Security**: `@PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")`
 - **Output DTO**: `WorkOrderDto` containing embedded `List<WorkOrderMaterialDto> materials` and `List<WorkOrderEventDto> events`.
 

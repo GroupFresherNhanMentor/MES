@@ -12,6 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
+import { MatInputModule } from '@angular/material/input';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 
 import { ApiService } from '../../../../core/services/api';
@@ -39,6 +40,7 @@ interface BomStatusOption {
     MatCardModule,
     MatPaginatorModule,
     MatFormFieldModule,
+    MatInputModule,
     MatSelectModule,
     MatProgressBarModule,
     MatTooltipModule,
@@ -58,6 +60,7 @@ export class BomList implements OnInit {
   size = signal(20);
   loading = signal(false);
 
+  searchQuery = signal<string>('');
   selectedProductId = signal<string | null>(null);
   selectedStatusId = signal<string | null>(null);
 
@@ -71,6 +74,20 @@ export class BomList implements OnInit {
     return role === 'ADMIN' || role === 'PLANNER';
   });
 
+  activeCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'ACTIVE').length);
+  draftCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'DRAFT').length);
+  inactiveCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'INACTIVE').length);
+
+  filteredItems = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    if (!query) return this.items();
+    return this.items().filter(item =>
+      (item.finishedProductCode || '').toLowerCase().includes(query) ||
+      (item.finishedProductName || '').toLowerCase().includes(query) ||
+      (item.createdBy?.username || '').toLowerCase().includes(query),
+    );
+  });
+
   displayedColumns = ['code', 'product', 'version', 'items', 'status', 'createdBy', 'createdAt', 'actions'];
 
   ngOnInit(): void {
@@ -79,10 +96,14 @@ export class BomList implements OnInit {
   }
 
   loadDropdowns(): void {
-    const productTypeIds = ['PT-FIN', 'PT-SUB'];
-    this.api.get<{ items: ProductDto[] }>(`${API.products.base}?size=100&productTypeId=${productTypeIds.join(',')}`).subscribe((r) => {
-      if (r.success && r.data?.items) {
-        this.productsList.set(r.data.items);
+    this.api.get<any>(`${API.products.base}?size=100`).subscribe((r) => {
+      if (r.success && r.data) {
+        const rawItems: ProductDto[] = r.data?.items || (Array.isArray(r.data) ? r.data : []);
+        const filtered = rawItems.filter((p) => {
+          const typeName = (p.productType?.name || p.productTypeName || '').trim().toUpperCase();
+          return typeName === 'FINISHED_GOOD' || typeName === 'SEMI_FINISHED';
+        });
+        this.productsList.set(filtered.length > 0 ? filtered : rawItems);
       }
     });
 
@@ -128,6 +149,7 @@ export class BomList implements OnInit {
   }
 
   resetFilters(): void {
+    this.searchQuery.set('');
     this.selectedProductId.set(null);
     this.selectedStatusId.set(null);
     this.page.set(0);
@@ -148,14 +170,12 @@ export class BomList implements OnInit {
 
   onCreateBom(): void {
     const dialogRef = this.dialog.open(BomCreateDialog, {
-      width: '480px',
+      width: '560px',
       panelClass: 'ff-dialog-panel',
     });
 
-    dialogRef.afterClosed().subscribe((newBom: BomDto | null) => {
-      if (newBom) {
-        this.load();
-      }
+    dialogRef.afterClosed().subscribe((created: boolean | null) => {
+      if (created) this.load();
     });
   }
 }

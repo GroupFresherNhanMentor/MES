@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth-guard';
 import { adminGuard } from './core/guards/admin-guard';
+import { reportGuard } from './core/guards/report-guard';
 import { MainLayout } from './layout/main-layout/main-layout';
 import { AuthLayout } from './layout/auth-layout/auth-layout';
 
@@ -26,6 +27,13 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard-home/dashboard-home').then((m) => m.DashboardHome),
         data: { title: 'Dashboard' },
+      },
+      {
+        path: 'users',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/users/pages/user-list/user-list').then((m) => m.UserListComponent),
+        data: { title: 'User Management' },
       },
       {
         path: 'products',
@@ -65,10 +73,22 @@ export const routes: Routes = [
         data: { title: 'Bill of Materials' },
       },
       {
+        path: 'boms/:id',
+        loadComponent: () =>
+          import('./features/boms/pages/bom-detail/bom-detail').then((m) => m.BomDetail),
+        data: { title: 'BOM Details' },
+      },
+      {
         path: 'work-orders',
         loadComponent: () =>
           import('./features/work-orders/pages/work-order-list/work-order-list').then((m) => m.WorkOrderList),
         data: { title: 'Work Orders' },
+      },
+      {
+        path: 'work-orders/:id',
+        loadComponent: () =>
+          import('./features/work-orders/pages/work-order-detail/work-order-detail').then((m) => m.WorkOrderDetail),
+        data: { title: 'Work Order Details' },
       },
       {
         path: 'stock-balances',
@@ -79,12 +99,28 @@ export const routes: Routes = [
         data: { title: 'Stock Balances' },
       },
       {
+        path: 'stock-inventory',
+        loadComponent: () =>
+          import('./features/stock-balances/pages/stock-inventory/stock-inventory').then(
+            (m) => m.StockInventoryComponent,
+          ),
+        data: { title: 'Stock Inventory' },
+      },
+      {
         path: 'stock-movements',
         loadComponent: () =>
           import('./features/stock-movements/pages/stock-movement-list/stock-movement-list').then(
             (m) => m.StockMovementList,
           ),
         data: { title: 'Stock Movements' },
+      },
+      {
+        path: 'stock-adjustments',
+        loadComponent: () =>
+          import('./features/stock-adjustments/pages/stock-adjustment-list/stock-adjustment-list').then(
+            (m) => m.StockAdjustmentList,
+          ),
+        data: { title: 'Pending Adjustments' },
       },
       {
         path: 'quality-inspections',
@@ -104,10 +140,53 @@ export const routes: Routes = [
       },
       {
         path: 'reports',
-        canActivate: [adminGuard],
+        canActivate: [reportGuard],
         loadComponent: () =>
-          import('./features/reports/pages/report-list/report-list').then((m) => m.ReportList),
-        data: { title: 'Reports' },
+          import('./features/reports/pages/reports-shell/reports-shell').then((m) => m.ReportsShellComponent),
+        data: { title: 'Operational Reports' },
+        children: [
+          { path: '', redirectTo: 'inventory-summary', pathMatch: 'full' },
+          {
+            path: 'inventory-summary',
+            loadComponent: () =>
+              import('./features/reports/pages/inventory-summary/inventory-summary').then(
+                (m) => m.InventorySummaryComponent,
+              ),
+          },
+          {
+            path: 'material-shortage',
+            loadComponent: () =>
+              import('./features/reports/pages/material-shortage/material-shortage').then(
+                (m) => m.MaterialShortageComponent,
+              ),
+          },
+          {
+            path: 'production-output',
+            loadComponent: () =>
+              import('./features/reports/pages/production-output/production-output').then(
+                (m) => m.ProductionOutputComponent,
+              ),
+          },
+          {
+            path: 'defect-rate',
+            loadComponent: () =>
+              import('./features/reports/pages/defect-rate/defect-rate').then((m) => m.DefectRateComponent),
+          },
+          {
+            path: 'machine-downtime',
+            loadComponent: () =>
+              import('./features/reports/pages/machine-downtime/machine-downtime').then(
+                (m) => m.MachineDowntimeComponent,
+              ),
+          },
+          {
+            path: 'stock-movement-history',
+            loadComponent: () =>
+              import('./features/reports/pages/stock-movement-history/stock-movement-history').then(
+                (m) => m.StockMovementHistoryComponent,
+              ),
+          },
+        ],
       },
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
     ],
