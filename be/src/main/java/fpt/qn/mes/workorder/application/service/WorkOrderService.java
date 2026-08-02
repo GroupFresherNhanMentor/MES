@@ -31,6 +31,7 @@ import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.UpdateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.WorkOrderSearchRequest;
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+import fpt.qn.mes.workorder.application.dto.response.ReservedMaterialAllocationResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
@@ -420,6 +421,13 @@ public class WorkOrderService implements WorkOrderUseCase {
         return ReserveWorkOrderMaterialsResponse.builder()
                 .workOrderId(workOrderId)
                 .status(WorkOrderStatusConstants.READY_TO_PRODUCE)
+                .allocations(allocations.stream().map(allocation -> ReservedMaterialAllocationResponse.builder()
+                        .materialProductId(allocation.productId())
+                        .lotId(allocation.lotId())
+                        .warehouseId(allocation.warehouseId())
+                        .locationId(allocation.locationId())
+                        .reservedQuantity(allocation.quantity())
+                        .build()).toList())
                 .build();
     }
 

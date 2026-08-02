@@ -20,11 +20,13 @@ import type { ProductDto } from '../../../../core/models/product.model';
 import type { WarehouseDto } from '../../../../core/models/warehouse.model';
 import type {
   CompleteWorkOrderRequest,
-  ReserveMaterialsRequest,
+  ReserveWorkOrderMaterialsResponse,
   StartWorkOrderRequest,
   UpdateWorkOrderRequest,
   WorkOrderDto,
   WorkOrderLookupDto,
+  WorkOrderMaterialShortageDto,
+  ReservedMaterialAllocationDto,
 } from '../../../../core/models/work-order.model';
 import { ApiService } from '../../../../core/services/api';
 import { AuthService } from '../../../../core/services/auth';
@@ -37,7 +39,7 @@ interface ProductionLineOption {
   name: string;
 }
 
-type ActionPanel = 'edit' | 'reserve' | 'start' | 'complete' | null;
+type ActionPanel = 'edit' | 'start' | 'complete' | null;
 
 @Component({
   selector: 'app-work-order-detail',
@@ -111,6 +113,26 @@ type ActionPanel = 'edit' | 'reserve' | 'start' | 'complete' | null;
             </mat-card-content>
           </mat-card>
 
+          @if (reservationAllocations().length) {
+            <mat-card>
+              <mat-card-header class="!pb-4"><mat-card-title class="!text-xl !font-semibold !text-text-primary">Latest reservation allocation</mat-card-title></mat-card-header>
+              <mat-card-content>
+                <p class="mt-0 text-sm text-text-secondary">FIFO allocations created from the configured raw-material warehouse.</p>
+                <div class="overflow-x-auto"><table class="w-full min-w-[700px] text-left text-sm"><thead class="border-b border-border-default text-text-secondary"><tr><th class="px-3 py-2">Material</th><th class="px-3 py-2">Lot</th><th class="px-3 py-2">Warehouse</th><th class="px-3 py-2">Location</th><th class="px-3 py-2">Reserved qty</th></tr></thead><tbody>@for (allocation of reservationAllocations(); track allocation.lotId + allocation.materialProductId) { <tr class="border-b border-border-light"><td class="px-3 py-3 text-text-primary">{{ productLabel(allocation.materialProductId) }}</td><td class="px-3 py-3 font-mono text-xs">{{ allocation.lotId }}</td><td class="px-3 py-3 font-mono text-xs">{{ allocation.warehouseId }}</td><td class="px-3 py-3 font-mono text-xs">{{ allocation.locationId }}</td><td class="px-3 py-3">{{ allocation.reservedQuantity }}</td></tr> }</tbody></table></div>
+              </mat-card-content>
+            </mat-card>
+          }
+
+          @if (reservationShortages().length) {
+            <mat-card>
+              <mat-card-header class="!pb-4"><mat-card-title class="!text-xl !font-semibold !text-error">Material shortages</mat-card-title></mat-card-header>
+              <mat-card-content>
+                <p class="mt-0 text-sm text-text-secondary">No material was reserved. Replenish stock, then reserve again.</p>
+                <div class="overflow-x-auto"><table class="w-full min-w-[600px] text-left text-sm"><thead class="border-b border-border-default text-text-secondary"><tr><th class="px-3 py-2">Material</th><th class="px-3 py-2">Required</th><th class="px-3 py-2">Available</th><th class="px-3 py-2">Shortage</th></tr></thead><tbody>@for (shortage of reservationShortages(); track shortage.materialProductId) { <tr class="border-b border-border-light"><td class="px-3 py-3 text-text-primary">{{ productLabel(shortage.materialProductId) }}</td><td class="px-3 py-3">{{ shortage.requiredQuantity }}</td><td class="px-3 py-3">{{ shortage.availableQuantity }}</td><td class="px-3 py-3 text-error">{{ shortage.shortageQuantity }}</td></tr> }</tbody></table></div>
+              </mat-card-content>
+            </mat-card>
+          }
+
           <mat-card>
             <mat-card-header class="!pb-4"><mat-card-title class="!text-xl !font-semibold !text-text-primary">Event history</mat-card-title></mat-card-header>
             <mat-card-content>
@@ -132,7 +154,7 @@ type ActionPanel = 'edit' | 'reserve' | 'start' | 'complete' | null;
             <mat-card-header class="!pb-4"><mat-card-title class="!text-xl !font-semibold !text-text-primary">Available actions</mat-card-title></mat-card-header>
             <mat-card-content class="flex flex-col gap-2">
               @if (canEdit()) { <button mat-stroked-button (click)="openPanel('edit')"><mat-icon>edit</mat-icon> Update plan</button> }
-              @if (canReserve()) { <button mat-stroked-button (click)="openPanel('reserve')"><mat-icon>inventory</mat-icon> Reserve materials</button> }
+              @if (canReserve()) { <button mat-stroked-button (click)="confirmAction('reserve')"><mat-icon>inventory</mat-icon> Reserve materials</button> }
               @if (canRelease()) { <button mat-stroked-button (click)="confirmAction('release')"><mat-icon>undo</mat-icon> Release materials</button> }
               @if (canStart()) { <button mat-stroked-button (click)="openPanel('start')"><mat-icon>play_arrow</mat-icon> Start production</button> }
               @if (canPause()) { <button mat-stroked-button (click)="confirmAction('pause')"><mat-icon>pause</mat-icon> Pause production</button> }
@@ -152,18 +174,11 @@ type ActionPanel = 'edit' | 'reserve' | 'start' | 'complete' | null;
             </mat-card-content></mat-card>
           }
 
-          @if (panel() === 'reserve') {
-            <mat-card><mat-card-header class="!pb-4"><mat-card-title class="!text-lg !text-text-primary">Reserve materials</mat-card-title></mat-card-header><mat-card-content class="flex flex-col gap-3">
-              <mat-form-field appearance="outline"><mat-label>Machine</mat-label><mat-select [(ngModel)]="machineId">@for (machine of machines(); track machine.id) { <mat-option [value]="machine.id">{{ machine.code }} - {{ machine.name }}</mat-option> }</mat-select></mat-form-field>
-              <div class="flex justify-end gap-2"><button mat-button (click)="closePanel()">Cancel</button><button mat-raised-button class="ff-btn-primary" [disabled]="!machineId || submitting()" (click)="reserve()">Reserve</button></div>
-            </mat-card-content></mat-card>
-          }
-
           @if (panel() === 'start') {
             <mat-card><mat-card-header class="!pb-4"><mat-card-title class="!text-lg !text-text-primary">Start production</mat-card-title></mat-card-header><mat-card-content class="flex flex-col gap-3">
-              <mat-form-field appearance="outline"><mat-label>Machine</mat-label><mat-select [(ngModel)]="machineId">@for (machine of machines(); track machine.id) { <mat-option [value]="machine.id">{{ machine.code }} - {{ machine.name }}</mat-option> }</mat-select></mat-form-field>
+              <mat-form-field appearance="outline"><mat-label>Machine</mat-label><mat-select [(ngModel)]="startMachineId">@for (machine of machines(); track machine.id) { <mat-option [value]="machine.id">{{ machine.code }} - {{ machine.name }}</mat-option> }</mat-select></mat-form-field>
               <mat-form-field appearance="outline"><mat-label>Production line (optional)</mat-label><mat-select [(ngModel)]="productionLineId"><mat-option value="">Use machine line</mat-option>@for (line of lines(); track line.id) { <mat-option [value]="line.id">{{ line.code }} - {{ line.name }}</mat-option> }</mat-select></mat-form-field>
-              <div class="flex justify-end gap-2"><button mat-button (click)="closePanel()">Cancel</button><button mat-raised-button class="ff-btn-primary" [disabled]="!machineId || submitting()" (click)="start()">Start</button></div>
+              <div class="flex justify-end gap-2"><button mat-button (click)="closePanel()">Cancel</button><button mat-raised-button class="ff-btn-primary" [disabled]="!startMachineId || submitting()" (click)="start()">Start</button></div>
             </mat-card-content></mat-card>
           }
 
@@ -201,6 +216,8 @@ export class WorkOrderDetail implements OnInit {
   readonly statuses = signal<WorkOrderLookupDto[]>([]);
   readonly priorities = signal<WorkOrderLookupDto[]>([]);
   readonly eventTypes = signal<WorkOrderLookupDto[]>([]);
+  readonly reservationAllocations = signal<ReservedMaterialAllocationDto[]>([]);
+  readonly reservationShortages = signal<WorkOrderMaterialShortageDto[]>([]);
   readonly loading = signal(true);
   readonly submitting = signal(false);
   readonly error = signal('');
@@ -210,7 +227,7 @@ export class WorkOrderDetail implements OnInit {
   editQuantity = 0;
   editStart = '';
   editEnd = '';
-  machineId = '';
+  startMachineId = '';
   productionLineId = '';
   actualQuantity = 0;
   goodQuantity = 0;
@@ -281,17 +298,10 @@ export class WorkOrderDetail implements OnInit {
     this.submit(API.workOrders.byId(order.id), payload, 'Work order updated.', 'put');
   }
 
-  reserve(): void {
-    const order = this.workOrder();
-    if (!order || !this.machineId) return;
-    const payload: ReserveMaterialsRequest = { machineId: this.machineId };
-    this.submit(API.workOrders.reserveMaterials(order.id), payload, 'Material reservation submitted.');
-  }
-
   start(): void {
     const order = this.workOrder();
-    if (!order || !this.machineId) return;
-    const payload: StartWorkOrderRequest = { machineId: this.machineId, productionLineId: this.productionLineId || undefined };
+    if (!order || !this.startMachineId) return;
+    const payload: StartWorkOrderRequest = { machineId: this.startMachineId, productionLineId: this.productionLineId || undefined };
     this.submit(API.workOrders.start(order.id), payload, 'Production started.');
   }
 
@@ -310,15 +320,19 @@ export class WorkOrderDetail implements OnInit {
     this.submit(API.workOrders.complete(order.id), payload, 'Production completed.');
   }
 
-  confirmAction(action: 'release' | 'pause' | 'resume' | 'cancel'): void {
+  confirmAction(action: 'reserve' | 'release' | 'pause' | 'resume' | 'cancel'): void {
     const order = this.workOrder();
     if (!order) return;
-    const label = action === 'release' ? 'Release materials' : `${action[0].toUpperCase()}${action.slice(1)} work order`;
+    const label = action === 'reserve' ? 'Reserve materials' : action === 'release' ? 'Release materials' : `${action[0].toUpperCase()}${action.slice(1)} work order`;
     this.dialog.open(ConfirmDialog, {
       data: { title: label, message: `Confirm ${label.toLowerCase()} for ${order.code}?`, confirmLabel: 'Confirm' },
       panelClass: 'ff-dialog-panel',
     }).afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
+      if (action === 'reserve') {
+        this.reserveMaterials(order.id);
+        return;
+      }
       const endpoints = {
         release: API.workOrders.releaseMaterials(order.id),
         pause: API.workOrders.pause(order.id),
@@ -326,6 +340,31 @@ export class WorkOrderDetail implements OnInit {
         cancel: API.workOrders.cancel(order.id),
       };
       this.submit(endpoints[action], {}, `${label} submitted.`);
+    });
+  }
+
+  private reserveMaterials(workOrderId: string): void {
+    this.submitting.set(true);
+    this.reservationShortages.set([]);
+    this.api.post<ReserveWorkOrderMaterialsResponse>(API.workOrders.reserveMaterials(workOrderId)).subscribe({
+      next: (response) => {
+        this.submitting.set(false);
+        if (response.success) {
+          this.reservationAllocations.set(response.data.allocations ?? []);
+          this.snackBar.open('Materials reserved successfully.', 'OK', { duration: 3000 });
+          this.load();
+        }
+      },
+      error: (response) => {
+        this.submitting.set(false);
+        const apiError = response?.error as { errorCode?: string; message?: string; details?: WorkOrderMaterialShortageDto[] } | undefined;
+        if (apiError?.errorCode === 'INSUFFICIENT_STOCK' && Array.isArray(apiError.details)) {
+          this.reservationShortages.set(apiError.details);
+          this.reservationAllocations.set([]);
+          this.load();
+        }
+        this.snackBar.open(apiError?.message ?? 'Material reservation failed.', 'OK', { duration: 5000 });
+      },
     });
   }
 
