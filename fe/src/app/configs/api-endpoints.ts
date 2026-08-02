@@ -108,6 +108,7 @@ export const API = {
     cancel: (id: string | number) => `${BASE}/maintenance/${id}/cancel`,
     ticketStatuses: `${BASE}/maintenance/ticket-statuses`,
     ticketPriorities: `${BASE}/maintenance/ticket-priorities`,
+    engineers: `${BASE}/maintenance/engineers`,
     downtimeByTicket: (id: string | number) => `${BASE}/maintenance/${id}/downtime`,
   },
   reports: {

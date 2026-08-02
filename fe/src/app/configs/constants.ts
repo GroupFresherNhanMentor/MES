@@ -47,7 +47,7 @@ export type MovementType = (typeof MOVEMENT_TYPES)[number];
 export const INSPECTION_STATUSES = ['PENDING', 'PASSED', 'FAILED', 'ON_HOLD', 'RELEASED', 'SCRAPPED'] as const;
 export type InspectionStatus = (typeof INSPECTION_STATUSES)[number];
 
-export const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'CLOSED'] as const;
+export const TICKET_STATUSES = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'CANCELLED'] as const;
 export type TicketStatus = (typeof TICKET_STATUSES)[number];
 
 export const TICKET_PRIORITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;

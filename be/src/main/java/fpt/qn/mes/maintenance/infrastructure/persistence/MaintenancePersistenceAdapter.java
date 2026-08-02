@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import fpt.qn.mes.maintenance.application.dto.request.MaintenanceTicketSearchQuery;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceEngineerResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceMetadataResponse;
 import fpt.qn.mes.maintenance.application.exception.ResourceNotFoundException;
 import org.jooq.Condition;
@@ -52,22 +53,25 @@ public class MaintenancePersistenceAdapter extends BaseRepository<MaintenanceTic
 
     @Override
     public MaintenanceTicket save(MaintenanceTicket ticket) {
-        // Import tĩnh bảng do jOOQ sinh ra (ví dụ: public.maintenance_tickets hoặc MAINTENANCE_TICKETS)
-        // Thay thế đúng tên Table và Column tương ứng trong DB của dự án
-        var targetTable = org.jooq.impl.DSL.table("public.maintenance_tickets");
+        // Sử dụng class Metadata do jOOQ sinh ra để Type-safe
+        // Thay thế đúng đường dẫn import của bảng MAINTENANCE_TICKETS trong dự án của bạn
+        var table = fpt.qn.mes.jooq.tables.MaintenanceTickets.MAINTENANCE_TICKETS;
 
-        dslCtx.insertInto(targetTable)
-                .set(org.jooq.impl.DSL.field("id"), ticket.getId())
-                .set(org.jooq.impl.DSL.field("machine_id"), ticket.getMachineId())
-                .set(org.jooq.impl.DSL.field("ticket_type_id"), ticket.getTicketTypeId())
-                .set(org.jooq.impl.DSL.field("priority_id"), ticket.getPriorityId())
-                .set(org.jooq.impl.DSL.field("description"), ticket.getDescription())
-                .set(org.jooq.impl.DSL.field("ticket_status_id"), ticket.getTicketStatusId())
-                .set(org.jooq.impl.DSL.field("assigned_engineer_id"), ticket.getAssignedEngineerId())
-                .set(org.jooq.impl.DSL.field("created_by"), ticket.getCreatedBy())
-                .set(org.jooq.impl.DSL.field("created_at"), ticket.getCreatedAt())
+        dslCtx.insertInto(table)
+                .set(table.ID, ticket.getId())
+                .set(table.MACHINE_ID, ticket.getMachineId())
+                .set(table.TICKET_TYPE_ID, ticket.getTicketTypeId())
+                .set(table.PRIORITY_ID, ticket.getPriorityId())
+                .set(table.DESCRIPTION, ticket.getDescription())
+                .set(table.TICKET_STATUS_ID, ticket.getTicketStatusId())
+                .set(table.ASSIGNED_ENGINEER_ID, ticket.getAssignedEngineerId())
+                .set(table.CREATED_BY, ticket.getCreatedBy())
+                .set(table.CREATED_AT, ticket.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toOffsetDateTime())
+                .onDuplicateKeyUpdate()
+                .set(table.TICKET_STATUS_ID, ticket.getTicketStatusId()) // Cập nhật lại status mới (CANCELLED)
+                .set(table.DESCRIPTION, ticket.getDescription())         // Cập nhật mô tả nếu có biến động
+                .set(table.ASSIGNED_ENGINEER_ID, ticket.getAssignedEngineerId())
                 .execute();
-
         return ticket;
     }
 
@@ -317,6 +321,23 @@ public class MaintenancePersistenceAdapter extends BaseRepository<MaintenanceTic
                         .id(r.get(MAINTENANCE_TICKET_TYPES.ID))
                         .name(r.get(MAINTENANCE_TICKET_TYPES.NAME))
                         .description(r.get(MAINTENANCE_TICKET_TYPES.DESCRIPTION))
+                        .build());
+    }
+
+    @Override
+    public List<MaintenanceEngineerResponse> findMaintenanceEngineers() {
+        return dslCtx.select(USERS.ID, USERS.USERNAME, USERS.FULL_NAME)
+                .from(USERS)
+                .join(USER_ROLES).on(USER_ROLES.USER_ID.eq(USERS.ID))
+                .join(ROLES).on(ROLES.ID.eq(USER_ROLES.ROLE_ID))
+                .where(ROLES.NAME.eq("MAINTENANCE_ENGINEER"))
+                .and(USERS.ACTIVE.isTrue())
+                .orderBy(USERS.USERNAME.asc())
+                .fetch()
+                .map(r -> MaintenanceEngineerResponse.builder()
+                        .id(r.get(USERS.ID))
+                        .username(r.get(USERS.USERNAME))
+                        .fullName(r.get(USERS.FULL_NAME))
                         .build());
     }
 
