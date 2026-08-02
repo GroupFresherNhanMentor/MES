@@ -31,7 +31,9 @@ export type BomStatus = (typeof BOM_STATUSES)[number];
 
 export const WORK_ORDER_STATUSES = [
   'DRAFT',
-  'RELEASED',
+  'PLANNED',
+  'MATERIAL_SHORTAGE',
+  'READY_TO_PRODUCE',
   'IN_PROGRESS',
   'PAUSED',
   'COMPLETED',

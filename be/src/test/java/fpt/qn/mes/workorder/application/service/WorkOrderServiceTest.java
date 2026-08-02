@@ -170,6 +170,7 @@ class WorkOrderServiceTest {
         req.setFinishedProductId(productId);
         req.setPlannedQuantity(BigDecimal.valueOf(100));
 
+        when(repository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(statusId));
         when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(activeBom));
         when(repository.save(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);

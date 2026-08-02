@@ -33,6 +33,9 @@ import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import fpt.qn.mes.workorder.application.dto.workorder.complete.CompleteWorkOrderRequest;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
@@ -130,6 +133,16 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderResponse createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
+        if (req.getPlannedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidInputException("Planned quantity must be greater than 0");
+        }
+        if (req.getPlannedStartDate() != null && req.getPlannedEndDate() != null
+                && !req.getPlannedStartDate().isBefore(req.getPlannedEndDate())) {
+            throw new InvalidInputException("Planned start date must be before planned end date");
+        }
+        if (repository.existsByCode(req.getCode())) {
+            throw new WorkOrderCodeExistsException("Work Order code '" + req.getCode() + "' already exists");
+        }
         Bom activeBom = bomRepository.findActiveByFinishedProductId(req.getFinishedProductId())
                 .orElseThrow(() -> new BomNotActiveException("No active BOM found for finished product: " + req.getFinishedProductId()));
 
@@ -141,7 +154,9 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .plannedStartDate(req.getPlannedStartDate())
                 .plannedEndDate(req.getPlannedEndDate())
                 .priorityId(req.getPriorityId())
-                .workOrderStatusId(req.getWorkOrderStatusId())
+                .workOrderStatusId(req.getWorkOrderStatusId() != null ? req.getWorkOrderStatusId()
+                        : repository.findStatusIdByName(WorkOrderStatusConstants.DRAFT)
+                                .orElseThrow(() -> new InvalidWorkOrderStateException("DRAFT Work Order status is not configured")))
                 .createdBy(currentUserId)
                 .createdAt(Instant.now())
                 .build();
@@ -167,6 +182,30 @@ public class WorkOrderService implements WorkOrderUseCase {
         }
 
         return mapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrderStatusResponse> getWorkOrderStatuses() {
+        return repository.findAllStatuses().stream()
+                .map(s -> mapper.toDto(s))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrderPriorityResponse> getWorkOrderPriorities() {
+        return repository.findAllPriorities().stream()
+                .map(p -> mapper.toDto(p))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WorkOrderEventTypeResponse> getWorkOrderEventTypes() {
+        return repository.findAllEventTypes().stream()
+                .map(e -> mapper.toDto(e))
+                .toList();
     }
 
     @Override

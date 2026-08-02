@@ -68,6 +68,9 @@ export const API = {
     resume: (id: string | number) => `${BASE}/work-orders/${id}/resume`,
     complete: (id: string | number) => `${BASE}/work-orders/${id}/complete`,
     cancel: (id: string | number) => `${BASE}/work-orders/${id}/cancel`,
+    statuses: `${BASE}/work-orders/statuses`,
+    priorities: `${BASE}/work-orders/priorities`,
+    eventTypes: `${BASE}/work-orders/event-types`,
   },
   stockBalances: {
     base: `${BASE}/stock-balances`,

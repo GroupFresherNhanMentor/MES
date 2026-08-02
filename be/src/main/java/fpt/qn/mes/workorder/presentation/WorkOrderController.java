@@ -1,7 +1,6 @@
 package fpt.qn.mes.workorder.presentation;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -32,6 +31,9 @@ import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsRe
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
 import fpt.qn.mes.workorder.application.port.in.WorkOrderUseCase;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -173,17 +175,20 @@ public class WorkOrderController {
     }
 
     @GetMapping("/statuses")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderStatuses() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderStatusResponse>>> getWorkOrderStatuses() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderStatuses(), "OK"));
     }
 
     @GetMapping("/priorities")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderPriorities() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderPriorityResponse>>> getWorkOrderPriorities() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderPriorities(), "OK"));
     }
 
     @GetMapping("/event-types")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getWorkOrderEventTypes() {
-        throw new UnsupportedOperationException("Not implemented");
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
+    public ResponseEntity<ApiResponse<List<WorkOrderEventTypeResponse>>> getWorkOrderEventTypes() {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderEventTypes(), "OK"));
     }
 }

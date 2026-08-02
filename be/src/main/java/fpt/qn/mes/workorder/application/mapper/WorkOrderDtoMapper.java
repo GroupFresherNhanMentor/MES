@@ -6,9 +6,15 @@ import org.mapstruct.Mapping;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderEventResponse;
 import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
+import fpt.qn.mes.workorder.application.dto.workordereventtype.WorkOrderEventTypeResponse;
+import fpt.qn.mes.workorder.application.dto.workorderpriority.WorkOrderPriorityResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderEventType;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderPriority;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 
 @Mapper(componentModel = "spring")
 public interface WorkOrderDtoMapper {
@@ -20,4 +26,10 @@ public interface WorkOrderDtoMapper {
     WorkOrderMaterialResponse toDto(WorkOrderMaterial workOrderMaterial);
 
     WorkOrderEventResponse toDto(WorkOrderEvent workOrderEvent);
+
+    WorkOrderStatusResponse toDto(WorkOrderStatus status);
+
+    WorkOrderPriorityResponse toDto(WorkOrderPriority priority);
+
+    WorkOrderEventTypeResponse toDto(WorkOrderEventType eventType);
 }
