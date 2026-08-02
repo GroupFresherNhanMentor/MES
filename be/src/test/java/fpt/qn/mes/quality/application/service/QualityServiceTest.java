@@ -16,7 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.quality.application.dto.inspection.fail.FailQcRequest;
 import fpt.qn.mes.quality.application.dto.inspection.pass.PassQcRequest;
 import fpt.qn.mes.quality.application.exception.DefectTypeRequiredException;
@@ -43,6 +45,8 @@ class QualityServiceTest {
     @Mock QcStockPort qcStockPort;
     @Mock QualityDtoMapper qualityDtoMapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
 
     @InjectMocks QualityService qualityService;
 

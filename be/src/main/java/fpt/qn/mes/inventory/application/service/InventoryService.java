@@ -34,6 +34,7 @@ import fpt.qn.mes.inventory.application.port.out.ProductCheckPort;
 import fpt.qn.mes.inventory.application.port.out.WarehouseCheckPort;
 import fpt.qn.mes.inventory.application.port.out.WarehouseLocationCheckPort;
 import fpt.qn.mes.inventory.application.port.out.WarehouseLocationQueryPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.inventory.domain.entities.StockAdjustmentApproval;
@@ -73,6 +74,7 @@ public class InventoryService implements InventoryUseCase {
     WarehouseLocationCheckPort warehouseLocationCheckPort;
     WarehouseLocationQueryPort warehouseLocationQueryPort;
     ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
 
     private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
@@ -258,7 +260,8 @@ public class InventoryService implements InventoryUseCase {
             return;
         }
 
-        balanceRepository.save(StockBalance.update(balance, result));
+        StockBalance updatedBalance = StockBalance.update(balance, result);
+        balanceRepository.save(updatedBalance);
 
         UUID adjustmentTypeId = movementTypeRepository.findIdByName(MovementTypeConstants.ADJUSTMENT)
                 .orElseThrow(() -> new InventoryNotFoundException("Movement type ADJUSTMENT not found"));
@@ -273,11 +276,9 @@ public class InventoryService implements InventoryUseCase {
                 positive ? balance.getLocationId() : null,
                 abs, balance.getStockStatusId(), balance.getStockStatusId(),
                 request.getReferenceNo(), request.getReason(), currentUserId));
-        if (eventPublisher != null) {
-            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ADJUST_STOCK, "STOCK_BALANCE", balance.getId(),
-                    "{\"quantity\":" + balance.getQuantity() + "}",
-                    "{\"quantity\":" + result + "}", null));
-        }
+
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ADJUST_STOCK, "STOCK_BALANCE", balance.getId(),
+                jsonSerializer.toJson(balance), jsonSerializer.toJson(updatedBalance), null));
         return;
     }
 

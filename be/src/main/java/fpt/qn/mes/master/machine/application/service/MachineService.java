@@ -3,10 +3,14 @@ package fpt.qn.mes.master.machine.application.service;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.machine.application.dto.machine.MachineResponse;
@@ -39,6 +43,8 @@ public class MachineService implements MachineUseCase {
     ProductionLinePort productionLinePort;
     MachineDtoMapper mapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,10 +100,12 @@ public class MachineService implements MachineUseCase {
         }
         var availableStatus = machineStatusRepository.findByName(MachineStatusConstants.AVAILABLE)
                 .orElseThrow(() -> new MachineStatusNotFoundException("AVAILABLE status not found in machine_statuses"));
-        machineRepository.save(Machine.create(
-                request.getProductionLineId(), request.getCode(),
-                request.getName(), availableStatus.getId(),
-                currentUserPort.getCurrentUserId()));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var machine = Machine.create(request.getProductionLineId(), request.getCode(),
+                request.getName(), availableStatus.getId(), currentUserId);
+        machineRepository.save(machine);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_MACHINE,
+                "MACHINE", machine.getId(), null, jsonSerializer.toJson(machine), null));
     }
 
     @Override
@@ -105,7 +113,11 @@ public class MachineService implements MachineUseCase {
     public void updateMachine(UUID id, UpdateMachineRequest request) {
         var existing = machineRepository.findById(id)
                 .orElseThrow(() -> new MachineNotFoundException("Machine not found: " + id));
-        machineRepository.update(Machine.update(existing, request.getName(), currentUserPort.getCurrentUserId()));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var updated = Machine.update(existing, request.getName(), currentUserId);
+        machineRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_MACHINE,
+                "MACHINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
@@ -116,6 +128,10 @@ public class MachineService implements MachineUseCase {
         if (!machineStatusRepository.existsById(newStatusId)) {
             throw new MachineStatusNotFoundException("Machine status not found: " + newStatusId);
         }
-        machineRepository.update(Machine.changeStatus(existing, newStatusId, currentUserPort.getCurrentUserId()));
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        var updated = Machine.changeStatus(existing, newStatusId, currentUserId);
+        machineRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CHANGE_MACHINE_STATUS,
+                "MACHINE", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 }

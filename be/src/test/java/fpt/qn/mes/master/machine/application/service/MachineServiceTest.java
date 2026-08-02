@@ -14,7 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.machine.application.dto.machine.MachineResponse;
 import fpt.qn.mes.master.machine.application.dto.machine.update.UpdateMachineRequest;
 import fpt.qn.mes.master.machine.application.exception.MachineNotFoundException;
@@ -28,6 +30,8 @@ class MachineServiceTest {
     @Mock MachineRepository machineRepository;
     @Mock MachineDtoMapper mapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
     @InjectMocks MachineService machineService;
 
     UUID id = UUID.randomUUID();

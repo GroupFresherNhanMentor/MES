@@ -19,8 +19,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.exception.AppException;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.inventory.application.dto.stockadjustment.create.CreateStockAdjustmentRequest;
 import fpt.qn.mes.inventory.application.dto.stockmovement.StockMovementResponse;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
@@ -57,6 +59,8 @@ class StockAdjustmentServiceTest {
     @Mock WarehouseCheckPort warehouseCheckPort;
     @Mock WarehouseLocationCheckPort warehouseLocationCheckPort;
     @Mock WarehouseLocationQueryPort warehouseLocationQueryPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
 
     @InjectMocks
     InventoryService inventoryService;

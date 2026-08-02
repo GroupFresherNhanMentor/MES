@@ -28,6 +28,7 @@ import fpt.qn.mes.quality.application.exception.ReasonRequiredException;
 import fpt.qn.mes.quality.application.mapper.QualityDtoMapper;
 import fpt.qn.mes.quality.application.port.in.QualityUseCase;
 import fpt.qn.mes.quality.application.port.out.QcStockPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.quality.domain.entities.DefectType;
 import fpt.qn.mes.quality.domain.entities.QcAction;
 import fpt.qn.mes.quality.domain.entities.QcStatus;
@@ -57,6 +58,7 @@ public class QualityService implements QualityUseCase {
     QualityDtoMapper qualityDtoMapper;
     CurrentUserPort currentUserPort;
     ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -129,46 +131,22 @@ public class QualityService implements QualityUseCase {
             throw new InsufficientRemainingQuantityException("passedQuantity must be > 0");
         }
 
-        BigDecimal processed = inspectionRepository.sumResultQuantities(inspectionId);
-
-        // if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-        //     throw new InspectionAlreadyClosedException("Inspection " + inspectionId + " is already fully processed");
-        // }
-
-        // if (passedQty.compareTo(remaining) > 0) {
-        //     throw new InsufficientRemainingQuantityException(
-        //         "Passed quantity " + passedQty + " exceeds remaining " + remaining);
-        // }
-
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
         QualityInspectionResult result = QualityInspectionResult.create(
             inspectionId, true, request.getPassedQuantity(), null, null, null, currentUserId, request.getNote());
         inspectionRepository.saveResult(result);
 
-        if (eventPublisher != null) {
-            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.QC_PASS, "QUALITY_INSPECTION", inspectionId,
-                    null, "{\"passedQuantity\":" + request.getPassedQuantity() + "}", null));
-        }
-
         UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
         UUID toStockStatusId   = qcStockPort.getAvailableStatusId();
         UUID movementTypeId    = qcStockPort.getQcReleaseMovementTypeId();
+        qcStockPort.transferStock(
+            inspection.getLot().getId(), inspection.getProduct().getId(), request.getPassedQuantity(),
+            fromStockStatusId, toStockStatusId, movementTypeId,
+            inspection.getWorkOrder().getId(), currentUserId);
 
-        // qcStockPort.transferStock(
-        //     inspection.getLot().getId(), inspection.getProduct().getId(), passedQty,
-        //     fromStockStatusId, toStockStatusId, movementTypeId,
-        //     inspection.getWorkOrder().getId(), currentUserId);
-
-        // BigDecimal newRemaining = remaining.subtract(passedQty);
-        // if (newRemaining.compareTo(BigDecimal.ZERO) <= 0) {
-        //     UUID passedStatusId = qcStatusRepository.findAll().stream()
-        //         .filter(s -> "PASSED".equals(s.getName()))
-        //         .findFirst()
-        //         .map(s -> s.getId())
-        //         .orElseThrow(() -> new IllegalStateException("PASSED QC status not found"));
-        //     inspectionRepository.updateStatus(inspection.getId(), passedStatusId);
-        // }
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.QC_PASS, "QUALITY_INSPECTION", inspectionId,
+                jsonSerializer.toJson(inspection), jsonSerializer.toJson(result), null));
     }
 
     @Override
@@ -211,16 +189,14 @@ public class QualityService implements QualityUseCase {
             inspectionId, false, failedQty, defectType, request.getReason(), action, currentUserId, request.getNote());
         inspectionRepository.saveResult(result);
 
-        if (eventPublisher != null) {
-            AuditAction auditAction = AuditAction.QC_FAIL;
-            if ("HOLD".equals(actionName)) {
-                auditAction = AuditAction.QC_HOLD;
-            } else if ("SCRAP".equals(actionName)) {
-                auditAction = AuditAction.SCRAP_STOCK;
-            }
-            eventPublisher.publishEvent(AuditEvent.create(currentUserId, auditAction, "QUALITY_INSPECTION", inspectionId,
-                    null, "{\"failedQuantity\":" + failedQty + ",\"reason\":\"" + request.getReason() + "\",\"action\":\"" + actionName + "\"}", null));
+        AuditAction auditAction = AuditAction.QC_FAIL;
+        if ("HOLD".equals(actionName)) {
+            auditAction = AuditAction.QC_HOLD;
+        } else if ("SCRAP".equals(actionName)) {
+            auditAction = AuditAction.SCRAP_STOCK;
         }
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, auditAction, "QUALITY_INSPECTION", inspectionId,
+                jsonSerializer.toJson(inspection), jsonSerializer.toJson(result), null));
 
         UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
         String qcStatusName;

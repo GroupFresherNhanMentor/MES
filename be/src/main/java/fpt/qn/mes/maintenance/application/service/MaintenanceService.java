@@ -3,7 +3,11 @@ package fpt.qn.mes.maintenance.application.service;
 import java.time.Instant;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.dto.request.StartMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.dto.request.CloseMaintenanceTicketRequest;
@@ -38,6 +42,8 @@ public class MaintenanceService implements MaintenanceUseCase {
     MachineRepository machineRepository;
     CurrentUserPort currentUserPort;
     MaintenanceDtoMapper mapper;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional
@@ -71,6 +77,9 @@ public class MaintenanceService implements MaintenanceUseCase {
         MachineDowntime downtime = MachineDowntime.create(ticket.getId(), ticket.getMachineId(), Instant.now());
         repository.save(ticket);
         repository.saveDowntime(downtime);
+
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticket.getId(), null, jsonSerializer.toJson(ticket), null));
 
         return mapper.toDto(ticket);
     }
@@ -113,6 +122,10 @@ public class MaintenanceService implements MaintenanceUseCase {
         ticket.start(openStatusId, inProgressStatusId, engineerId);
         repository.update(ticket);
 
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.START_MAINTENANCE,
+                "MAINTENANCE_TICKET", ticketId, null, jsonSerializer.toJson(ticket), null));
+
         return mapper.toDto(ticket);
     }
 
@@ -129,6 +142,10 @@ public class MaintenanceService implements MaintenanceUseCase {
 
         ticket.resolve(inProgressStatusId, resolvedStatusId);
         repository.update(ticket);
+
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.RESOLVE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticketId, null, jsonSerializer.toJson(ticket), null));
     }
 
     @Override
@@ -143,6 +160,10 @@ public class MaintenanceService implements MaintenanceUseCase {
 
         ticket.cancel(openStatusId, cancelledStatusId);
         repository.save(ticket);
+
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CANCEL_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticketId, null, jsonSerializer.toJson(ticket), null));
     }
 
     @Override
@@ -177,8 +198,12 @@ public class MaintenanceService implements MaintenanceUseCase {
         Machine machine = machineRepository.findById(ticket.getMachineId())
                 .orElseThrow(() -> new BusinessException("Machine associated with the ticket not found"));
 
-        Machine updatedMachine = Machine.changeStatus(machine, targetMachineStatusId, currentUserPort.getCurrentUserId());
+        UUID actorId = currentUserPort.getCurrentUserId();
+        Machine updatedMachine = Machine.changeStatus(machine, targetMachineStatusId, actorId);
 
         machineRepository.update(updatedMachine);
+
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.CLOSE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", request.getTicketId(), null, jsonSerializer.toJson(ticket), null));
     }
 }

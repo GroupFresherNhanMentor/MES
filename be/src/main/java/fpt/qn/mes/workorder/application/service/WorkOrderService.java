@@ -13,10 +13,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.context.ApplicationEventPublisher;
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.bom.domain.entities.Bom;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.common.dto.response.PageResponse;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
@@ -70,6 +74,8 @@ public class WorkOrderService implements WorkOrderUseCase {
     ProductionRunPort productionRunPort;
     AuditLogPort auditLogPort;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @NonFinal
     @Value("${app.inventory.raw-material-warehouse-code:RAW_MATERIAL_WAREHOUSE}")
@@ -147,6 +153,8 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .build();
 
         WorkOrder saved = repository.save(workOrder);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_WORK_ORDER,
+                "WORK_ORDER", saved.getId(), null, jsonSerializer.toJson(saved), null));
 
         if (activeBom.getItems() != null && !activeBom.getItems().isEmpty()) {
             for (var item : activeBom.getItems()) {
@@ -261,6 +269,10 @@ public class WorkOrderService implements WorkOrderUseCase {
                 }
             }
         }
+
+        UUID actorId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(actorId, AuditAction.UPDATE_WORK_ORDER,
+                "WORK_ORDER", id, jsonSerializer.toJson(workOrder), jsonSerializer.toJson(saved), null));
 
         return getWorkOrderById(saved.getId());
     }

@@ -1,21 +1,75 @@
 package fpt.qn.mes.audit.domain.entities;
 
 public enum AuditAction {
+    // Work order lifecycle
     CREATE_WORK_ORDER,
+    UPDATE_WORK_ORDER,
+    CANCEL_WORK_ORDER,
     RESERVE_MATERIAL,
     RELEASE_RESERVATION,
     START_PRODUCTION,
     PAUSE_PRODUCTION,
     RESUME_PRODUCTION,
     COMPLETE_PRODUCTION,
+
+    // Quality control
+    CREATE_INSPECTION,
     QC_PASS,
     QC_FAIL,
     QC_HOLD,
     QC_RELEASE,
     SCRAP_STOCK,
+
+    // Maintenance
     CREATE_MAINTENANCE_TICKET,
     START_MAINTENANCE,
+    RESOLVE_MAINTENANCE_TICKET,
+    CANCEL_MAINTENANCE_TICKET,
     CLOSE_MAINTENANCE_TICKET,
+
+    // Inventory
+    RECORD_STOCK_IN,
     ADJUST_STOCK,
-    ACTIVATE_BOM
+
+    // BOM
+    CREATE_BOM,
+    ACTIVATE_BOM,
+    DEACTIVATE_BOM,
+
+    // User management
+    CREATE_USER,
+    UPDATE_USER,
+    ACTIVATE_USER,
+    DEACTIVATE_USER,
+
+    // Product management
+    CREATE_PRODUCT,
+    UPDATE_PRODUCT,
+    ACTIVATE_PRODUCT,
+    DEACTIVATE_PRODUCT,
+
+    // Machine management
+    CREATE_MACHINE,
+    UPDATE_MACHINE,
+    CHANGE_MACHINE_STATUS,
+
+    // Production line management
+    CREATE_LINE,
+    UPDATE_LINE,
+    ACTIVATE_LINE,
+    DEACTIVATE_LINE,
+
+    // Warehouse management
+    CREATE_WAREHOUSE,
+    UPDATE_WAREHOUSE,
+    ACTIVATE_WAREHOUSE,
+    DEACTIVATE_WAREHOUSE,
+    ASSIGN_WAREHOUSE_MANAGER,
+    REMOVE_WAREHOUSE_MANAGER,
+
+    // Location management
+    CREATE_LOCATION,
+    UPDATE_LOCATION,
+    ACTIVATE_LOCATION,
+    DEACTIVATE_LOCATION
 }

@@ -17,7 +17,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.product.application.dto.product.ProductResponse;
 import fpt.qn.mes.master.product.application.dto.product.create.CreateProductRequest;
 import fpt.qn.mes.master.product.application.dto.product.update.UpdateProductRequest;
@@ -46,6 +48,8 @@ class ProductServiceTest {
     @Mock MovementStockCheckPort movementStockCheckPort;
     @Mock ProductDtoMapper mapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
     @InjectMocks ProductService productService;
 
     UUID productId;

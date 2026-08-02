@@ -93,7 +93,10 @@ public class BomService implements BomUseCase {
         var draftStatus = bomStatusRepository.findByName(BomStatusConstants.DRAFT)
                 .orElseThrow(() -> new BomStatusNotFoundException("DRAFT status not found in bom_statuses"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        bomRepository.save(Bom.create(request.getFinishedProductId(), version, draftStatus.getId(), currentUserId));
+        Bom created = Bom.create(request.getFinishedProductId(), version, draftStatus.getId(), currentUserId);
+        bomRepository.save(created);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_BOM, "BOM", created.getId(),
+                null, jsonSerializer.toJson(created), null));
     }
 
     @Override
@@ -147,7 +150,7 @@ public class BomService implements BomUseCase {
         bomRepository.update(deactivated);
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_BOM, "BOM", id,
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_BOM, "BOM", id,
                 jsonSerializer.toJson(bom),
                 jsonSerializer.toJson(deactivated),
                 null));
