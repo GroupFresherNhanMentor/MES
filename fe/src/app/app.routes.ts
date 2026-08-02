@@ -29,6 +29,13 @@ export const routes: Routes = [
         data: { title: 'Dashboard' },
       },
       {
+        path: 'users',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/users/pages/user-list/user-list').then((m) => m.UserListComponent),
+        data: { title: 'User Management' },
+      },
+      {
         path: 'products',
         loadComponent: () =>
           import('./features/products/pages/product-list/product-list').then((m) => m.ProductListComponent),

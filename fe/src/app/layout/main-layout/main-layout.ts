@@ -77,6 +77,7 @@ export class MainLayout {
 
   readonly navItems: NavItem[] = [
     { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+    { path: '/users', label: 'Users', icon: 'group', roles: ['ADMIN'] },
     { path: '/products', label: 'Products', icon: 'inventory_2', roles: ['ADMIN'] },
     { path: '/warehouses', label: 'Warehouses', icon: 'warehouse', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
     { path: '/production-lines', label: 'Production Lines', icon: 'precision_manufacturing', roles: ['ADMIN'] },
