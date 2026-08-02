@@ -1,6 +1,7 @@
 package fpt.qn.mes.workorder.application.dto.response;
 
 import java.util.UUID;
+import java.util.List;
 
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,4 +14,5 @@ import lombok.experimental.FieldDefaults;
 public class ReserveWorkOrderMaterialsResponse {
     UUID workOrderId;
     String status;
+    List<ReservedMaterialAllocationResponse> allocations;
 }

@@ -58,8 +58,25 @@ export interface UpdateWorkOrderRequest {
   workOrderStatusId?: string;
 }
 
-export interface ReserveMaterialsRequest {
-  machineId: string;
+export interface ReservedMaterialAllocationDto {
+  materialProductId: string;
+  lotId: string;
+  warehouseId: string;
+  locationId: string;
+  reservedQuantity: number;
+}
+
+export interface ReserveWorkOrderMaterialsResponse {
+  workOrderId: string;
+  status: string;
+  allocations: ReservedMaterialAllocationDto[];
+}
+
+export interface WorkOrderMaterialShortageDto {
+  materialProductId: string;
+  requiredQuantity: number;
+  availableQuantity: number;
+  shortageQuantity: number;
 }
 
 export interface StartWorkOrderRequest {
