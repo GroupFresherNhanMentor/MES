@@ -21,5 +21,6 @@ public interface QualityInspectionRepository {
     PaginationResult<QualityInspectionResult> searchResults(QualityInspectionResultSearchCriteria criteria);
 
     BigDecimal sumResultQuantities(UUID inspectionId);
+    void decrementRemainingQuantity(UUID inspectionId, BigDecimal amount);
     void updateStatus(UUID inspectionId, UUID newStatusId);
 }

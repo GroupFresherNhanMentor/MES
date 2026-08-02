@@ -2,6 +2,7 @@ package fpt.qn.mes.quality.application.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
@@ -26,8 +27,12 @@ import fpt.qn.mes.quality.application.exception.QcStatusNotFoundException;
 import fpt.qn.mes.quality.application.exception.QualityInspectionNotFoundException;
 import fpt.qn.mes.quality.application.exception.ReasonRequiredException;
 import fpt.qn.mes.quality.application.mapper.QualityDtoMapper;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.quality.application.port.in.QualityUseCase;
-import fpt.qn.mes.quality.application.port.out.QcStockPort;
+import fpt.qn.mes.quality.domain.constants.QcActionConstants;
+import fpt.qn.mes.quality.domain.constants.QcStatusConstants;
+import fpt.qn.mes.quality.application.port.out.QcFailStockPort;
+import fpt.qn.mes.quality.application.port.out.QcReleasePort;
 import fpt.qn.mes.quality.domain.entities.DefectType;
 import fpt.qn.mes.quality.domain.entities.QcAction;
 import fpt.qn.mes.quality.domain.entities.QcStatus;
@@ -53,34 +58,36 @@ public class QualityService implements QualityUseCase {
     QualityInspectionRepository inspectionRepository;
     QcStatusRepository qcStatusRepository;
     QcActionRepository qcActionRepository;
-    QcStockPort qcStockPort;
+    QcReleasePort qcReleasePort;
+    QcFailStockPort qcFailStockPort;
     QualityDtoMapper qualityDtoMapper;
     CurrentUserPort currentUserPort;
     ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<QualityInspectionResponse> getInspections(QualityInspectionSearchRequest request) {
         QualityInspectionSearchCriteria criteria = QualityInspectionSearchCriteria.builder()
-            .productCode(request != null ? request.getProductCode() : null)
-            .productName(request != null ? request.getProductName() : null)
-            .productTypeId(request != null ? request.getProductTypeId() : null)
-            .workOrderCode(request != null ? request.getWorkOrderCode() : null)
-            .lotNumber(request != null ? request.getLotNumber() : null)
-            .lotType(request != null ? request.getLotType() : null)
-            .qcStatusId(request != null ? request.getQcStatusId() : null)
-            .page(request != null ? request.getPage() : 0)
-            .size(request != null ? request.getSize() : 20)
-            .sort(request != null ? request.getSort() : List.of())
-            .build();
+                .productCode(request != null ? request.getProductCode() : null)
+                .productName(request != null ? request.getProductName() : null)
+                .productTypeId(request != null ? request.getProductTypeId() : null)
+                .workOrderCode(request != null ? request.getWorkOrderCode() : null)
+                .lotNumber(request != null ? request.getLotNumber() : null)
+                .lotType(request != null ? request.getLotType() : null)
+                .qcStatusId(request != null ? request.getQcStatusId() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .sort(request != null ? request.getSort() : List.of())
+                .build();
 
         PaginationResult<QualityInspection> result = inspectionRepository.search(criteria);
         List<QualityInspectionResponse> dtos = result.getItems().stream()
-            .map(i -> qualityDtoMapper.toDto(i)).toList();
+                .map(i -> qualityDtoMapper.toDto(i)).toList();
 
         return PageResponse.of(dtos, result.getTotal(),
-            request != null ? request.getPage() : 0,
-            request != null ? request.getSize() : 20);
+                request != null ? request.getPage() : 0,
+                request != null ? request.getSize() : 20);
     }
 
     @Override
@@ -91,31 +98,31 @@ public class QualityService implements QualityUseCase {
             throw new QualityInspectionNotFoundException("QC inspection not found: " + inspectionId);
         }
         QualityInspectionResultSearchCriteria criteria = QualityInspectionResultSearchCriteria.builder()
-            .inspectionId(inspectionId)
-            .isPass(request != null ? request.getIsPass() : null)
-            .defectTypeId(request != null ? request.getDefectTypeId() : null)
-            .inspectorId(request != null ? request.getInspectorId() : null)
-            .actionId(request != null ? request.getActionId() : null)
-            .page(request != null ? request.getPage() : 0)
-            .size(request != null ? request.getSize() : 20)
-            .sort(request != null ? request.getSort() : List.of())
-            .build();
+                .inspectionId(inspectionId)
+                .isPass(request != null ? request.getIsPass() : null)
+                .defectTypeId(request != null ? request.getDefectTypeId() : null)
+                .inspectorId(request != null ? request.getInspectorId() : null)
+                .actionId(request != null ? request.getActionId() : null)
+                .page(request != null ? request.getPage() : 0)
+                .size(request != null ? request.getSize() : 20)
+                .sort(request != null ? request.getSort() : List.of())
+                .build();
 
         PaginationResult<QualityInspectionResult> result = inspectionRepository.searchResults(criteria);
         List<QualityInspectionResultResponse> dtos = result.getItems().stream()
-            .map(r -> qualityDtoMapper.toDto(r)).toList();
+                .map(r -> qualityDtoMapper.toDto(r)).toList();
         return PageResponse.of(dtos, result.getTotal(),
-            request != null ? request.getPage() : 0,
-            request != null ? request.getSize() : 20);
+                request != null ? request.getPage() : 0,
+                request != null ? request.getSize() : 20);
     }
 
     @Override
     @Transactional
     public void createInspection(CreateQualityInspectionRequest req) {
         QcStatus qcStatus = qcStatusRepository.findById(req.getQcStatusId())
-            .orElseThrow(() -> new QcStatusNotFoundException("QC status not found: " + req.getQcStatusId()));
+                .orElseThrow(() -> new QcStatusNotFoundException("QC status not found: " + req.getQcStatusId()));
         QualityInspection inspection = QualityInspection.create(
-            req.getWorkOrderId(), req.getProductId(), req.getLotId(), req.getQuantity(), qcStatus);
+                req.getWorkOrderId(), req.getProductId(), req.getLotId(), req.getQuantity(), qcStatus);
         inspectionRepository.save(inspection);
     }
 
@@ -123,62 +130,49 @@ public class QualityService implements QualityUseCase {
     @Transactional
     public void passInspection(UUID inspectionId, PassQcRequest request) {
         QualityInspection inspection = inspectionRepository.findById(inspectionId)
-            .orElseThrow(() -> new QualityInspectionNotFoundException("QC inspection not found: " + inspectionId));
+                .orElseThrow(() -> new QualityInspectionNotFoundException("QC inspection not found: " + inspectionId));
 
-        if (request.getPassedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InsufficientRemainingQuantityException("passedQuantity must be > 0");
+        BigDecimal remaining = inspection.getRemainingQuantity();
+
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InspectionAlreadyClosedException("Inspection " + inspectionId + " is already fully processed");
         }
 
-        BigDecimal processed = inspectionRepository.sumResultQuantities(inspectionId);
-
-        // if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-        //     throw new InspectionAlreadyClosedException("Inspection " + inspectionId + " is already fully processed");
-        // }
-
-        // if (passedQty.compareTo(remaining) > 0) {
-        //     throw new InsufficientRemainingQuantityException(
-        //         "Passed quantity " + passedQty + " exceeds remaining " + remaining);
-        // }
+        BigDecimal passedQty = request.getPassedQuantity();
+        if (passedQty.compareTo(remaining) > 0) {
+            throw new InsufficientRemainingQuantityException(
+                    "Passed quantity " + passedQty + " exceeds remaining " + remaining);
+        }
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
 
         QualityInspectionResult result = QualityInspectionResult.create(
-            inspectionId, true, request.getPassedQuantity(), null, null, null, currentUserId, request.getNote());
+                inspectionId, true, passedQty, null, null, null, currentUserId, request.getNote());
         inspectionRepository.saveResult(result);
+        inspectionRepository.decrementRemainingQuantity(inspectionId, passedQty);
 
-        if (eventPublisher != null) {
-            eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.QC_PASS, "QUALITY_INSPECTION", inspectionId,
-                    null, "{\"passedQuantity\":" + request.getPassedQuantity() + "}", null));
+        qcReleasePort.releasePassedStock(
+                inspection.getLot().getId(), inspection.getProduct().getId(), passedQty,
+                inspection.getWorkOrder().getId(), currentUserId);
+
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.QC_PASS, "QUALITY_INSPECTION", inspectionId,
+                null, jsonSerializer.toJson(Map.of("passedQuantity", passedQty)), null));
+
+        if (remaining.subtract(passedQty).compareTo(BigDecimal.ZERO) <= 0) {
+            UUID passedStatusId = qcStatusRepository.findByName(QcStatusConstants.PASSED)
+                    .orElseThrow(() -> new IllegalStateException("PASSED QC status not found"))
+                    .getId();
+            inspectionRepository.updateStatus(inspectionId, passedStatusId);
         }
-
-        UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
-        UUID toStockStatusId   = qcStockPort.getAvailableStatusId();
-        UUID movementTypeId    = qcStockPort.getQcReleaseMovementTypeId();
-
-        // qcStockPort.transferStock(
-        //     inspection.getLot().getId(), inspection.getProduct().getId(), passedQty,
-        //     fromStockStatusId, toStockStatusId, movementTypeId,
-        //     inspection.getWorkOrder().getId(), currentUserId);
-
-        // BigDecimal newRemaining = remaining.subtract(passedQty);
-        // if (newRemaining.compareTo(BigDecimal.ZERO) <= 0) {
-        //     UUID passedStatusId = qcStatusRepository.findAll().stream()
-        //         .filter(s -> "PASSED".equals(s.getName()))
-        //         .findFirst()
-        //         .map(s -> s.getId())
-        //         .orElseThrow(() -> new IllegalStateException("PASSED QC status not found"));
-        //     inspectionRepository.updateStatus(inspection.getId(), passedStatusId);
-        // }
     }
 
     @Override
     @Transactional
     public void failInspection(UUID inspectionId, FailQcRequest request) {
         QualityInspection inspection = inspectionRepository.findById(inspectionId)
-            .orElseThrow(() -> new QualityInspectionNotFoundException("QC inspection not found: " + inspectionId));
+                .orElseThrow(() -> new QualityInspectionNotFoundException("QC inspection not found: " + inspectionId));
 
-        BigDecimal processed = inspectionRepository.sumResultQuantities(inspectionId);
-        BigDecimal remaining = inspection.getQuantity().subtract(processed);
+        BigDecimal remaining = inspection.getRemainingQuantity();
 
         if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
             throw new InspectionAlreadyClosedException("Inspection " + inspectionId + " is already fully processed");
@@ -190,7 +184,7 @@ public class QualityService implements QualityUseCase {
         }
         if (failedQty.compareTo(remaining) > 0) {
             throw new InsufficientRemainingQuantityException(
-                "Failed quantity " + failedQty + " exceeds remaining " + remaining);
+                    "Failed quantity " + failedQty + " exceeds remaining " + remaining);
         }
         if (request.getDefectTypeId() == null) {
             throw new DefectTypeRequiredException("defectTypeId is required when failing QC");
@@ -200,7 +194,7 @@ public class QualityService implements QualityUseCase {
         }
 
         QcAction action = qcActionRepository.findById(request.getActionId())
-            .orElseThrow(() -> new InvalidQcActionException("Invalid actionId: " + request.getActionId()));
+                .orElseThrow(() -> new InvalidQcActionException("Invalid actionId: " + request.getActionId()));
         String actionName = action.getName();
 
         UUID currentUserId = currentUserPort.getCurrentUserId();
@@ -208,42 +202,42 @@ public class QualityService implements QualityUseCase {
         DefectType defectType = DefectType.builder().id(request.getDefectTypeId()).build();
 
         QualityInspectionResult result = QualityInspectionResult.create(
-            inspectionId, false, failedQty, defectType, request.getReason(), action, currentUserId, request.getNote());
+                inspectionId, false, failedQty, defectType, request.getReason(), action, currentUserId,
+                request.getNote());
         inspectionRepository.saveResult(result);
+        inspectionRepository.decrementRemainingQuantity(inspectionId, failedQty);
 
         if (eventPublisher != null) {
             AuditAction auditAction = AuditAction.QC_FAIL;
-            if ("HOLD".equals(actionName)) {
+            if (QcActionConstants.HOLD.equals(actionName)) {
                 auditAction = AuditAction.QC_HOLD;
-            } else if ("SCRAP".equals(actionName)) {
+            } else if (QcActionConstants.SCRAP.equals(actionName)) {
                 auditAction = AuditAction.SCRAP_STOCK;
             }
             eventPublisher.publishEvent(AuditEvent.create(currentUserId, auditAction, "QUALITY_INSPECTION", inspectionId,
-                    null, "{\"failedQuantity\":" + failedQty + ",\"reason\":\"" + request.getReason() + "\",\"action\":\"" + actionName + "\"}", null));
+                    null, jsonSerializer.toJson(Map.of(
+                            "failedQuantity", failedQty,
+                            "reason", request.getReason(),
+                            "action", actionName)), null));
         }
 
-        UUID fromStockStatusId = qcStockPort.getQualityInspectionStatusId();
         String qcStatusName;
 
         switch (actionName) {
-            case "SCRAP":
-                qcStatusName = "FAILED";
-                qcStockPort.transferStock(
-                    inspection.getLot().getId(), inspection.getProduct().getId(), failedQty,
-                    fromStockStatusId, qcStockPort.getScrappedStatusId(),
-                    qcStockPort.getScrapMovementTypeId(),
-                    inspection.getWorkOrder().getId(), currentUserId);
+            case QcActionConstants.SCRAP:
+                qcStatusName = QcStatusConstants.FAILED;
+                qcFailStockPort.scrapStock(
+                        inspection.getLot().getId(), inspection.getProduct().getId(), failedQty,
+                        inspection.getWorkOrder().getId(), currentUserId);
                 break;
-            case "HOLD":
-                qcStatusName = "ON_HOLD";
-                qcStockPort.transferStock(
-                    inspection.getLot().getId(), inspection.getProduct().getId(), failedQty,
-                    fromStockStatusId, qcStockPort.getOnHoldStatusId(),
-                    qcStockPort.getQcHoldMovementTypeId(),
-                    inspection.getWorkOrder().getId(), currentUserId);
+            case QcActionConstants.HOLD:
+                qcStatusName = QcStatusConstants.ON_HOLD;
+                qcFailStockPort.holdStock(
+                        inspection.getLot().getId(), inspection.getProduct().getId(), failedQty,
+                        inspection.getWorkOrder().getId(), currentUserId);
                 break;
-            case "REWORK":
-                qcStatusName = "REWORK_REQUIRED";
+            case QcActionConstants.REWORK:
+                qcStatusName = QcStatusConstants.REWORK_REQUIRED;
                 break;
             default:
                 throw new InvalidQcActionException("Unknown action: " + actionName);
@@ -251,11 +245,9 @@ public class QualityService implements QualityUseCase {
 
         BigDecimal newRemaining = remaining.subtract(failedQty);
         if (newRemaining.compareTo(BigDecimal.ZERO) <= 0) {
-            UUID failStatusId = qcStatusRepository.findAll().stream()
-                .filter(s -> qcStatusName.equals(s.getName()))
-                .findFirst()
-                .map(s -> s.getId())
-                .orElseThrow(() -> new IllegalStateException(qcStatusName + " QC status not found"));
+            UUID failStatusId = qcStatusRepository.findByName(qcStatusName)
+                    .orElseThrow(() -> new IllegalStateException(qcStatusName + " QC status not found"))
+                    .getId();
             inspectionRepository.updateStatus(inspection.getId(), failStatusId);
         }
     }
