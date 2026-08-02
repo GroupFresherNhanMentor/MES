@@ -10,6 +10,7 @@ import fpt.qn.mes.quality.domain.repository.criteria.QcStatusSearchCriteria;
 
 public interface QcStatusRepository {
     Optional<QcStatus> findById(UUID id);
+    Optional<QcStatus> findByName(String name);
     List<QcStatus> findAll();
     QcStatus save(QcStatus status);
     PaginationResult<QcStatus> search(QcStatusSearchCriteria criteria);

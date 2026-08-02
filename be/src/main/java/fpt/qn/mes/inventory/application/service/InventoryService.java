@@ -2,6 +2,7 @@ package fpt.qn.mes.inventory.application.service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,6 +28,7 @@ import fpt.qn.mes.inventory.application.exception.InvalidStockAdjustmentExceptio
 import fpt.qn.mes.inventory.application.exception.InvalidStockLotException;
 import fpt.qn.mes.inventory.application.exception.InvalidStockTransferException;
 import fpt.qn.mes.inventory.application.exception.InventoryNotFoundException;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.inventory.application.mapper.InventoryDtoMapper;
 import fpt.qn.mes.inventory.application.mapper.StockAdjustmentApprovalDtoMapper;
 import fpt.qn.mes.inventory.application.port.in.InventoryUseCase;
@@ -73,7 +75,7 @@ public class InventoryService implements InventoryUseCase {
     WarehouseLocationCheckPort warehouseLocationCheckPort;
     WarehouseLocationQueryPort warehouseLocationQueryPort;
     ApplicationEventPublisher eventPublisher;
-
+    JsonSerializerPort jsonSerializer;
 
     private static final BigDecimal ADJUSTMENT_THRESHOLD = new BigDecimal("100.00");
 
@@ -275,8 +277,8 @@ public class InventoryService implements InventoryUseCase {
                 request.getReferenceNo(), request.getReason(), currentUserId));
         if (eventPublisher != null) {
             eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ADJUST_STOCK, "STOCK_BALANCE", balance.getId(),
-                    "{\"quantity\":" + balance.getQuantity() + "}",
-                    "{\"quantity\":" + result + "}", null));
+                    jsonSerializer.toJson(Map.of("quantity", balance.getQuantity())),
+                    jsonSerializer.toJson(Map.of("quantity", result)), null));
         }
         return;
     }

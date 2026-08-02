@@ -43,6 +43,7 @@ public class QualityRecordMapper {
                 .lotType(lotTypesRecord != null ? lotTypesRecord.getName() : null)
                 .build())
             .quantity(r.getQuantity())
+            .remainingQuantity(r.getRemainingQuantity())
             .qcStatus(QcStatus.builder()
                 .id(statusRecord.getId())
                 .name(statusRecord.getName())
@@ -59,6 +60,7 @@ public class QualityRecordMapper {
         r.setProductId(i.getProduct().getId());
         r.setLotId(i.getLot().getId());
         r.setQuantity(i.getQuantity());
+        r.setRemainingQuantity(i.getRemainingQuantity());
         r.setQcStatusId(i.getQcStatus().getId());
         r.setCreatedAt(i.getCreatedAt().atOffset(ZoneOffset.UTC));
         return r;
