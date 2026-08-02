@@ -1,0 +1,10 @@
+/* Stock adjustment list page styles */
+.page-container {
+  width: 100%;
+}
+
+.custom-title-wrapper{
+    display: flex;
+    flex: 1;
+    gap: 0.75rem;
+}

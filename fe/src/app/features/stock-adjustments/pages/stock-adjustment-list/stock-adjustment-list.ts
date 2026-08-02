@@ -1,158 +1,37 @@
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatPaginatorModule, type PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { ApiService } from '../../../../core/services/api';
 import { API } from '../../../../configs/api-endpoints';
+import { JoinWithPipe } from '../../../../shared/pipes/join-with.pipe';
 import type { StockAdjustmentApprovalDto } from '../../../../core/models/stock-adjustment.model';
 import type { PageResponse } from '../../../../core/models/api.model';
+
+interface LookupItem { id: string; name: string; code?: string; }
 
 @Component({
   selector: 'app-stock-adjustment-list',
   standalone: true,
   imports: [
-    DatePipe, DecimalPipe,
+    DatePipe, DecimalPipe, FormsModule, JoinWithPipe,
     MatTableModule, MatButtonModule, MatIconModule, MatCardModule,
+    MatFormFieldModule, MatInputModule, MatSelectModule, MatTooltipModule,
     MatPaginatorModule, MatProgressBarModule, MatSnackBarModule,
   ],
-  template: `
-    <div class="page-container ff-fade-in">
-      <mat-card>
-        @if (loading()) {
-          <mat-progress-bar mode="indeterminate" class="!rounded-t-lg"></mat-progress-bar>
-        }
-
-        <mat-card-header class="!flex !items-center !justify-between !pb-4">
-          <div class="flex flex-col gap-1">
-            <mat-card-title class="!text-xl !font-semibold !text-text-primary">Pending Adjustments</mat-card-title>
-            <p class="text-sm text-text-secondary">
-              Stock adjustments exceeding the auto-approval threshold — review and approve or reject each one.
-            </p>
-          </div>
-          @if (total() > 0) {
-            <span class="ff-badge ff-badge--pending text-sm px-3 py-1">
-              {{ total() }} pending
-            </span>
-          }
-        </mat-card-header>
-
-        <mat-card-content>
-          <table mat-table [dataSource]="items()">
-
-            <ng-container matColumnDef="product">
-              <th mat-header-cell *matHeaderCellDef>Product</th>
-              <td mat-cell *matCellDef="let a">
-                <div class="flex flex-col">
-                  <span class="font-medium text-text-primary">{{ a.product?.name || '—' }}</span>
-                  <span class="font-mono text-xs text-text-muted">{{ a.product?.code }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="warehouse">
-              <th mat-header-cell *matHeaderCellDef>Warehouse / Location</th>
-              <td mat-cell *matCellDef="let a">
-                <div class="flex flex-col">
-                  <span class="text-text-primary">{{ a.warehouse?.name || '—' }}</span>
-                  <span class="font-mono text-xs text-text-muted">{{ a.location?.code }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="adjustment">
-              <th mat-header-cell *matHeaderCellDef class="!text-right">Adjustment</th>
-              <td mat-cell *matCellDef="let a" class="!text-right">
-                <span class="font-mono font-semibold"
-                      [class.text-success]="a.quantityAdjustment > 0"
-                      [class.text-error]="a.quantityAdjustment < 0">
-                  {{ a.quantityAdjustment > 0 ? '+' : '' }}{{ a.quantityAdjustment | number:'1.0-4' }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="reason">
-              <th mat-header-cell *matHeaderCellDef>Reason</th>
-              <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm max-w-48 truncate">
-                {{ a.reason || '—' }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="referenceNo">
-              <th mat-header-cell *matHeaderCellDef>Reference</th>
-              <td mat-cell *matCellDef="let a" class="font-mono text-sm text-text-secondary">
-                {{ a.referenceNo || '—' }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="requestedBy">
-              <th mat-header-cell *matHeaderCellDef>Requested By</th>
-              <td mat-cell *matCellDef="let a">
-                <div class="flex flex-col">
-                  <span class="text-text-primary text-sm">{{ a.creator?.fullName || '—' }}</span>
-                  <span class="text-text-muted text-xs">{{ a.creator?.username }}</span>
-                </div>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="createdAt">
-              <th mat-header-cell *matHeaderCellDef>Submitted</th>
-              <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm">
-                {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef class="!text-center">Actions</th>
-              <td mat-cell *matCellDef="let a" class="!text-center">
-                <div class="flex items-center justify-center gap-2">
-                  <button mat-stroked-button
-                          class="!border-success !text-success"
-                          [disabled]="actionInProgress()"
-                          (click)="approve(a.id)">
-                    <mat-icon class="!text-base">check_circle</mat-icon>
-                    Approve
-                  </button>
-                  <button mat-stroked-button
-                          class="!border-error !text-error"
-                          [disabled]="actionInProgress()"
-                          (click)="reject(a.id)">
-                    <mat-icon class="!text-base">cancel</mat-icon>
-                    Reject
-                  </button>
-                </div>
-              </td>
-            </ng-container>
-
-            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="cursor-default"></tr>
-
-            <tr class="mat-row" *matNoDataRow>
-              <td [attr.colspan]="displayedColumns.length" class="!py-16">
-                <div class="flex flex-col items-center justify-center text-text-muted gap-2">
-                  <mat-icon class="!text-5xl opacity-30">task_alt</mat-icon>
-                  <span class="text-sm">No pending adjustments — all clear</span>
-                </div>
-              </td>
-            </tr>
-          </table>
-
-          <mat-paginator
-            [length]="total()"
-            [pageSize]="size()"
-            [pageIndex]="page()"
-            [pageSizeOptions]="[10, 20, 50]"
-            (page)="onPage($event)">
-          </mat-paginator>
-        </mat-card-content>
-      </mat-card>
-    </div>
-  `,
+  templateUrl: './stock-adjustment-list.html',
+  styleUrl: './stock-adjustment-list.css',
 })
 export class StockAdjustmentList {
   private api = inject(ApiService);
@@ -165,13 +44,48 @@ export class StockAdjustmentList {
   loading = signal(false);
   actionInProgress = signal(false);
 
+  filterProductId = '';
+  filterWarehouseId = '';
+  filterLocationId = '';
+
+  products = signal<LookupItem[]>([]);
+  warehouses = signal<LookupItem[]>([]);
+  locations = signal<LookupItem[]>([]);
+
   displayedColumns = ['product', 'warehouse', 'adjustment', 'reason', 'referenceNo', 'requestedBy', 'createdAt', 'actions'];
 
-  constructor() { this.load(); }
+  constructor() {
+    this.loadLookups();
+    this.load();
+  }
+
+  private loadLookups() {
+    this.api.get<PageResponse<LookupItem>>(`${API.products.base}?size=100`).subscribe(r => {
+      if (r.success && r.data) this.products.set(r.data.items || []);
+    });
+    this.api.get<PageResponse<LookupItem>>(`${API.warehouses.base}?size=100`).subscribe(r => {
+      if (r.success && r.data) this.warehouses.set(r.data.items || []);
+    });
+  }
+
+  onWarehouseChange(warehouseId: string) {
+    this.filterLocationId = '';
+    this.locations.set([]);
+    if (warehouseId) {
+      this.api.get<PageResponse<LookupItem>>(`${API.locations.base(warehouseId)}?size=100`).subscribe(r => {
+        if (r.success && r.data) this.locations.set(r.data.items || []);
+      });
+    }
+    this.onFilter();
+  }
 
   load() {
     this.loading.set(true);
     const params = new URLSearchParams({ page: String(this.page()), size: String(this.size()) });
+    if (this.filterProductId) params.set('productId', this.filterProductId);
+    if (this.filterWarehouseId) params.set('warehouseId', this.filterWarehouseId);
+    if (this.filterLocationId) params.set('locationId', this.filterLocationId);
+
     this.api.get<PageResponse<StockAdjustmentApprovalDto>>(`${API.stockAdjustments.pending}?${params}`).subscribe({
       next: r => {
         if (r.success) { this.items.set(r.data.items); this.total.set(r.data.totalElements); }
@@ -180,7 +94,24 @@ export class StockAdjustmentList {
     });
   }
 
-  onPage(e: PageEvent) { this.page.set(e.pageIndex); this.size.set(e.pageSize); this.load(); }
+  onFilter() {
+    this.page.set(0);
+    this.load();
+  }
+
+  resetFilters() {
+    this.filterProductId = '';
+    this.filterWarehouseId = '';
+    this.filterLocationId = '';
+    this.locations.set([]);
+    this.onFilter();
+  }
+
+  onPage(e: PageEvent) {
+    this.page.set(e.pageIndex);
+    this.size.set(e.pageSize);
+    this.load();
+  }
 
   approve(id: string) {
     this.actionInProgress.set(true);

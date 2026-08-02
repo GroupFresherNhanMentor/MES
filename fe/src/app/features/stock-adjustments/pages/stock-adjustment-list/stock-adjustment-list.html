@@ -1,0 +1,159 @@
+<div class="page-container ff-fade-in">
+  <mat-card>
+    @if (loading()) {
+      <mat-progress-bar mode="indeterminate" class="!rounded-t-lg"></mat-progress-bar>
+    }
+
+    <!-- Header Toolbar -->
+    <mat-card-header class="!flex !items-center !justify-between !pb-4 flex-wrap gap-4">
+      <div class="custom-title-wrapper">
+        <mat-card-title class="!text-xl !font-semibold !text-text-primary">Stock Adjustments</mat-card-title>
+        @if (total() > 0) {
+          <span class="ff-badge ff-badge--pending text-xs px-2.5 py-0.5">
+            {{ total() }} pending
+          </span>
+        }
+      </div>
+
+      <!-- Query Filters Matching BE API (productId, warehouseId, locationId) -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-48">
+          <mat-label>Product</mat-label>
+          <mat-select [(ngModel)]="filterProductId" (selectionChange)="onFilter()">
+            <mat-option value="">All Products</mat-option>
+            @for (p of products(); track p.id) {
+              <mat-option [value]="p.id">{{ p.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-48">
+          <mat-label>Warehouse</mat-label>
+          <mat-select [(ngModel)]="filterWarehouseId" (selectionChange)="onWarehouseChange($event.value)">
+            <mat-option value="">All Warehouses</mat-option>
+            @for (w of warehouses(); track w.id) {
+              <mat-option [value]="w.id">{{ w.name }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-44">
+          <mat-label>Location</mat-label>
+          <mat-select [(ngModel)]="filterLocationId" (selectionChange)="onFilter()" [disabled]="!filterWarehouseId">
+            <mat-option value="">All Locations</mat-option>
+            @for (l of locations(); track l.id) {
+              <mat-option [value]="l.id">{{ l.name || l.code }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <button mat-icon-button (click)="resetFilters()" matTooltip="Clear filters" class="!text-text-muted">
+          <mat-icon>filter_list_off</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+
+    <mat-card-content>
+      <table mat-table [dataSource]="items()">
+
+        <ng-container matColumnDef="product">
+          <th mat-header-cell *matHeaderCellDef>Product</th>
+          <td mat-cell *matCellDef="let a" class="font-medium text-text-primary">
+            {{ a.product?.name | joinWith: a.product?.code }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="warehouse">
+          <th mat-header-cell *matHeaderCellDef>Warehouse / Location</th>
+          <td mat-cell *matCellDef="let a" class="text-text-primary">
+            {{ a.warehouse?.name | joinWith: a.location?.code }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="adjustment">
+          <th mat-header-cell *matHeaderCellDef class="!text-right">Adjustment</th>
+          <td mat-cell *matCellDef="let a" class="!text-right">
+            <span class="font-mono font-semibold"
+                  [class.text-success]="a.quantityAdjustment > 0"
+                  [class.text-error]="a.quantityAdjustment < 0">
+              {{ a.quantityAdjustment > 0 ? '+' : '' }}{{ a.quantityAdjustment | number:'1.0-4' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="reason">
+          <th mat-header-cell *matHeaderCellDef>Reason</th>
+          <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm max-w-48 truncate">
+            {{ a.reason || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="referenceNo">
+          <th mat-header-cell *matHeaderCellDef>Reference</th>
+          <td mat-cell *matCellDef="let a" class="font-mono text-sm text-text-secondary">
+            {{ a.referenceNo || '—' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="requestedBy">
+          <th mat-header-cell *matHeaderCellDef>Requested By</th>
+          <td mat-cell *matCellDef="let a">
+            <div class="flex flex-col">
+              <span class="text-text-primary text-sm">{{ a.creator?.fullName || '—' }}</span>
+              <span class="text-text-muted text-xs">{{ a.creator?.username }}</span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="createdAt">
+          <th mat-header-cell *matHeaderCellDef>Submitted</th>
+          <td mat-cell *matCellDef="let a" class="text-text-secondary text-sm">
+            {{ a.createdAt | date:'dd/MM/yyyy HH:mm' }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="!text-center">Actions</th>
+          <td mat-cell *matCellDef="let a" class="!text-center">
+            <div class="flex items-center justify-center gap-2">
+              <button mat-stroked-button
+                      class="!border-success !text-success"
+                      [disabled]="actionInProgress()"
+                      (click)="approve(a.id)">
+                <mat-icon class="!text-base">check_circle</mat-icon>
+                Approve
+              </button>
+              <button mat-stroked-button
+                      class="!border-error !text-error"
+                      [disabled]="actionInProgress()"
+                      (click)="reject(a.id)">
+                <mat-icon class="!text-base">cancel</mat-icon>
+                Reject
+              </button>
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="cursor-default"></tr>
+
+        <tr class="mat-row" *matNoDataRow>
+          <td [attr.colspan]="displayedColumns.length" class="!py-16">
+            <div class="flex flex-col items-center justify-center text-text-muted gap-2">
+              <mat-icon class="!text-5xl opacity-30">pending_actions</mat-icon>
+              <span class="text-sm">No pending adjustments — all clear</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <mat-paginator
+        [length]="total()"
+        [pageSize]="size()"
+        [pageIndex]="page()"
+        [pageSizeOptions]="[10, 20, 50]"
+        (page)="onPage($event)">
+      </mat-paginator>
+    </mat-card-content>
+  </mat-card>
+</div>
