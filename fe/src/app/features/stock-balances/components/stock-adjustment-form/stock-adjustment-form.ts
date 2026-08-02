@@ -69,8 +69,13 @@ export class StockAdjustmentFormComponent implements OnInit {
     }
   }
 
+  private submissionIdempotencyKey: string | null = null;
+
   onSubmit(): void {
     if (this.form.invalid) return;
+    if (!this.submissionIdempotencyKey) {
+      this.submissionIdempotencyKey = crypto.randomUUID();
+    }
     this.submitting.set(true);
 
     const payload = {
@@ -80,7 +85,7 @@ export class StockAdjustmentFormComponent implements OnInit {
       referenceNo: this.form.value.referenceNo || undefined,
     };
 
-    this.api.post(API.stockAdjustments.base, payload).subscribe({
+    this.api.post(API.stockAdjustments.base, payload, { idempotencyKey: this.submissionIdempotencyKey }).subscribe({
       next: (r: any) => {
         this.submitting.set(false);
         if (r.success) {

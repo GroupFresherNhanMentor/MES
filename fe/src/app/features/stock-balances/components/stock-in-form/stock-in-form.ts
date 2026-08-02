@@ -246,8 +246,13 @@ export class StockInFormComponent implements OnInit {
     });
   }
 
+  private submissionIdempotencyKey: string | null = null;
+
   onSubmit(): void {
     if (this.form.invalid) return;
+    if (!this.submissionIdempotencyKey) {
+      this.submissionIdempotencyKey = crypto.randomUUID();
+    }
     this.submitting.set(true);
 
     const payload = {
@@ -260,7 +265,7 @@ export class StockInFormComponent implements OnInit {
       reason: this.form.value.reason || undefined,
     };
 
-    this.api.post((API as any).stockMovements.in || '/api/stock-in', payload).subscribe({
+    this.api.post((API as any).stockMovements.in || '/api/stock-in', payload, { idempotencyKey: this.submissionIdempotencyKey }).subscribe({
       next: r => {
         this.submitting.set(false);
         if (r.success) {

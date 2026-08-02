@@ -121,7 +121,8 @@ export class StockAdjustmentList {
 
   approve(id: string) {
     this.actionInProgress.set(true);
-    this.api.post<any>(API.stockAdjustments.approve(id), {}).subscribe({
+    const key = crypto.randomUUID();
+    this.api.post<any>(API.stockAdjustments.approve(id), {}, { idempotencyKey: key }).subscribe({
       next: (r: any) => {
         const message = r?.message || 'Adjustment approved successfully';
         this.snackBar.open(message, 'OK', { duration: 3000 });
@@ -138,7 +139,8 @@ export class StockAdjustmentList {
 
   reject(id: string) {
     this.actionInProgress.set(true);
-    this.api.post<any>(API.stockAdjustments.reject(id), {}).subscribe({
+    const key = crypto.randomUUID();
+    this.api.post<any>(API.stockAdjustments.reject(id), {}, { idempotencyKey: key }).subscribe({
       next: (r: any) => {
         const message = r?.message || 'Adjustment rejected and removed';
         this.snackBar.open(message, 'OK', { duration: 3000 });
