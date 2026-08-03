@@ -463,8 +463,7 @@ export class WorkOrderDetail implements OnInit {
   }
 
   private hasRole(...roles: string[]): boolean {
-    const user = this.auth.getCurrentUser();
-    return roles.includes(user?.role ?? '');
+    return this.auth.hasAnyRole(...roles);
   }
 
   private toDateTimeLocal(value?: string | null): string {

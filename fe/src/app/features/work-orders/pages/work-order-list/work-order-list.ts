@@ -142,6 +142,7 @@ export class WorkOrderList {
   readonly items = signal<WorkOrderDto[]>([]);
   readonly products = signal<ProductDto[]>([]);
   readonly statuses = signal<WorkOrderLookupDto[]>([]);
+  readonly initialStatuses = signal<WorkOrderLookupDto[]>([]);
   readonly priorities = signal<WorkOrderLookupDto[]>([]);
   readonly loading = signal(true);
   readonly error = signal('');
@@ -183,12 +184,12 @@ export class WorkOrderList {
   }
 
   canCreate(): boolean {
-    return ['ADMIN', 'PLANNER'].includes(this.auth.getCurrentUser()?.role ?? '') && this.statuses().length > 0;
+    return this.auth.hasAnyRole('PLANNER') && this.initialStatuses().length > 0;
   }
 
   openCreate(): void {
     this.dialog.open(WorkOrderCreateDialog, {
-      data: { products: this.products(), priorities: this.priorities(), statuses: this.statuses() },
+      data: { products: this.products(), priorities: this.priorities(), statuses: this.initialStatuses() },
       panelClass: 'ff-dialog-panel',
     }).afterClosed().subscribe((created) => {
       if (created) this.load();
@@ -219,6 +220,9 @@ export class WorkOrderList {
   private loadLookups(): void {
     this.api.get<WorkOrderLookupDto[]>(API.workOrders.statuses).subscribe({
       next: (response) => { if (response.success) this.statuses.set(response.data); },
+    });
+    this.api.get<WorkOrderLookupDto[]>(API.workOrders.statuses, { isInitial: true }).subscribe({
+      next: (response) => { if (response.success) this.initialStatuses.set(response.data); },
     });
     this.api.get<WorkOrderLookupDto[]>(API.workOrders.priorities).subscribe({
       next: (response) => { if (response.success) this.priorities.set(response.data); },

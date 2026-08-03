@@ -32,6 +32,7 @@ import fpt.qn.mes.workorder.application.port.out.dto.ReservationStock;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,7 +76,8 @@ class ReserveWorkOrderMaterialsServiceTest {
                 .workOrderStatusId(plannedStatusId)
                 .build();
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(workOrder));
-        when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.findStatusById(plannedStatusId)).thenReturn(Optional.of(
+                WorkOrderStatus.builder().id(plannedStatusId).name("PLANNED").isInitial(false).isFinal(false).build()));
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RESERVE")).thenReturn(reserveMovementTypeId);
@@ -86,6 +88,8 @@ class ReserveWorkOrderMaterialsServiceTest {
     void reserveMaterials_reservesFifoStockAndMovesWorkOrderToReady() {
         when(repository.findStatusIdByName("READY_TO_PRODUCE")).thenReturn(Optional.of(readyStatusId));
         when(repository.hasActiveTransition(plannedStatusId, readyStatusId)).thenReturn(true);
+        when(repository.findStatusById(readyStatusId)).thenReturn(Optional.of(
+                WorkOrderStatus.builder().id(readyStatusId).name("READY_TO_PRODUCE").description("Ready to produce").build()));
         when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
                 WorkOrderMaterial.builder()
                         .workOrderId(workOrderId)
@@ -109,7 +113,7 @@ class ReserveWorkOrderMaterialsServiceTest {
         var result = service.reserveMaterials(workOrderId);
 
         assertEquals(workOrderId, result.getWorkOrderId());
-        assertEquals("READY_TO_PRODUCE", result.getStatus());
+        assertEquals("READY_TO_PRODUCE", result.getStatus().getName());
         verify(reservationPort).applyReservation(eq(workOrderId), any(List.class), any(),
                 eq(availableStatusId), eq(reservedStatusId), eq(reserveMovementTypeId), eq(actorId));
         verify(auditLogPort).recordStatusTransition(actorId, workOrderId, "PLANNED", "READY_TO_PRODUCE",

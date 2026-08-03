@@ -15,6 +15,7 @@ import java.util.UUID;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
@@ -190,6 +191,20 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     }
 
     @Override
+    public Optional<WorkOrderStatus> findStatusById(UUID id) {
+        if (id == null) return Optional.empty();
+        return dslCtx.selectFrom(WORK_ORDER_STATUSES)
+                .where(WORK_ORDER_STATUSES.ID.eq(id))
+                .fetchOptional(r -> WorkOrderStatus.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .isInitial(Boolean.TRUE.equals(r.getIsInitial()))
+                        .isFinal(Boolean.TRUE.equals(r.getIsFinal()))
+                        .build());
+    }
+
+    @Override
     public Optional<UUID> findStatusIdByName(String name) {
         return dslCtx.select(WORK_ORDER_STATUSES.ID)
                 .from(WORK_ORDER_STATUSES)
@@ -220,14 +235,30 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     }
 
     @Override
-    public List<WorkOrderStatus> findAllStatuses() {
+    public List<WorkOrderStatus> findAllStatuses(Boolean isInitial, Boolean isFinal) {
+        Condition condition = DSL.noCondition();
+        if (isInitial != null) {
+            condition = condition.and(WORK_ORDER_STATUSES.IS_INITIAL.eq(isInitial));
+        }
+        if (isFinal != null) {
+            condition = condition.and(WORK_ORDER_STATUSES.IS_FINAL.eq(isFinal));
+        }
         return dslCtx.selectFrom(WORK_ORDER_STATUSES)
+                .where(condition)
                 .orderBy(WORK_ORDER_STATUSES.NAME.asc())
                 .fetch(r -> WorkOrderStatus.builder()
                         .id(r.getId())
                         .name(r.getName())
                         .description(r.getDescription())
+                        .isInitial(Boolean.TRUE.equals(r.getIsInitial()))
+                        .isFinal(Boolean.TRUE.equals(r.getIsFinal()))
                         .build());
+    }
+
+    @Override
+    public boolean existsByIdAndIsInitial(UUID id) {
+        return dslCtx.fetchExists(WORK_ORDER_STATUSES,
+                WORK_ORDER_STATUSES.ID.eq(id).and(WORK_ORDER_STATUSES.IS_INITIAL.isTrue()));
     }
 
     @Override
