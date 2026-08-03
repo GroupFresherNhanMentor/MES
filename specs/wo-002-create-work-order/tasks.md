@@ -36,7 +36,7 @@
 
 ## Phase 3: User Story 1 - Create Work Order with Active BOM & Calculate Requirements (Priority: P1) 🎯 MVP
 
-**Goal**: Allow Planners to create a Work Order, automatically bind the Active BOM `bomId`, and calculate `work_order_materials` using `plannedQuantity * quantityPerUnit * (1 + scrapRate)`.
+**Goal**: Allow Administrators and Planners to create a Work Order, automatically bind the Active BOM `bomId`, and calculate `work_order_materials` using `plannedQuantity * quantityPerUnit * (1 + scrapRate)`.
 
 **Independent Test**: Run `WorkOrderServiceTest` and `WorkOrderControllerTest` verifying Work Order creation with active BOM link and calculated material requirements.
 
@@ -60,17 +60,17 @@
 
 ## Phase 4: User Story 2 - Role Access Control & Audit Logging (Priority: P2)
 
-**Goal**: Restrict `POST /api/work-orders` exclusively to `ROLE_PLANNER` and write audit log `CREATE_WORK_ORDER`.
+**Goal**: Restrict `POST /api/work-orders` to `ROLE_ADMIN` and `ROLE_PLANNER` and write audit log `CREATE_WORK_ORDER`.
 
-**Independent Test**: Run `WorkOrderControllerTest` verifying HTTP 403 Forbidden for `ADMIN`, `OPERATOR`, `GUEST` and HTTP 201 for `PLANNER`.
+**Independent Test**: Run `WorkOrderIntegrationTest` verifying HTTP 403 Forbidden for `OPERATOR` and HTTP 201 for `ADMIN` and `PLANNER`.
 
 ### Tests for User Story 2 (REQUIRED)
 
-- [x] T013 [P] [US2] Add security test cases for `ROLE_PLANNER` (201) vs `ROLE_ADMIN`/`ROLE_OPERATOR` (403) to `WorkOrderControllerTest` in `be/src/test/java/fpt/qn/mes/workorder/presentation/WorkOrderControllerTest.java`
+- [x] T013 [P] [US2] Add security integration test cases for `ROLE_ADMIN`/`ROLE_PLANNER` (201) vs `ROLE_OPERATOR` (403) to `WorkOrderIntegrationTest` in `be/src/test/java/fpt/qn/mes/workorder/integration/WorkOrderIntegrationTest.java`
 
 ### Implementation for User Story 2
 
-- [x] T014 [US2] Configure `@PreAuthorize("hasRole('PLANNER')")` on `@PostMapping` in `WorkOrderController` in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`
+- [x] T014 [US2] Configure `@PreAuthorize("hasAnyRole('PLANNER', 'ADMIN')")` on `@PostMapping` in `WorkOrderController` in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`
 
 ---
 

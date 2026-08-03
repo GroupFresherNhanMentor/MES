@@ -83,7 +83,7 @@
         }
       },
       "403": {
-        "description": "Forbidden - Current user does not have ROLE_PLANNER",
+        "description": "Forbidden - Current user does not have ROLE_ADMIN or ROLE_PLANNER",
         "body": {
           "type": "object",
           "properties": {
