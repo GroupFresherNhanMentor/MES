@@ -110,6 +110,13 @@ export class AuthService {
     return roles.some((r) => userRoles.includes(r));
   }
 
+  hasRole(role: string): boolean {
+    const user = this.getCurrentUser();
+    if (!user) return false;
+    const userRoles = user.roles && user.roles.length > 0 ? user.roles : (user.role ? [user.role] : []);
+    return userRoles.includes(role);
+  }
+
   clearAll(): void {
     this.remove(APP_CONSTANTS.tokenKey);
     this.remove(APP_CONSTANTS.refreshTokenKey);

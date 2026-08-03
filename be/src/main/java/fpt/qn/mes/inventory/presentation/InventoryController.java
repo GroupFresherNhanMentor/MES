@@ -51,7 +51,7 @@ public class InventoryController {
 
     @Operation(summary = "Record incoming stock physical receipt into warehouse (FR-INV-002)")
     @PostMapping("/api/stock-in")
-    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER')")
     public ResponseEntity<ApiResponse<Void>> recordStockIn(
             @Valid @RequestBody StockInRequest request) {
         inventoryUseCase.recordStockIn(request);
@@ -60,7 +60,7 @@ public class InventoryController {
 
     @Operation(summary = "Get stock balances (FR-INV-001)")
     @GetMapping("/api/stock-balances")
-    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'FACTORY_MANAGER', 'ADMIN', 'OPERATOR', 'PLANNER', 'AUDITOR', 'QC_INSPECTOR')")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'FACTORY_MANAGER', 'ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<StockBalanceResponse>>> getStockBalances(
             @ModelAttribute @Valid StockBalanceSearchRequest request) {
         PageResponse<StockBalanceResponse> result = inventoryUseCase.getStockBalances(request);
@@ -69,7 +69,7 @@ public class InventoryController {
 
     @Operation(summary = "Submit a stock adjustment request (FR-INV-003)")
     @PostMapping("/api/stock-adjustments")
-    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER')")
     public ResponseEntity<ApiResponse<Void>> adjustStock(
             @Valid @RequestBody CreateStockAdjustmentRequest request) {
         inventoryUseCase.adjustStock(request);
@@ -78,7 +78,7 @@ public class InventoryController {
 
     @Operation(summary = "Get pending stock adjustments requiring approval (Factory Manager) (FR-INV-003)")
     @GetMapping("/api/stock-adjustments/pending")
-    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER')")
     public ResponseEntity<ApiResponse<PageResponse<StockAdjustmentApprovalResponse>>> getPendingAdjustments(
             @ModelAttribute @Valid StockAdjustmentApprovalSearchRequest request) {
         PageResponse<StockAdjustmentApprovalResponse> result = inventoryUseCase.getPendingAdjustments(request);
@@ -87,7 +87,7 @@ public class InventoryController {
 
     @Operation(summary = "Approve a pending stock adjustment (Factory Manager) (FR-INV-003)")
     @PostMapping("/api/stock-adjustments/{id}/approve")
-    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER')")
     public ResponseEntity<ApiResponse<StockMovementResponse>> approveAdjustment(
             @PathVariable UUID id) {
         StockMovementResponse result = inventoryUseCase.approveAdjustment(id);
@@ -96,7 +96,7 @@ public class InventoryController {
 
     @Operation(summary = "Reject a pending stock adjustment (Factory Manager) (FR-INV-003)")
     @PostMapping("/api/stock-adjustments/{id}/reject")
-    @PreAuthorize("hasAnyRole('FACTORY_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('FACTORY_MANAGER')")
     public ResponseEntity<ApiResponse<Void>> rejectAdjustment(
             @PathVariable UUID id) {
         inventoryUseCase.rejectAdjustment(id);
@@ -105,7 +105,7 @@ public class InventoryController {
 
     @Operation(summary = "Transfer available inventory between warehouse locations (FR-INV-004)")
     @PostMapping("/api/stock-transfers")
-    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('WAREHOUSE_MANAGER')")
     public ResponseEntity<ApiResponse<StockTransferResponse>> transferStock(
             @Valid @RequestBody StockTransferRequest request) {
         StockTransferResponse result = inventoryUseCase.transferStock(request);

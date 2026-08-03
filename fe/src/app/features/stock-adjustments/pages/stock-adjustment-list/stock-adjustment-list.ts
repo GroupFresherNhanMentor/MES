@@ -40,7 +40,7 @@ export class StockAdjustmentList {
   private snackBar = inject(MatSnackBar);
 
   get canApproveAdjustments(): boolean {
-    return this.auth.hasAnyRole('FACTORY_MANAGER', 'ADMIN');
+    return this.auth.hasRole('FACTORY_MANAGER');
   }
 
   items = signal<StockAdjustmentApprovalDto[]>([]);
