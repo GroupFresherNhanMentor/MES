@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -49,6 +50,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtClaimsSet;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.jooq.DSLContext;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
@@ -70,6 +76,9 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     TestRestTemplate testRestTemplate;
+
+    @Autowired
+    JwtEncoder jwtEncoder;
 
     @Autowired
     DSLContext dsl;
@@ -177,10 +186,10 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         var adminResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
                 new HttpEntity<>(adminRequest, authHeaders(generateAdminToken())), String.class);
         var plannerResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
-                new HttpEntity<>(plannerRequest, authHeaders(generateToken(plannerId, "planner_" + plannerId))),
+                new HttpEntity<>(plannerRequest, authHeaders(tokenWithRole(plannerId, "planner_" + plannerId, "PLANNER"))),
                 String.class);
         var operatorResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
-                new HttpEntity<>(operatorRequest, authHeaders(generateToken(operatorId, "operator_" + operatorId))),
+                new HttpEntity<>(operatorRequest, authHeaders(tokenWithRole(operatorId, "operator_" + operatorId, "OPERATOR"))),
                 String.class);
 
         UUID adminId = dsl.select(USERS.ID).from(USERS).where(USERS.USERNAME.eq("admin")).fetchOne(USERS.ID);
@@ -430,6 +439,23 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
 
     private UUID roleId(String name) {
         return dsl.select(ROLES.ID).from(ROLES).where(ROLES.NAME.eq(name)).fetchOne(ROLES.ID);
+    }
+
+    private String tokenWithRole(UUID userId, String username, String role) {
+        Instant now = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .subject(userId.toString())
+                .issuedAt(now)
+                .expiresAt(now.plusSeconds(900))
+                .id(UUID.randomUUID().toString())
+                .claim("username", username)
+                .claim("roles", List.of(role))
+                .claim("token_type", "access")
+                .issuer("factoryflow-test")
+                .audience(List.of("factoryflow-api-test"))
+                .build();
+        return jwtEncoder.encode(JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS256).build(), claims)).getTokenValue();
     }
 
     private UUID statusId(String name) {
