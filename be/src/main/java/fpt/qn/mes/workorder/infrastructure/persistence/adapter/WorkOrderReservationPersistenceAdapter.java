@@ -35,8 +35,7 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
     DSLContext ctx;
 
     @Override
-    public List<ReservationStock> findAvailableStock(UUID warehouseId, Collection<UUID> productIds,
-            UUID availableStatusId) {
+    public List<ReservationStock> findAvailableStock(Collection<UUID> productIds, UUID availableStatusId) {
         if (productIds == null || productIds.isEmpty()) {
             return List.of();
         }
@@ -48,15 +47,19 @@ public class WorkOrderReservationPersistenceAdapter implements WorkOrderReservat
                         STOCK_BALANCES.PRODUCT_ID,
                         STOCK_BALANCES.LOT_ID,
                         STOCK_BALANCES.QUANTITY,
+                        STOCK_LOTS.EXPIRY_DATE,
                         STOCK_LOTS.CREATED_AT)
                 .from(STOCK_BALANCES)
                 .join(STOCK_LOTS).on(STOCK_LOTS.ID.eq(STOCK_BALANCES.LOT_ID))
-                .where(STOCK_BALANCES.WAREHOUSE_ID.eq(warehouseId))
-                .and(STOCK_BALANCES.PRODUCT_ID.in(productIds))
+                .where(STOCK_BALANCES.PRODUCT_ID.in(productIds))
                 .and(STOCK_BALANCES.STOCK_STATUS_ID.eq(availableStatusId))
                 .and(STOCK_BALANCES.QUANTITY.gt(BigDecimal.ZERO))
-                .orderBy(STOCK_BALANCES.PRODUCT_ID.asc(), STOCK_LOTS.CREATED_AT.asc(),
-                        STOCK_LOTS.ID.asc(), STOCK_BALANCES.LOCATION_ID.asc())
+                .orderBy(
+                        STOCK_BALANCES.PRODUCT_ID.asc(),
+                        STOCK_LOTS.EXPIRY_DATE.asc().nullsLast(),
+                        STOCK_LOTS.CREATED_AT.asc(),
+                        STOCK_LOTS.ID.asc(),
+                        STOCK_BALANCES.LOCATION_ID.asc())
                 .forUpdate()
                 .fetch(record -> new ReservationStock(
                         record.get(STOCK_BALANCES.ID),

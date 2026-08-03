@@ -14,6 +14,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import type { MaintenanceTicketDto } from '../../../../core/models/maintenance-ticket.model';
 import { MaintenanceTicketCreateDialog } from '../../components/maintenance-ticket-create-dialog';
@@ -46,9 +47,11 @@ import { MaintenanceTicketActionDialog } from '../../components/maintenance-tick
           <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-800 mb-4">
             <div class="flex items-center gap-4">
               <h1 class="text-xl font-semibold m-0 style-title" style="color: #fff;">Maintenance Tickets</h1>
+              @if (canManage) {
               <button mat-flat-button color="primary" style="background-color: #e65100;" (click)="openCreateDialog()">
                 <mat-icon>add</mat-icon> Create Ticket
               </button>
+              }
             </div>
 
             <!-- SEARCH & FILTERS BLOCK -->
@@ -133,10 +136,12 @@ import { MaintenanceTicketActionDialog } from '../../components/maintenance-tick
                   <button mat-icon-button color="primary" matTooltip="View detail" (click)="openDetailDialog(t)">
                     <mat-icon>visibility</mat-icon>
                   </button>
+                  @if (canManage) {
                   <button *ngIf="t.status === 'OPEN'" mat-stroked-button color="primary" (click)="openActionDialog(t, 'start')">Start</button>
                   <button *ngIf="t.status === 'OPEN'" mat-stroked-button color="warn" (click)="openActionDialog(t, 'cancel')">Cancel</button>
                   <button *ngIf="t.status === 'IN_PROGRESS'" mat-stroked-button color="primary" (click)="openActionDialog(t, 'resolve')">Resolve</button>
                   <button *ngIf="t.status === 'RESOLVED'" mat-stroked-button color="primary" (click)="openActionDialog(t, 'close')">Close</button>
+                  }
                 </div>
               </td>
             </ng-container>
@@ -162,6 +167,9 @@ import { MaintenanceTicketActionDialog } from '../../components/maintenance-tick
 })
 export class MaintenanceTicketList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
+
+  canManage = this.auth.getCurrentUser()?.role === 'MAINTENANCE_ENGINEER';
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
 

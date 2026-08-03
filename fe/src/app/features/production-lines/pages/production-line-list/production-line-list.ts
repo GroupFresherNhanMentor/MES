@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import type { ProductionLineDto } from '../../../../core/models/production-line.model';
 import { ProductionLineFormComponent } from '../production-line-form/production-line-form';
 
@@ -31,8 +32,11 @@ interface LookupEntry { id: string; name: string; }
 })
 export class ProductionLineList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  canManage = this.auth.getCurrentUser()?.role === 'ADMIN';
 
   items = signal<ProductionLineDto[]>([]);
   total = signal(0);

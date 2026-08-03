@@ -154,6 +154,7 @@ type ActionPanel = 'edit' | 'start' | 'complete' | null;
             <mat-card-header class="!pb-4"><mat-card-title class="!text-xl !font-semibold !text-text-primary">Available actions</mat-card-title></mat-card-header>
             <mat-card-content class="flex flex-col gap-2">
               @if (canEdit()) { <button mat-stroked-button (click)="openPanel('edit')"><mat-icon>edit</mat-icon> Update plan</button> }
+              @if (canMarkPlanned()) { <button mat-stroked-button (click)="markAsPlanned()"><mat-icon>assignment_turned_in</mat-icon> Mark as planned</button> }
               @if (canReserve()) { <button mat-stroked-button (click)="confirmAction('reserve')"><mat-icon>inventory</mat-icon> Reserve materials</button> }
               @if (canRelease()) { <button mat-stroked-button (click)="confirmAction('release')"><mat-icon>undo</mat-icon> Release materials</button> }
               @if (canStart()) { <button mat-stroked-button (click)="openPanel('start')"><mat-icon>play_arrow</mat-icon> Start production</button> }
@@ -277,14 +278,15 @@ export class WorkOrderDetail implements OnInit {
     return id ? `${id.slice(0, 8)}...` : '-';
   }
 
-  canEdit(): boolean { return this.hasRole('ADMIN', 'PLANNER') && ['DRAFT', 'PLANNED'].includes(this.statusName()); }
+  canEdit(): boolean { return this.hasRole('PLANNER') && ['DRAFT', 'PLANNED'].includes(this.statusName()); }
+  canMarkPlanned(): boolean { return this.hasRole('PLANNER') && this.statusName() === 'DRAFT'; }
   canReserve(): boolean { return this.hasRole('PLANNER') && ['PLANNED', 'MATERIAL_SHORTAGE'].includes(this.statusName()); }
-  canRelease(): boolean { return this.hasRole('ADMIN', 'PLANNER') && ['PLANNED', 'READY_TO_PRODUCE'].includes(this.statusName()); }
-  canStart(): boolean { return this.hasRole('ADMIN', 'PLANNER', 'OPERATOR') && this.statusName() === 'READY_TO_PRODUCE'; }
-  canPause(): boolean { return this.hasRole('ADMIN', 'PLANNER', 'OPERATOR') && this.statusName() === 'IN_PROGRESS'; }
-  canResume(): boolean { return this.hasRole('ADMIN', 'PLANNER', 'OPERATOR') && this.statusName() === 'PAUSED'; }
+  canRelease(): boolean { return this.hasRole('PLANNER') && ['PLANNED', 'READY_TO_PRODUCE'].includes(this.statusName()); }
+  canStart(): boolean { return this.hasRole('OPERATOR') && this.statusName() === 'READY_TO_PRODUCE'; }
+  canPause(): boolean { return this.hasRole('OPERATOR') && this.statusName() === 'IN_PROGRESS'; }
+  canResume(): boolean { return this.hasRole('OPERATOR') && this.statusName() === 'PAUSED'; }
   canComplete(): boolean { return this.hasRole('OPERATOR') && this.statusName() === 'IN_PROGRESS'; }
-  canCancel(): boolean { return this.hasRole('ADMIN', 'PLANNER') && ['DRAFT', 'PLANNED', 'MATERIAL_SHORTAGE', 'READY_TO_PRODUCE'].includes(this.statusName()); }
+  canCancel(): boolean { return this.hasRole('PLANNER') && ['DRAFT', 'PLANNED', 'MATERIAL_SHORTAGE', 'READY_TO_PRODUCE'].includes(this.statusName()); }
 
   update(): void {
     const order = this.workOrder();
@@ -296,6 +298,18 @@ export class WorkOrderDetail implements OnInit {
       plannedEndDate: this.toIso(this.editEnd),
     };
     this.submit(API.workOrders.byId(order.id), payload, 'Work order updated.', 'put');
+  }
+
+  markAsPlanned(): void {
+    const order = this.workOrder();
+    if (!order) return;
+    const plannedStatusId = this.statuses().find((s) => s.name === 'PLANNED')?.id;
+    if (!plannedStatusId) {
+      this.snackBar.open('PLANNED status is not loaded yet.', 'OK', { duration: 3000 });
+      return;
+    }
+    const payload: UpdateWorkOrderRequest = { workOrderStatusId: plannedStatusId };
+    this.submit(API.workOrders.byId(order.id), payload, 'Work order marked as planned.', 'put');
   }
 
   start(): void {

@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +22,6 @@ import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.inventory.domain.constants.MovementTypeConstants;
 import fpt.qn.mes.inventory.domain.constants.StockStatusConstants;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
-import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderEventRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderMaterialRequest;
 import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
@@ -59,7 +57,6 @@ import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import org.springframework.context.ApplicationEventPublisher;
 
 @Service
@@ -70,7 +67,6 @@ public class WorkOrderService implements WorkOrderUseCase {
     WorkOrderRepository repository;
     BomRepository bomRepository;
     WorkOrderDtoMapper mapper;
-    WarehouseUseCase warehouseUseCase;
     MachineUseCase machineUseCase;
     WorkOrderReservationPort reservationPort;
     WorkOrderCompletionPort completionPort;
@@ -79,10 +75,6 @@ public class WorkOrderService implements WorkOrderUseCase {
     CurrentUserPort currentUserPort;
     ApplicationEventPublisher eventPublisher;
     JsonSerializerPort jsonSerializer;
-
-    @NonFinal
-    @Value("${app.inventory.raw-material-warehouse-code:RAW_MATERIAL_WAREHOUSE}")
-    String rawMaterialWarehouseCode;
 
     @Override
     @Transactional(readOnly = true)
@@ -327,11 +319,6 @@ public class WorkOrderService implements WorkOrderUseCase {
                     "Work Order must be PLANNED or MATERIAL_SHORTAGE to reserve materials");
         }
 
-        String warehouseCode = rawMaterialWarehouseCode != null
-                ? rawMaterialWarehouseCode
-                : "RAW_MATERIAL_WAREHOUSE";
-        var warehouse = warehouseUseCase.getWarehouseByCode(warehouseCode);
-
         UUID availableStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.AVAILABLE),
                 "AVAILABLE stock status is not configured");
         UUID reservedStatusId = requireReferenceId(reservationPort.findStockStatusId(StockStatusConstants.RESERVED),
@@ -344,8 +331,7 @@ public class WorkOrderService implements WorkOrderUseCase {
                 .map(WorkOrderMaterial::getMaterialProductId)
                 .distinct()
                 .toList();
-        List<ReservationStock> stock = reservationPort.findAvailableStock(
-                warehouse.getId(), productIds, availableStatusId);
+        List<ReservationStock> stock = reservationPort.findAvailableStock(productIds, availableStatusId);
 
         Map<UUID, BigDecimal> remainingStockMap = new HashMap<>();
         Map<UUID, List<ReservationStock>> stockByProduct = new HashMap<>();
