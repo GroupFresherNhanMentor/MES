@@ -209,7 +209,7 @@ export class StockBalanceList {
   displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt', 'actions'];
 
   get canWarehouseManage(): boolean {
-    return this.auth.hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN');
+    return this.auth.hasAnyRole('WAREHOUSE_MANAGER');
   }
 
   constructor() {

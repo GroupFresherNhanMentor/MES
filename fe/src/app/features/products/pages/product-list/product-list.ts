@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import { ProductDto } from '../../../../core/models/product.model';
 import { ProductFormComponent } from '../product-form/product-form';
@@ -32,8 +33,11 @@ interface LookupEntry { id: string; name: string; description: string; }
 })
 export class ProductListComponent {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  canManage = this.auth.getCurrentUser()?.role === 'ADMIN';
 
   products = signal<ProductDto[]>([]);
   total = signal(0);

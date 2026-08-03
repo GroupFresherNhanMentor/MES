@@ -14,6 +14,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import type { MachineDto } from '../../../../core/models/machine.model';
 import { MachineFormComponent } from '../machine-form/machine-form';
 
@@ -31,8 +32,11 @@ interface LookupEntry { id: string; name: string; }
 })
 export class MachineList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  canManage = this.auth.getCurrentUser()?.role === 'ADMIN';
 
   items = signal<MachineDto[]>([]);
   total = signal(0);

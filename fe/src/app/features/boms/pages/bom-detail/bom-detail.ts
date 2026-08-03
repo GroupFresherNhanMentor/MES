@@ -58,7 +58,7 @@ export class BomDetail implements OnInit {
   currentUser = this.auth.getCurrentUser();
   canWrite = computed(() => {
     const role = this.currentUser?.role;
-    return role === 'ADMIN' || role === 'PLANNER';
+    return role === 'PLANNER';
   });
 
   isDraft = computed(() => this.bom()?.bomStatus?.name === 'DRAFT');

@@ -15,6 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { FormsModule } from '@angular/forms';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import type { LocationDto } from '../../../../core/models/location.model';
 import { LocationFormComponent } from '../location-form/location-form';
 
@@ -32,9 +33,12 @@ interface LookupEntry { id: string; name: string; }
 })
 export class LocationList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private route = inject(ActivatedRoute);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
+
+  canManage = this.auth.getCurrentUser()?.role === 'ADMIN';
 
   warehouseId = '';
   items = signal<LocationDto[]>([]);

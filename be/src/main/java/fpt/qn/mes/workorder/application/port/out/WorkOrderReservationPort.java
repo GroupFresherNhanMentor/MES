@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface WorkOrderReservationPort {
-    List<ReservationStock> findAvailableStock(UUID warehouseId, Collection<UUID> productIds, UUID availableStatusId);
+    List<ReservationStock> findAvailableStock(Collection<UUID> productIds, UUID availableStatusId);
 
     UUID findStockStatusId(String statusName);
 

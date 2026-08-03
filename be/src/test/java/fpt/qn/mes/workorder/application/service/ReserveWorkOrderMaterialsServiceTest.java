@@ -25,8 +25,6 @@ import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.bom.domain.repository.BomRepository;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
-import fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse;
-import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
@@ -42,7 +40,6 @@ class ReserveWorkOrderMaterialsServiceTest {
     @Mock WorkOrderRepository repository;
     @Mock BomRepository bomRepository;
     @Mock WorkOrderDtoMapper mapper;
-    @Mock WarehouseUseCase warehouseUseCase;
     @Mock MachineUseCase machineUseCase;
     @Mock WorkOrderReservationPort reservationPort;
     @Mock AuditLogPort auditLogPort;
@@ -60,7 +57,6 @@ class ReserveWorkOrderMaterialsServiceTest {
     UUID reservedStatusId;
     UUID reserveMovementTypeId;
     UUID actorId;
-    UUID warehouseId;
     WorkOrder workOrder;
 
     @BeforeEach
@@ -73,7 +69,6 @@ class ReserveWorkOrderMaterialsServiceTest {
         reservedStatusId = UUID.randomUUID();
         reserveMovementTypeId = UUID.randomUUID();
         actorId = UUID.randomUUID();
-        warehouseId = UUID.randomUUID();
         workOrder = WorkOrder.builder()
                 .id(workOrderId)
                 .plannedQuantity(BigDecimal.TEN)
@@ -81,8 +76,6 @@ class ReserveWorkOrderMaterialsServiceTest {
                 .build();
         when(repository.findForUpdate(workOrderId)).thenReturn(Optional.of(workOrder));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
-        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(WarehouseResponse.builder().id(warehouseId).code("RAW_MATERIAL_WAREHOUSE").build());
         when(reservationPort.findStockStatusId("AVAILABLE")).thenReturn(availableStatusId);
         when(reservationPort.findStockStatusId("RESERVED")).thenReturn(reservedStatusId);
         when(reservationPort.findMovementTypeId("RESERVE")).thenReturn(reserveMovementTypeId);
@@ -104,8 +97,9 @@ class ReserveWorkOrderMaterialsServiceTest {
         UUID newerLot = UUID.randomUUID();
         UUID olderBalance = UUID.randomUUID();
         UUID newerBalance = UUID.randomUUID();
+        UUID warehouseId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();
-        when(reservationPort.findAvailableStock(eq(warehouseId), eq(List.of(materialId)), eq(availableStatusId)))
+        when(reservationPort.findAvailableStock(eq(List.of(materialId)), eq(availableStatusId)))
                 .thenReturn(List.of(
                         new ReservationStock(olderBalance, warehouseId, locationId, materialId, olderLot,
                                 BigDecimal.valueOf(2), null),
@@ -125,9 +119,6 @@ class ReserveWorkOrderMaterialsServiceTest {
 
     @Test
     void reserveMaterials_shortageUpdatesStatusAndReturnsDetails() {
-        UUID warehouseId = UUID.randomUUID();
-        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(WarehouseResponse.builder().id(warehouseId).build());
         when(repository.findMaterialsByWorkOrderId(workOrderId)).thenReturn(List.of(
                 WorkOrderMaterial.builder()
                         .workOrderId(workOrderId)
@@ -135,8 +126,8 @@ class ReserveWorkOrderMaterialsServiceTest {
                         .requiredQuantity(BigDecimal.TEN)
                         .reservedQuantity(BigDecimal.ZERO)
                         .build()));
-        when(reservationPort.findAvailableStock(eq(warehouseId), eq(List.of(materialId)), eq(availableStatusId)))
-                .thenReturn(List.of(new ReservationStock(UUID.randomUUID(), warehouseId, UUID.randomUUID(),
+        when(reservationPort.findAvailableStock(eq(List.of(materialId)), eq(availableStatusId)))
+                .thenReturn(List.of(new ReservationStock(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                         materialId, UUID.randomUUID(), BigDecimal.ONE, null)));
         UUID shortageStatusId = UUID.randomUUID();
         when(repository.findStatusIdByName("MATERIAL_SHORTAGE")).thenReturn(Optional.of(shortageStatusId));

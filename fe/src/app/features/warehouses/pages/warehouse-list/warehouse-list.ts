@@ -15,6 +15,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import type { WarehouseDto } from '../../../../core/models/warehouse.model';
 import { WarehouseFormComponent } from '../warehouse-form/warehouse-form';
 
@@ -32,9 +33,12 @@ interface LookupEntry { id: string; name: string; }
 })
 export class WarehouseList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
   private snackBar = inject(MatSnackBar);
   private router = inject(Router);
+
+  canManage = this.auth.getCurrentUser()?.role === 'ADMIN';
 
   items = signal<WarehouseDto[]>([]);
   total = signal(0);
