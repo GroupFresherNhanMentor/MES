@@ -1,19 +1,19 @@
-.custom-wrapper{
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
+.custom-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-.custom-toolbar{
-    display: block;
+.custom-toolbar {
+  flex-shrink: 0;
 }
 
-.custom-container{
-    display: flex;
-    flex: 1;
-
+.custom-container {
+  flex: 1;
+  overflow: hidden;
 }
 
-.custom-mat-drawer{
-    width: 12rem;
+.custom-mat-drawer {
+  width: 220px;
 }

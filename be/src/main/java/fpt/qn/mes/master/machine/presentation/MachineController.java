@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -36,23 +37,27 @@ public class MachineController {
     MachineUseCase machineUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'PLANNER', 'FACTORY_MANAGER', 'MAINTENANCE_ENGINEER', 'AUDITOR')")
     public ResponseEntity<ApiResponse<PageResponse<MachineResponse>>> getMachines(
             @ModelAttribute MachineSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(machineUseCase.getMachines(request), "OK"));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'PLANNER', 'FACTORY_MANAGER', 'MAINTENANCE_ENGINEER', 'AUDITOR')")
     public ResponseEntity<ApiResponse<MachineResponse>> getMachineById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(machineUseCase.getMachineById(id), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createMachine(@Valid @RequestBody CreateMachineRequest request) {
         machineUseCase.createMachine(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("Created"));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateMachine(
             @PathVariable UUID id, @Valid @RequestBody UpdateMachineRequest request) {
         machineUseCase.updateMachine(id, request);
@@ -60,6 +65,7 @@ public class MachineController {
     }
 
     @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MAINTENANCE_ENGINEER')")
     public ResponseEntity<ApiResponse<Void>> changeMachineStatus(
             @PathVariable UUID id, @Valid @RequestBody ChangeMachineStatusRequest request) {
         machineUseCase.changeMachineStatus(id, request.getStatusId());

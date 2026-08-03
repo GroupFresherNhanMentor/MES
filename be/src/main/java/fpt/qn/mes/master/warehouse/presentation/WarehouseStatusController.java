@@ -2,6 +2,7 @@ package fpt.qn.mes.master.warehouse.presentation;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,12 +30,14 @@ public class WarehouseStatusController {
     WarehouseStatusUseCase warehousestatusUseCase;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<WarehouseStatusResponse>>> getWarehouseStatuses(
             @ModelAttribute WarehouseStatusSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(warehousestatusUseCase.getWarehouseStatuses(request), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createWarehouseStatus(
             @Valid @RequestBody CreateWarehouseStatusRequest request) {
         warehousestatusUseCase.createWarehouseStatus(request);
