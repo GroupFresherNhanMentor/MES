@@ -34,6 +34,7 @@ public class LotTypeController {
 
     @Operation(summary = "Get lot types")
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<LotTypeResponse>>> getLotTypes(
             @ModelAttribute LotTypeSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(lotTypeUseCase.getLotTypes(request), "OK"));

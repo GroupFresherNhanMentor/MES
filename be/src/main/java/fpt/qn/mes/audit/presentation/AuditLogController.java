@@ -33,7 +33,7 @@ public class AuditLogController {
     AuditLogUseCase auditLogUseCase;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('PERM_SYSTEM_CONFIG_MANAGE') or hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACTORY_MANAGER', 'AUDITOR')")
     @Operation(summary = "Search audit logs", description = "Search and filter immutable audit log records with pagination")
     public ResponseEntity<ApiResponse<PageResponse<AuditLogResponse>>> getAuditLogs(
             @ModelAttribute AuditLogSearchRequest request) {
@@ -42,7 +42,7 @@ public class AuditLogController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('PERM_SYSTEM_CONFIG_MANAGE') or hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_SUPERVISOR')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'FACTORY_MANAGER', 'AUDITOR')")
     @Operation(summary = "Get audit log details", description = "Retrieve a specific audit log record by ID")
     public ResponseEntity<ApiResponse<AuditLogResponse>> getAuditLogById(
             @PathVariable UUID id) {

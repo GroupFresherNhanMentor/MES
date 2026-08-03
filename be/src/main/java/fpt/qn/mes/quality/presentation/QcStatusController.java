@@ -2,6 +2,7 @@ package fpt.qn.mes.quality.presentation;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,12 +30,14 @@ public class QcStatusController {
     QcStatusUseCase qcStatusUseCase;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<QcStatusResponse>>> getQcStatuses(
             @ModelAttribute QcStatusSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(qcStatusUseCase.getQcStatuses(request), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createQcStatus(
             @Valid @RequestBody CreateQcStatusRequest request) {
         qcStatusUseCase.createQcStatus(request);
