@@ -1,45 +1,79 @@
-import type { InspectionStatus } from '../../configs/constants';
+// FE models for the Quality module — aligned with the BE response/request DTOs.
+
+export interface WorkOrderInfo {
+  workOrderId: string;
+  workOrderCode: string;
+}
+
+export interface ProductInfo {
+  productId: string;
+  productCode: string;
+  productName: string;
+}
+
+export interface StockLotInfo {
+  lotId: string;
+  lotNumber: string;
+  lotType: string;
+}
 
 export interface QualityInspectionDto {
   id: string;
-  inspectionCode: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
-  workOrderId?: string;
-  workOrderCode?: string;
-  inspector?: string;
-  inspectorName?: string;
-  inspectionDate: string;
-  status: InspectionStatus;
-  sampleSize: number;
-  defectsFound: number;
-  defectRate?: number;
-  notes?: string;
-  remarks?: string;
+  workOrder?: WorkOrderInfo;
+  product?: ProductInfo;
+  lot?: StockLotInfo;
+  quantity: number;
+  qcStatusName: string;
   createdAt: string;
-  updatedAt: string;
+}
+
+export interface InspectorInfo {
+  userId: string;
+  username: string;
+  fullName: string;
+}
+
+export interface QualityInspectionResultDto {
+  id: string;
+  inspectionId: string;
+  isPass: boolean;
+  quantity: number;
+  defectTypeName: string;
+  reason: string;
+  actionName: string;
+  inspector?: InspectorInfo;
+  inspectedAt: string;
+  note?: string;
 }
 
 export interface CreateQualityInspectionRequest {
+  workOrderId: string;
   productId: string;
-  workOrderId?: string;
-  inspector?: string;
-  inspectionDate: string;
-  sampleSize: number;
-  defectsFound?: number;
-  notes?: string;
+  lotId: string;
+  quantity: number;
+  qcStatusId: string;
 }
 
-export interface UpdateInspectionDecisionRequest {
-  remarks?: string;
+export interface PassQcRequest {
+  passedQuantity: number;
+  note?: string;
 }
 
-export interface QualityInspectionListParams {
-  keyword?: string;
-  status?: InspectionStatus;
-  productId?: string;
-  workOrderId?: string;
-  page?: number;
-  size?: number;
+export interface FailQcRequest {
+  failedQuantity: number;
+  actionId: string;
+  defectTypeId: string;
+  reason: string;
+  note?: string;
+}
+
+export interface QualityLookupDto {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface CreateQualityLookupRequest {
+  name: string;
+  description?: string;
 }
