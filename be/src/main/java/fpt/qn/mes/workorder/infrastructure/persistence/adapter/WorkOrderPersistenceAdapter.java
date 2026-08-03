@@ -1,8 +1,10 @@
 package fpt.qn.mes.workorder.infrastructure.persistence.adapter;
 
 import static fpt.qn.mes.jooq.Tables.WORK_ORDERS;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_EVENT_TYPES;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_EVENTS;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_MATERIALS;
+import static fpt.qn.mes.jooq.Tables.WORK_ORDER_PRIORITIES;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUSES;
 import static fpt.qn.mes.jooq.Tables.WORK_ORDER_STATUS_TRANSITIONS;
 import static org.jooq.impl.DSL.noCondition;
@@ -17,10 +19,14 @@ import org.springframework.stereotype.Repository;
 
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.jooq.tables.records.WorkOrdersRecord;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderEvent;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderEventType;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderPriority;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 import fpt.qn.mes.workorder.infrastructure.persistence.WorkOrderRecordMapper;
@@ -61,7 +67,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     public WorkOrder save(WorkOrder w) {
         WorkOrdersRecord record = mapper.toRecord(w);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();
@@ -115,7 +121,7 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     public WorkOrderMaterial saveMaterial(WorkOrderMaterial m) {
         var record = mapper.toRecord(m);
         if (record.getId() == null) {
-            record.setId(UUID.randomUUID());
+            record.setId(UuidV7.generate());
         }
         dslCtx.attach(record);
         record.store();
@@ -200,10 +206,49 @@ public class WorkOrderPersistenceAdapter extends BaseRepository<WorkOrdersRecord
     }
 
     @Override
+    public boolean existsByCode(String code) {
+        return code != null && dslCtx.fetchExists(dslCtx.selectFrom(WORK_ORDERS)
+                .where(WORK_ORDERS.CODE.eq(code)));
+    }
+
+    @Override
     public boolean existsByCodeAndIdNot(String code, UUID excludeId) {
         if (code == null) return false;
         return dslCtx.fetchExists(dslCtx.selectFrom(WORK_ORDERS)
                 .where(WORK_ORDERS.CODE.eq(code))
                 .and(WORK_ORDERS.ID.ne(excludeId)));
+    }
+
+    @Override
+    public List<WorkOrderStatus> findAllStatuses() {
+        return dslCtx.selectFrom(WORK_ORDER_STATUSES)
+                .orderBy(WORK_ORDER_STATUSES.NAME.asc())
+                .fetch(r -> WorkOrderStatus.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .build());
+    }
+
+    @Override
+    public List<WorkOrderPriority> findAllPriorities() {
+        return dslCtx.selectFrom(WORK_ORDER_PRIORITIES)
+                .orderBy(WORK_ORDER_PRIORITIES.NAME.asc())
+                .fetch(r -> WorkOrderPriority.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .build());
+    }
+
+    @Override
+    public List<WorkOrderEventType> findAllEventTypes() {
+        return dslCtx.selectFrom(WORK_ORDER_EVENT_TYPES)
+                .orderBy(WORK_ORDER_EVENT_TYPES.NAME.asc())
+                .fetch(r -> WorkOrderEventType.builder()
+                        .id(r.getId())
+                        .name(r.getName())
+                        .description(r.getDescription())
+                        .build());
     }
 }

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -38,17 +39,20 @@ public class WarehouseController {
     WarehouseUseCase warehouseUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE_MANAGER', 'PLANNER', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR')")
     public ResponseEntity<ApiResponse<PageResponse<WarehouseResponse>>> getWarehouses(
             @ModelAttribute WarehouseSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getWarehouses(request), "OK"));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE_MANAGER', 'PLANNER', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR')")
     public ResponseEntity<ApiResponse<WarehouseResponse>> getWarehouseById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getWarehouseById(id), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createWarehouse(
             @Valid @RequestBody CreateWarehouseRequest request) {
         warehouseUseCase.createWarehouse(request);
@@ -56,6 +60,7 @@ public class WarehouseController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateWarehouse(
             @PathVariable UUID id, @Valid @RequestBody UpdateWarehouseRequest request) {
         warehouseUseCase.updateWarehouse(id, request);
@@ -63,23 +68,27 @@ public class WarehouseController {
     }
 
     @PutMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> activateWarehouse(@PathVariable UUID id) {
         warehouseUseCase.activateWarehouse(id);
         return ResponseEntity.ok(ApiResponse.success("Activated"));
     }
 
     @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivateWarehouse(@PathVariable UUID id) {
         warehouseUseCase.deactivateWarehouse(id);
         return ResponseEntity.ok(ApiResponse.success("Deactivated"));
     }
 
     @GetMapping("/{id}/managers")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<WarehouseManagerResponse>>> getManagers(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(warehouseUseCase.getManagers(id), "OK"));
     }
 
     @PostMapping("/{id}/managers")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> assignManager(
             @PathVariable UUID id, @Valid @RequestBody AssignManagerRequest request) {
         warehouseUseCase.assignManager(id, request);
@@ -87,6 +96,7 @@ public class WarehouseController {
     }
 
     @DeleteMapping("/{id}/managers/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> removeManager(
             @PathVariable UUID id, @PathVariable UUID userId) {
         warehouseUseCase.removeManager(id, userId);

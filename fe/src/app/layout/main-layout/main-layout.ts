@@ -33,6 +33,7 @@ interface NavItem {
     MatProgressBarModule,
   ],
   templateUrl: './main-layout.html',
+  styleUrl: './main-layout.css',
 })
 export class MainLayout {
   private readonly authService = inject(AuthService);
@@ -80,9 +81,9 @@ export class MainLayout {
     { path: '/products', label: 'Products', icon: 'inventory_2', roles: ['ADMIN'] },
     { path: '/warehouses', label: 'Warehouses', icon: 'warehouse', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
     { path: '/production-lines', label: 'Production Lines', icon: 'precision_manufacturing', roles: ['ADMIN'] },
-    { path: '/machines', label: 'Machines', icon: 'settings', roles: ['ADMIN', 'PRODUCTION_OPERATOR'] },
+    { path: '/machines', label: 'Machines', icon: 'settings', roles: ['ADMIN', 'OPERATOR'] },
     { path: '/boms', label: 'BOM', icon: 'description', roles: ['ADMIN', 'PLANNER'] },
-    { path: '/work-orders', label: 'Work Orders', icon: 'assignment', roles: ['ADMIN', 'PLANNER', 'PRODUCTION_OPERATOR'] },
+    { path: '/work-orders', label: 'Work Orders', icon: 'assignment', roles: ['ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR'] },
     { path: '/stock-balances', label: 'Stock', icon: 'shelves', roles: ['ADMIN', 'WAREHOUSE_MANAGER'] },
     { path: '/stock-movements', label: 'Movements', icon: 'swap_horiz', roles: ['ADMIN', 'WAREHOUSE_MANAGER', 'AUDITOR'] },
     { path: '/stock-adjustments', label: 'Adjustments', icon: 'pending_actions', roles: ['ADMIN', 'FACTORY_MANAGER'] },

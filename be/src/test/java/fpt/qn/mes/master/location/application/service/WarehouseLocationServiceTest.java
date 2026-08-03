@@ -14,7 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.location.application.dto.warehouselocation.create.CreateWarehouseLocationRequest;
 import fpt.qn.mes.master.location.application.dto.warehouselocation.WarehouseLocationResponse;
 import fpt.qn.mes.master.location.application.exception.LocationStatusNotFoundException;
@@ -34,6 +36,8 @@ class WarehouseLocationServiceTest {
     @Mock LocationStatusRepository locationStatusRepository;
     @Mock WarehouseLocationDtoMapper mapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
     @InjectMocks WarehouseLocationService warehouseLocationService;
 
     UUID id = UUID.randomUUID();

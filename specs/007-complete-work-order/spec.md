@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement POST /api/v1/work-orders/{id}/complete"
+**Input**: User description: "Implement POST /api/work-orders/{id}/complete"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -74,7 +74,7 @@ As a Factory Manager, I want only Operators to complete a Work Order and complet
 
 ### Functional Requirements
 
-- **FR-001**: System MUST provide `POST /api/v1/work-orders/{id}/complete` to authenticated users with only the `OPERATOR` role.
+- **FR-001**: System MUST provide `POST /api/work-orders/{id}/complete` to authenticated users with only the `OPERATOR` role.
 - **FR-002**: The completion request MUST include `actualQuantity`, `goodQuantity`, `defectQuantity`, `scrapQuantity`, `outputWarehouseId`, and `outputLocationId`; it MAY include a completion note.
 - **FR-003**: System MUST reject negative reported quantities and MUST require `goodQuantity + defectQuantity + scrapQuantity = actualQuantity`.
 - **FR-004**: System MUST allow completion only when the Work Order is `IN_PROGRESS`, has an active production run, and has an active configured transition from `IN_PROGRESS` to `COMPLETED`.

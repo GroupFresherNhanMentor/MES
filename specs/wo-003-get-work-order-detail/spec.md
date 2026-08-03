@@ -1,4 +1,4 @@
-# Feature Specification: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Feature Specification: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 **Feature Branch**: `specs/wo-003-get-work-order-detail`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement GET /api/v1/work-orders/{id}"
+**Input**: User description: "Implement GET /api/work-orders/{id}"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -16,12 +16,12 @@ As an Authorized User (`ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, `AUDIT
 
 **Why this priority**: Retrieving complete Work Order details in a single query provides essential operational visibility for planners, operators, and plant managers without requiring multiple round-trip API requests.
 
-**Independent Test**: Can be tested by issuing `GET /api/v1/work-orders/{id}` with a valid Work Order ID and verifying that the returned HTTP 200 response contains basic details, the list of required/reserved/consumed materials, and history events (START, PAUSE, RESUME, COMPLETE).
+**Independent Test**: Can be tested by issuing `GET /api/work-orders/{id}` with a valid Work Order ID and verifying that the returned HTTP 200 response contains basic details, the list of required/reserved/consumed materials, and history events (START, PAUSE, RESUME, COMPLETE).
 
 **Acceptance Scenarios**:
 
-1. **Given** an existing Work Order ID, **When** an authorized user sends `GET /api/v1/work-orders/{id}`, **Then** system returns HTTP 200 OK containing `WorkOrderDto` with `materials` list and `events` list.
-2. **Given** a valid JWT token for an authorized role (`ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, `AUDITOR`), **When** calling `GET /api/v1/work-orders/{id}`, **Then** access is granted.
+1. **Given** an existing Work Order ID, **When** an authorized user sends `GET /api/work-orders/{id}`, **Then** system returns HTTP 200 OK containing `WorkOrderDto` with `materials` list and `events` list.
+2. **Given** a valid JWT token for an authorized role (`ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, `AUDITOR`), **When** calling `GET /api/work-orders/{id}`, **Then** access is granted.
 
 ---
 
@@ -31,11 +31,11 @@ As an Authorized User, when I query a Work Order ID that does not exist in the d
 
 **Why this priority**: Clear error handling prevents client application confusion when attempting to access invalid or deleted Work Orders.
 
-**Independent Test**: Issue `GET /api/v1/work-orders/{non-existent-uuid}` and verify HTTP 404 response with `NOT_FOUND` error code.
+**Independent Test**: Issue `GET /api/work-orders/{non-existent-uuid}` and verify HTTP 404 response with `NOT_FOUND` error code.
 
 **Acceptance Scenarios**:
 
-1. **Given** a non-existent Work Order UUID, **When** calling `GET /api/v1/work-orders/{id}`, **Then** system returns HTTP 404 Not Found with error code `NOT_FOUND`.
+1. **Given** a non-existent Work Order UUID, **When** calling `GET /api/work-orders/{id}`, **Then** system returns HTTP 404 Not Found with error code `NOT_FOUND`.
 
 ---
 
@@ -49,7 +49,7 @@ As a System Security Guard, I want to reject requests from unauthorized roles (o
 
 **Acceptance Scenarios**:
 
-1. **Given** an unauthenticated request or unauthorized role token, **When** calling `GET /api/v1/work-orders/{id}`, **Then** system returns HTTP 401 Unauthorized or HTTP 403 Forbidden.
+1. **Given** an unauthenticated request or unauthorized role token, **When** calling `GET /api/work-orders/{id}`, **Then** system returns HTTP 401 Unauthorized or HTTP 403 Forbidden.
 
 ---
 
@@ -62,8 +62,8 @@ As a System Security Guard, I want to reject requests from unauthorized roles (o
 
 ### Functional Requirements
 
-- **FR-WO-005**: System MUST provide REST endpoint `GET /api/v1/work-orders/{id}` returning detailed Work Order information.
-- **FR-WO-006**: System MUST restrict access to `GET /api/v1/work-orders/{id}` to roles `ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, and `AUDITOR`.
+- **FR-WO-005**: System MUST provide REST endpoint `GET /api/work-orders/{id}` returning detailed Work Order information.
+- **FR-WO-006**: System MUST restrict access to `GET /api/work-orders/{id}` to roles `ADMIN`, `PLANNER`, `OPERATOR`, `FACTORY_MANAGER`, and `AUDITOR`.
 - **FR-WO-007**: System MUST embed the list of associated material requirements (`materials` containing `materialProductId`, `requiredQuantity`, `reservedQuantity`, `consumedQuantity`) inside the returned `WorkOrderDto`.
 - **FR-WO-008**: System MUST embed the list of associated history events (`events` containing `eventTypeId`, `operatorId` as performer, `eventTimestamp` as time, `note`) inside the returned `WorkOrderDto`.
 - **FR-WO-009**: System MUST return HTTP 404 Not Found with error code `NOT_FOUND` when the specified Work Order ID does not exist in the database.
@@ -78,7 +78,7 @@ As a System Security Guard, I want to reject requests from unauthorized roles (o
 
 ### Measurable Outcomes
 
-- **SC-001**: 100% of valid `GET /api/v1/work-orders/{id}` requests return HTTP 200 OK with complete details, embedded `materials`, and embedded `events`.
+- **SC-001**: 100% of valid `GET /api/work-orders/{id}` requests return HTTP 200 OK with complete details, embedded `materials`, and embedded `events`.
 - **SC-002**: 100% of non-existent ID queries return HTTP 404 Not Found with error code `NOT_FOUND`.
 - **SC-003**: 100% of requests from unauthorized roles are rejected with HTTP 403 Forbidden.
 

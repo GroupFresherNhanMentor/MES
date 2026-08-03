@@ -30,6 +30,16 @@ public class ProductionRunPersistenceAdapter implements ProductionRunPort {
     DSLContext ctx;
 
     @Override
+    public boolean lockMachine(UUID machineId) {
+        return ctx.select(MACHINES.ID)
+                .from(MACHINES)
+                .where(MACHINES.ID.eq(machineId))
+                .forUpdate()
+                .fetchOptional(MACHINES.ID)
+                .isPresent();
+    }
+
+    @Override
     public UUID createProductionRun(UUID workOrderId, UUID machineId, UUID productionLineId, UUID operatorId) {
         UUID runId = UuidV7.generate();
         ctx.insertInto(PRODUCTION_RUNS)

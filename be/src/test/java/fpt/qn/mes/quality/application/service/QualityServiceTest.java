@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,8 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.quality.application.dto.inspection.fail.FailQcRequest;
 import fpt.qn.mes.quality.application.dto.inspection.pass.PassQcRequest;
 import fpt.qn.mes.quality.application.exception.DefectTypeRequiredException;
@@ -26,8 +27,8 @@ import fpt.qn.mes.quality.application.exception.InvalidQcActionException;
 import fpt.qn.mes.quality.application.exception.QualityInspectionNotFoundException;
 import fpt.qn.mes.quality.application.exception.ReasonRequiredException;
 import fpt.qn.mes.quality.application.mapper.QualityDtoMapper;
-import fpt.qn.mes.quality.application.port.out.QcStockPort;
-import fpt.qn.mes.quality.domain.entities.QcAction;
+import fpt.qn.mes.quality.application.port.out.QcFailStockPort;
+import fpt.qn.mes.quality.application.port.out.QcReleasePort;
 import fpt.qn.mes.quality.domain.entities.QcStatus;
 import fpt.qn.mes.quality.domain.entities.QualityInspection;
 import fpt.qn.mes.quality.domain.repository.QcActionRepository;
@@ -40,39 +41,30 @@ class QualityServiceTest {
     @Mock QualityInspectionRepository inspectionRepository;
     @Mock QcStatusRepository qcStatusRepository;
     @Mock QcActionRepository qcActionRepository;
-    @Mock QcStockPort qcStockPort;
+    @Mock QcReleasePort qcReleasePort;
+    @Mock QcFailStockPort qcFailStockPort;
     @Mock QualityDtoMapper qualityDtoMapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
 
     @InjectMocks QualityService qualityService;
 
     UUID inspectionId;
     UUID userId;
     UUID pendingStatusId;
-    UUID passedStatusId;
-    UUID qcInspectionStatusId;
-    UUID availableStatusId;
-    UUID qcPassMovementTypeId;
     UUID scrapActionId;
-    UUID scrapStatusId;
-    UUID scrapMovementTypeId;
     UUID reworkActionId;
     UUID defectTypeId;
 
     @BeforeEach
     void setUp() {
-        inspectionId         = UUID.randomUUID();
-        userId               = UUID.randomUUID();
-        pendingStatusId      = UUID.randomUUID();
-        passedStatusId       = UUID.randomUUID();
-        qcInspectionStatusId = UUID.randomUUID();
-        availableStatusId    = UUID.randomUUID();
-        qcPassMovementTypeId = UUID.randomUUID();
-        scrapActionId        = UUID.randomUUID();
-        scrapStatusId        = UUID.randomUUID();
-        scrapMovementTypeId  = UUID.randomUUID();
-        reworkActionId       = UUID.randomUUID();
-        defectTypeId         = UUID.randomUUID();
+        inspectionId    = UUID.randomUUID();
+        userId          = UUID.randomUUID();
+        pendingStatusId = UUID.randomUUID();
+        scrapActionId   = UUID.randomUUID();
+        reworkActionId  = UUID.randomUUID();
+        defectTypeId    = UUID.randomUUID();
     }
 
     // ── passInspection ────────────────────────────────────────────────────────
@@ -118,9 +110,9 @@ class QualityServiceTest {
     }
 
     @Test
-    void failInspection_throwsAlreadyClosed_whenFullyProcessed() {
-        when(inspectionRepository.findById(inspectionId)).thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100))));
-        when(inspectionRepository.sumResultQuantities(inspectionId)).thenReturn(BigDecimal.valueOf(100));
+    void failInspection_throwsAlreadyClosed_whenRemainingIsZero() {
+        when(inspectionRepository.findById(inspectionId))
+            .thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100), BigDecimal.ZERO)));
 
         FailQcRequest request = new FailQcRequest();
         request.setFailedQuantity(BigDecimal.TEN);
@@ -134,8 +126,8 @@ class QualityServiceTest {
 
     @Test
     void failInspection_throwsInsufficient_whenFailExceedsRemaining() {
-        when(inspectionRepository.findById(inspectionId)).thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100))));
-        when(inspectionRepository.sumResultQuantities(inspectionId)).thenReturn(BigDecimal.ZERO);
+        when(inspectionRepository.findById(inspectionId))
+            .thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100), BigDecimal.valueOf(100))));
 
         FailQcRequest request = new FailQcRequest();
         request.setFailedQuantity(BigDecimal.valueOf(200));
@@ -149,8 +141,8 @@ class QualityServiceTest {
 
     @Test
     void failInspection_throwsDefectTypeRequired_whenMissingDefectType() {
-        when(inspectionRepository.findById(inspectionId)).thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100))));
-        when(inspectionRepository.sumResultQuantities(inspectionId)).thenReturn(BigDecimal.ZERO);
+        when(inspectionRepository.findById(inspectionId))
+            .thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100), BigDecimal.valueOf(100))));
 
         FailQcRequest request = new FailQcRequest();
         request.setFailedQuantity(BigDecimal.TEN);
@@ -164,8 +156,8 @@ class QualityServiceTest {
 
     @Test
     void failInspection_throwsReasonRequired_whenMissingReason() {
-        when(inspectionRepository.findById(inspectionId)).thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100))));
-        when(inspectionRepository.sumResultQuantities(inspectionId)).thenReturn(BigDecimal.ZERO);
+        when(inspectionRepository.findById(inspectionId))
+            .thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100), BigDecimal.valueOf(100))));
 
         FailQcRequest request = new FailQcRequest();
         request.setFailedQuantity(BigDecimal.TEN);
@@ -179,8 +171,8 @@ class QualityServiceTest {
 
     @Test
     void failInspection_throwsInvalidAction_whenActionNotFound() {
-        when(inspectionRepository.findById(inspectionId)).thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100))));
-        when(inspectionRepository.sumResultQuantities(inspectionId)).thenReturn(BigDecimal.ZERO);
+        when(inspectionRepository.findById(inspectionId))
+            .thenReturn(Optional.of(createInspection(BigDecimal.valueOf(100), BigDecimal.valueOf(100))));
         when(qcActionRepository.findById(scrapActionId)).thenReturn(Optional.empty());
 
         FailQcRequest request = new FailQcRequest();
@@ -202,13 +194,14 @@ class QualityServiceTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private QualityInspection createInspection(BigDecimal quantity) {
+    private QualityInspection createInspection(BigDecimal quantity, BigDecimal remainingQuantity) {
         return QualityInspection.builder()
             .id(inspectionId)
             .workOrder(QualityInspection.WorkOrderRef.builder().id(UUID.randomUUID()).build())
             .product(QualityInspection.ProductRef.builder().id(UUID.randomUUID()).build())
             .lot(QualityInspection.StockLotRef.builder().id(UUID.randomUUID()).build())
             .quantity(quantity)
+            .remainingQuantity(remainingQuantity)
             .qcStatus(QcStatus.builder().id(pendingStatusId).name("PENDING_INSPECTION").build())
             .build();
     }

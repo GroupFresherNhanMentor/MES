@@ -2,7 +2,7 @@
 
 ## Endpoint 1: Release Reserved Materials
 
-### `POST /api/v1/work-orders/{id}/release-materials`
+### `POST /api/work-orders/{id}/release-materials`
 
 Releases all reserved materials associated with a Work Order back into available stock.
 The operation is idempotent: it releases only the outstanding net reservation for each original stock lot.
@@ -72,7 +72,7 @@ None
 
 ## Endpoint 2: Cancel Work Order
 
-### `POST /api/v1/work-orders/{id}/cancel`
+### `POST /api/work-orders/{id}/cancel`
 
 Cancels a Work Order and automatically releases any reserved materials.
 

@@ -1,60 +1,103 @@
-import type { WorkOrderStatus } from '../../configs/constants';
-
 export interface WorkOrderDto {
   id: string;
-  orderCode: string;
-  productId: string;
-  productName?: string;
-  productCode?: string;
-  bomId?: string;
-  bomCode?: string;
-  productionLineId?: string;
-  productionLineName?: string;
-  quantity: number;
-  completedQuantity: number;
-  scrapQuantity: number;
-  status: WorkOrderStatus;
-  priority: number;
-  dueDate?: string;
-  startedAt?: string;
-  completedAt?: string;
-  assignedTo?: string;
-  assignedToName?: string;
-  notes?: string;
+  code: string;
+  finishedProductId: string;
+  bomId: string;
+  plannedQuantity: number;
+  plannedStartDate?: string | null;
+  plannedEndDate?: string | null;
+  priorityId?: string | null;
+  workOrderStatusId: string;
+  createdBy?: string | null;
   createdAt: string;
-  updatedAt: string;
+  materials?: WorkOrderMaterialDto[] | null;
+  events?: WorkOrderEventDto[] | null;
+}
+
+export interface WorkOrderLookupDto {
+  id: string;
+  name: string;
+  description?: string | null;
+}
+
+export interface WorkOrderMaterialDto {
+  id: string;
+  workOrderId: string;
+  materialProductId: string;
+  requiredQuantity: number;
+  reservedQuantity: number;
+  consumedQuantity: number;
+}
+
+export interface WorkOrderEventDto {
+  id: string;
+  workOrderId: string;
+  productionRunId?: string | null;
+  eventTypeId: string;
+  operatorId?: string | null;
+  eventTimestamp: string;
+  note?: string | null;
 }
 
 export interface CreateWorkOrderRequest {
-  productId: string;
-  bomId?: string;
-  productionLineId?: string;
-  quantity: number;
-  priority?: number;
-  dueDate?: string;
-  assignedTo?: string;
-  notes?: string;
+  code: string;
+  finishedProductId: string;
+  plannedQuantity: number;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+  priorityId?: string;
+  workOrderStatusId: string;
 }
 
 export interface UpdateWorkOrderRequest {
-  quantity?: number;
-  priority?: number;
-  dueDate?: string;
-  assignedTo?: string;
-  productionLineId?: string;
-  notes?: string;
+  code?: string;
+  plannedQuantity?: number;
+  plannedStartDate?: string;
+  plannedEndDate?: string;
+  priorityId?: string;
+  workOrderStatusId?: string;
 }
 
-export interface ReserveMaterialsRequest {
-  notes?: string;
+export interface ReservedMaterialAllocationDto {
+  materialProductId: string;
+  lotId: string;
+  warehouseId: string;
+  locationId: string;
+  reservedQuantity: number;
+}
+
+export interface ReserveWorkOrderMaterialsResponse {
+  workOrderId: string;
+  status: string;
+  allocations: ReservedMaterialAllocationDto[];
+}
+
+export interface WorkOrderMaterialShortageDto {
+  materialProductId: string;
+  requiredQuantity: number;
+  availableQuantity: number;
+  shortageQuantity: number;
+}
+
+export interface StartWorkOrderRequest {
+  machineId: string;
+  productionLineId?: string;
+}
+
+export interface CompleteWorkOrderRequest {
+  actualQuantity: number;
+  goodQuantity: number;
+  defectQuantity: number;
+  scrapQuantity: number;
+  outputWarehouseId: string;
+  outputLocationId: string;
+  note?: string;
 }
 
 export interface WorkOrderListParams {
-  keyword?: string;
-  status?: WorkOrderStatus;
-  productId?: string;
-  productionLineId?: string;
-  assignedTo?: string;
+  code?: string;
+  finishedProductId?: string;
+  statusId?: string;
   page?: number;
   size?: number;
 }

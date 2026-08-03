@@ -1,15 +1,17 @@
-<div class="flex flex-col h-screen bg-surface-app">
-  @if (isLoading()) { <mat-progress-bar mode="indeterminate" class="!fixed !top-0 !inset-x-0 !z-[9999]" /> }
+<div class="custom-wrapper bg-surface-app">
+  @if (isLoading()) {
+    <mat-progress-bar mode="indeterminate" class="!fixed !top-0 !inset-x-0 !z-[9999]" />
+  }
 
-  <mat-toolbar class="!flex !items-center !gap-4 !px-4 !h-14 !bg-surface-elevated !border-b !border-border-default !sticky !top-0 !z-[100]">
-    <button mat-icon-button (click)="toggleSidenav()" class="!w-9 !h-9 !flex !items-center !justify-center">
+  <mat-toolbar class="!flex !items-center !gap-3 !px-3 !h-14 !min-h-[56px] !bg-surface-elevated !border-b !border-border-default !z-[100] custom-toolbar">
+    <button mat-icon-button (click)="toggleSidenav()" class="!w-9 !h-9 !flex !items-center !justify-center shrink-0">
       <mat-icon>menu</mat-icon>
     </button>
-    <span class="font-bold text-base text-primary tracking-wide min-w-[60px]">MES</span>
+    <span class="font-bold text-base text-primary tracking-wide shrink-0">MES</span>
     <span class="flex-1"></span>
-    <span class="text-sm text-text-primary font-medium">{{ pageTitle() }}</span>
+    <span class="text-sm text-text-secondary font-medium truncate max-w-[200px] hidden sm:block">{{ pageTitle() }}</span>
     <span class="flex-1"></span>
-    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="!w-9 !h-9 !flex !items-center !justify-center">
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="!w-9 !h-9 !flex !items-center !justify-center shrink-0">
       <mat-icon>account_circle</mat-icon>
     </button>
     <mat-menu #userMenu="matMenu">
@@ -22,9 +24,9 @@
     </mat-menu>
   </mat-toolbar>
 
-  <mat-drawer-container class="!flex-1 !bg-transparent" autosize>
-    <mat-drawer #drawer [opened]="sidenavOpened()" [mode]="isMobile() ? 'over' : 'side'" class="!w-[220px] !bg-surface-elevated !border-r !border-border-light overflow-y-auto">
-      <nav class="flex flex-col gap-0.5 p-2">
+  <mat-drawer-container class="custom-container !bg-transparent">
+    <mat-drawer #drawer [opened]="sidenavOpened()" [mode]="isMobile() ? 'over' : 'side'" class="!w-[220px] !bg-surface-elevated !border-r !border-border-light overflow-y-auto custom-mat-drawer">
+      <nav class="flex flex-col gap-0.5 p-2 pt-3">
         @for (item of filteredNavItems; track item.path) {
           <a [routerLink]="item.path" routerLinkActive="active" (click)="closeSidenavOnMobile()" class="nav-item">
             <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
@@ -34,8 +36,8 @@
       </nav>
     </mat-drawer>
 
-    <mat-drawer-content class="!bg-surface-app overflow-y-auto">
-      <div class="p-6 max-w-[1440px] mx-auto">
+    <mat-drawer-content class="!h-full !flex !flex-col !bg-surface-app overflow-y-auto">
+      <div class="p-4 sm:p-6 max-w-[1440px] w-full mx-auto flex-1">
         <router-outlet />
       </div>
     </mat-drawer-content>

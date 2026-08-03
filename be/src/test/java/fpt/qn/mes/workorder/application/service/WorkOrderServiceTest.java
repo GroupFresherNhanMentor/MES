@@ -33,10 +33,11 @@ import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.machine.application.port.in.MachineUseCase;
 import fpt.qn.mes.master.warehouse.application.port.in.WarehouseUseCase;
-import fpt.qn.mes.workorder.application.dto.request.ReserveWorkOrderMaterialsRequest;
 import fpt.qn.mes.workorder.application.port.out.AuditLogPort;
 import fpt.qn.mes.workorder.application.port.out.WorkOrderReservationPort;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
@@ -69,6 +70,12 @@ class WorkOrderServiceTest {
 
     @Mock
     AuditLogPort auditLogPort;
+
+    @Mock
+    ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    JsonSerializerPort jsonSerializer;
 
     @InjectMocks
     WorkOrderService service;
@@ -170,6 +177,7 @@ class WorkOrderServiceTest {
         req.setFinishedProductId(productId);
         req.setPlannedQuantity(BigDecimal.valueOf(100));
 
+        when(repository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(statusId));
         when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(activeBom));
         when(repository.save(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
@@ -249,6 +257,7 @@ class WorkOrderServiceTest {
                 .plannedQuantity(BigDecimal.valueOf(100)) // Same quantity so no recalculation
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
@@ -261,6 +270,7 @@ class WorkOrderServiceTest {
 
         // Assert
         assertNotNull(result);
+        verify(repository).findForUpdate(id);
         verify(repository).update(any(WorkOrder.class));
     }
 
@@ -305,6 +315,7 @@ class WorkOrderServiceTest {
                 ))
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.update(any(WorkOrder.class))).thenReturn(updatedEntity);
@@ -332,9 +343,11 @@ class WorkOrderServiceTest {
                 .workOrderStatusId(plannedStatusId)
                 .build();
 
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.hasActiveTransition(statusId, plannedStatusId)).thenReturn(true);
         when(repository.update(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(repository.findMaterialsByWorkOrderId(id)).thenReturn(List.of());
         when(repository.findEventsByWorkOrderId(id)).thenReturn(List.of());
@@ -349,6 +362,25 @@ class WorkOrderServiceTest {
     }
 
     @Test
+    @DisplayName("updateWorkOrder transition DRAFT to PLANNED should fail when transition is inactive")
+    void updateWorkOrder_transitionDraftToPlannedInactive_shouldThrowException() {
+        UUID id = sampleEntity.getId();
+        UUID plannedStatusId = UUID.randomUUID();
+        UpdateWorkOrderRequest req = UpdateWorkOrderRequest.builder()
+                .workOrderStatusId(plannedStatusId)
+                .build();
+
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.findStatusNameById(plannedStatusId)).thenReturn(Optional.of("PLANNED"));
+        when(repository.hasActiveTransition(statusId, plannedStatusId)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                InvalidWorkOrderStateException.class,
+                () -> service.updateWorkOrder(id, req));
+    }
+
+    @Test
     @DisplayName("updateWorkOrder transition DRAFT to IN_PROGRESS via PUT should throw InvalidWorkOrderStateException")
     void updateWorkOrder_transitionToInProgress_shouldThrowException() {
         // Arrange
@@ -358,7 +390,7 @@ class WorkOrderServiceTest {
                 .workOrderStatusId(inProgressStatusId)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.findStatusNameById(inProgressStatusId)).thenReturn(Optional.of("IN_PROGRESS"));
 
@@ -378,7 +410,7 @@ class WorkOrderServiceTest {
                 .plannedQuantity(BigDecimal.ZERO)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
 
         // Act & Assert
@@ -399,7 +431,7 @@ class WorkOrderServiceTest {
                 .plannedEndDate(now)
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
 
         // Act & Assert
@@ -418,7 +450,7 @@ class WorkOrderServiceTest {
                 .code("WO-2026-NEW")
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("IN_PROGRESS"));
 
         // Act & Assert
@@ -437,7 +469,7 @@ class WorkOrderServiceTest {
                 .code("WO-EXISTING")
                 .build();
 
-        when(repository.findById(id)).thenReturn(Optional.of(sampleEntity));
+        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
         when(repository.existsByCodeAndIdNot("WO-EXISTING", id)).thenReturn(true);
 
@@ -448,25 +480,10 @@ class WorkOrderServiceTest {
         );
     }
     @Test
-    @DisplayName("reserveMaterials with null request should throw InvalidWorkOrderReservationException")
-    void reserveMaterials_nullRequest_shouldThrowException() {
-        // Arrange
-        UUID id = sampleEntity.getId();
-
-        // Act & Assert
-        org.junit.jupiter.api.Assertions.assertThrows(
-                InvalidWorkOrderReservationException.class,
-                () -> service.reserveMaterials(id, null)
-        );
-    }
-
-    @Test
     @DisplayName("reserveMaterials with invalid WO status should throw InvalidWorkOrderReservationException")
     void reserveMaterials_invalidStatus_shouldThrowException() {
         // Arrange
         UUID id = sampleEntity.getId();
-        ReserveWorkOrderMaterialsRequest req = new ReserveWorkOrderMaterialsRequest();
-        req.setMachineId(UUID.randomUUID());
 
         when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
         when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
@@ -474,29 +491,7 @@ class WorkOrderServiceTest {
         // Act & Assert
         org.junit.jupiter.api.Assertions.assertThrows(
                 InvalidWorkOrderReservationException.class,
-                () -> service.reserveMaterials(id, req)
-        );
-    }
-
-    @Test
-    @DisplayName("reserveMaterials when machine is unavailable should throw MachineNotAvailableException")
-    void reserveMaterials_machineNotAvailable_shouldThrowException() {
-        // Arrange
-        UUID id = sampleEntity.getId();
-        UUID machineId = UUID.randomUUID();
-        ReserveWorkOrderMaterialsRequest req = new ReserveWorkOrderMaterialsRequest();
-        req.setMachineId(machineId);
-
-        when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
-        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("PLANNED"));
-        when(warehouseUseCase.getWarehouseByCode("RAW_MATERIAL_WAREHOUSE"))
-                .thenReturn(fpt.qn.mes.master.warehouse.application.dto.warehouse.WarehouseResponse.builder().id(UUID.randomUUID()).build());
-        when(machineUseCase.isAvailableForReservation(machineId)).thenReturn(false);
-
-        // Act & Assert
-        org.junit.jupiter.api.Assertions.assertThrows(
-                MachineNotAvailableException.class,
-                () -> service.reserveMaterials(id, req)
+                () -> service.reserveMaterials(id)
         );
     }
 }

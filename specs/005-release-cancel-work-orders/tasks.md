@@ -39,7 +39,7 @@
 
 **Goal**: Allow planners to release reserved materials back to available stock status and record RELEASE_RESERVATION stock movements.
 
-**Independent Test**: Execute `POST /api/v1/work-orders/{id}/release-materials` on a `READY_TO_PRODUCE` Work Order, verify `RESERVED` stock decreases, `AVAILABLE` stock increases, and `RELEASE_RESERVATION` stock movement log is created.
+**Independent Test**: Execute `POST /api/work-orders/{id}/release-materials` on a `READY_TO_PRODUCE` Work Order, verify `RESERVED` stock decreases, `AVAILABLE` stock increases, and `RELEASE_RESERVATION` stock movement log is created.
 
 ### Tests for User Story 1 (REQUIRED)
 
@@ -60,7 +60,7 @@
 
 **Goal**: Allow planners to cancel an unstarted Work Order and automatically release any reserved materials.
 
-**Independent Test**: Execute `POST /api/v1/work-orders/{id}/cancel` on a `READY_TO_PRODUCE` Work Order, verify status changes to `CANCELLED` and materials are released.
+**Independent Test**: Execute `POST /api/work-orders/{id}/cancel` on a `READY_TO_PRODUCE` Work Order, verify status changes to `CANCELLED` and materials are released.
 
 ### Tests for User Story 2 (REQUIRED)
 

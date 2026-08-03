@@ -14,15 +14,19 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { API } from '../../../../configs/api-endpoints';
 import type { StockBalanceDto } from '../../../../core/models/stock-balance.model';
 import type { PageResponse } from '../../../../core/models/api.model';
 import { StockInFormComponent } from '../../components/stock-in-form/stock-in-form';
+import { StockAdjustmentFormComponent } from '../../components/stock-adjustment-form/stock-adjustment-form';
+import { StockTransferFormComponent } from '../../components/stock-transfer-form/stock-transfer-form';
 
 interface LookupEntry { id: string; name: string; }
 
 @Component({
   selector: 'app-stock-balance-list',
+  standalone: true,
   imports: [
     DatePipe, DecimalPipe, FormsModule,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
@@ -40,9 +44,15 @@ interface LookupEntry { id: string; name: string; }
         <mat-card-header class="!flex !items-center !justify-between !pb-4">
           <mat-card-title class="!text-xl !font-semibold !text-text-primary">Stock Balances</mat-card-title>
           <div class="toolbar flex items-center gap-3 flex-wrap">
-            <button mat-raised-button class="ff-btn-primary" (click)="openStockIn()">
-              <mat-icon>add</mat-icon> Stock In
-            </button>
+            @if (canWarehouseManage) {
+              <button mat-raised-button class="ff-btn-primary" (click)="openStockIn()">
+                <mat-icon>add</mat-icon> Stock In
+              </button>
+
+              <button mat-stroked-button color="accent" (click)="openStockTransfer()">
+                <mat-icon>swap_horiz</mat-icon> Stock Transfer
+              </button>
+            }
 
             <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-52">
               <mat-label>Warehouse</mat-label>
@@ -135,6 +145,24 @@ interface LookupEntry { id: string; name: string; }
               </td>
             </ng-container>
 
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="!text-center">Action</th>
+              <td mat-cell *matCellDef="let s" class="!text-center">
+                @if (canWarehouseManage) {
+                  <div class="flex items-center justify-center gap-2">
+                    <button mat-stroked-button color="primary" class="!text-xs" (click)="openStockAdjustment(s)">
+                      <mat-icon class="!text-base">tune</mat-icon> Adjust
+                    </button>
+                    <button mat-stroked-button color="accent" class="!text-xs" (click)="openStockTransfer(s)" [disabled]="s.stockStatus?.name !== 'AVAILABLE'">
+                      <mat-icon class="!text-base">swap_horiz</mat-icon> Transfer
+                    </button>
+                  </div>
+                } @else {
+                  <span class="text-text-muted text-xs">—</span>
+                }
+              </td>
+            </ng-container>
+
             <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
             <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="cursor-default"></tr>
 
@@ -163,6 +191,7 @@ interface LookupEntry { id: string; name: string; }
 })
 export class StockBalanceList {
   private api = inject(ApiService);
+  private auth = inject(AuthService);
   private dialog = inject(MatDialog);
 
   items = signal<StockBalanceDto[]>([]);
@@ -177,7 +206,11 @@ export class StockBalanceList {
   warehouses = signal<LookupEntry[]>([]);
   stockStatuses = signal<LookupEntry[]>([]);
 
-  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt'];
+  displayedColumns = ['product', 'lot', 'warehouse', 'location', 'stockStatus', 'quantity', 'updatedAt', 'actions'];
+
+  get canWarehouseManage(): boolean {
+    return this.auth.hasAnyRole('WAREHOUSE_MANAGER', 'ADMIN');
+  }
 
   constructor() {
     this.loadLookups();
@@ -208,12 +241,20 @@ export class StockBalanceList {
           this.items.set(r.data.items);
           this.total.set(r.data.totalElements);
         }
+        this.loading.set(false);
       },
-      complete: () => this.loading.set(false),
+      error: () => this.loading.set(false),
     });
   }
 
   onFilter() {
+    this.page.set(0);
+    this.load();
+  }
+
+  resetFilters() {
+    this.filterWarehouseId = '';
+    this.filterStatusId = '';
     this.page.set(0);
     this.load();
   }
@@ -224,27 +265,44 @@ export class StockBalanceList {
     this.load();
   }
 
-  resetFilters() {
-    this.filterWarehouseId = '';
-    this.filterStatusId = '';
-    this.onFilter();
-  }
-
   openStockIn() {
     this.dialog.open(StockInFormComponent, {
-      width: '600px',
-      panelClass: 'ff-dialog-panel',
+      width: '560px',
+      disableClose: true,
     }).afterClosed().subscribe(res => {
       if (res) this.load();
     });
   }
 
-  statusBadgeClass(name: string): string {
-    const n = (name || '').toUpperCase();
-    if (n === 'AVAILABLE') return 'ff-badge--available';
-    if (n === 'RESERVED')  return 'ff-badge--onhold';
-    if (n === 'QUARANTINE') return 'ff-badge--pending';
-    if (n === 'SCRAPPED')  return 'ff-badge--cancelled';
-    return 'ff-badge--idle';
+  openStockAdjustment(balance: StockBalanceDto) {
+    this.dialog.open(StockAdjustmentFormComponent, {
+      width: '520px',
+      data: { stockBalance: balance },
+      disableClose: true,
+    }).afterClosed().subscribe(res => {
+      if (res) this.load();
+    });
+  }
+
+  openStockTransfer(balance?: StockBalanceDto) {
+    this.dialog.open(StockTransferFormComponent, {
+      width: '600px',
+      data: balance ? { stockBalance: balance } : null,
+      disableClose: true,
+    }).afterClosed().subscribe(res => {
+      if (res) this.load();
+    });
+  }
+
+  statusBadgeClass(name?: string): string {
+    switch (name) {
+      case 'AVAILABLE': return 'ff-badge--success';
+      case 'RESERVED': return 'ff-badge--info';
+      case 'ON_HOLD':
+      case 'QUALITY_INSPECTION': return 'ff-badge--warning';
+      case 'DAMAGED':
+      case 'SCRAPPED': return 'ff-badge--error';
+      default: return 'ff-badge--neutral';
+    }
   }
 }

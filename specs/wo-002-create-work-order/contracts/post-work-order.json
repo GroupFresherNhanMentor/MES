@@ -1,11 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Create Work Order API Contract",
-  "description": "REST endpoint contract for POST /api/v1/work-orders",
+  "description": "REST endpoint contract for POST /api/work-orders",
   "type": "object",
   "endpoint": {
     "method": "POST",
-    "path": "/api/v1/work-orders",
+    "path": "/api/work-orders",
     "headers": {
       "Authorization": "Bearer <JWT>",
       "Content-Type": "application/json"
@@ -83,7 +83,7 @@
         }
       },
       "403": {
-        "description": "Forbidden - Current user does not have ROLE_PLANNER",
+        "description": "Forbidden - Current user does not have ROLE_ADMIN or ROLE_PLANNER",
         "body": {
           "type": "object",
           "properties": {

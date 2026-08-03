@@ -63,7 +63,7 @@ description: "Task list for Complete Work Order"
 
 - [X] T013 [US1] Implement output destination validation, unique good/defect production lot generation, positive output movement creation, zero-quantity balances, and pending inspection creation in `be/src/main/java/fpt/qn/mes/workorder/infrastructure/persistence/adapter/WorkOrderCompletionPersistenceAdapter.java`.
 - [X] T014 [US1] Implement `completeWorkOrder` quantity validation, active run close, `COMPLETE` event with note, Work Order completion transition, machine release, and `COMPLETE_PRODUCTION` audit orchestration in `be/src/main/java/fpt/qn/mes/workorder/application/service/WorkOrderService.java`.
-- [X] T015 [US1] Add the Operator-only `POST /api/v1/work-orders/{id}/complete` endpoint and success response in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`.
+- [X] T015 [US1] Add the Operator-only `POST /api/work-orders/{id}/complete` endpoint and success response in `be/src/main/java/fpt/qn/mes/workorder/presentation/WorkOrderController.java`.
 - [X] T016 [US1] Update quality-inspection request/domain validation to accept zero inspection quantity in `be/src/main/java/fpt/qn/mes/quality/application/dto/inspection/create/CreateQualityInspectionRequest.java` and `be/src/main/java/fpt/qn/mes/quality/domain/entities/QualityInspection.java`.
 
 **Checkpoint**: An Operator can complete a no-reservation Work Order and the result is independently verifiable through HTTP and persisted records.

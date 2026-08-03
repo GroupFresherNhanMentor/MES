@@ -25,7 +25,7 @@ class WorkOrderCompletionIntegrationTest extends AbstractIntegrationTest {
     void complete_returns401WithoutAuthentication() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
-        String url = "http://localhost:" + port + "/api/v1/work-orders/" + UUID.randomUUID() + "/complete";
+        String url = "http://localhost:" + port + "/api/work-orders/" + UUID.randomUUID() + "/complete";
 
         assertThatThrownBy(() -> new RestTemplate().exchange(url, HttpMethod.POST,
                 new HttpEntity<>("{}", headers), String.class))

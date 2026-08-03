@@ -1,9 +1,15 @@
 package fpt.qn.mes.maintenance.application.service;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
+
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.maintenance.application.dto.request.CreateMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.dto.request.StartMaintenanceTicketRequest;
 import fpt.qn.mes.maintenance.application.dto.request.CloseMaintenanceTicketRequest;
@@ -38,6 +44,8 @@ public class MaintenanceService implements MaintenanceUseCase {
     MachineRepository machineRepository;
     CurrentUserPort currentUserPort;
     MaintenanceDtoMapper mapper;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional
@@ -71,6 +79,10 @@ public class MaintenanceService implements MaintenanceUseCase {
         MachineDowntime downtime = MachineDowntime.create(ticket.getId(), ticket.getMachineId(), Instant.now());
         repository.save(ticket);
         repository.saveDowntime(downtime);
+
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticket.getId(),
+                null, jsonSerializer.toJson(Map.of("machineId", ticket.getMachineId(), "status", "OPEN")), null));
 
         return mapper.toDto(ticket);
     }
@@ -113,6 +125,11 @@ public class MaintenanceService implements MaintenanceUseCase {
         ticket.start(openStatusId, inProgressStatusId, engineerId);
         repository.update(ticket);
 
+        eventPublisher.publishEvent(AuditEvent.create(engineerId, AuditAction.START_MAINTENANCE,
+                "MAINTENANCE_TICKET", ticketId,
+                jsonSerializer.toJson(Map.of("status", "OPEN")),
+                jsonSerializer.toJson(Map.of("status", "IN_PROGRESS", "engineerId", engineerId.toString())), null));
+
         return mapper.toDto(ticket);
     }
 
@@ -129,9 +146,16 @@ public class MaintenanceService implements MaintenanceUseCase {
 
         ticket.resolve(inProgressStatusId, resolvedStatusId);
         repository.update(ticket);
+
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.RESOLVE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticketId,
+                jsonSerializer.toJson(Map.of("status", "IN_PROGRESS")),
+                jsonSerializer.toJson(Map.of("status", "RESOLVED")), null));
     }
 
     @Override
+    @Transactional // Đảm bảo tính Transactional cho cả Ticket và Downtime
     public void cancelTicket(UUID ticketId) {
         UUID openStatusId = repository.findStatusIdByName("OPEN")
                 .orElseThrow(() -> new BusinessException("Status 'OPEN' does not exist"));
@@ -141,8 +165,42 @@ public class MaintenanceService implements MaintenanceUseCase {
         MaintenanceTicket ticket = repository.findById(ticketId)
                 .orElseThrow(() -> new MaintenanceTicketNotFoundException("Maintenance ticket not found"));
 
+        // 1. Cập nhật trạng thái Ticket sang CANCELLED
         ticket.cancel(openStatusId, cancelledStatusId);
         repository.save(ticket);
+
+        // 2. BỔ SUNG LOGIC: Tìm Downtime đang hoạt động (Active) liên kết với Ticket này và đóng lại
+        repository.findActiveDowntimeByTicketId(ticketId).ifPresent(downtime -> {
+            java.time.Instant now = java.time.Instant.now();
+
+            // Cập nhật thời gian kết thúc
+            downtime.setEndTime(now);
+
+            // Tính toán tổng số phút chết (Downtime Minutes)
+            if (downtime.getStartTime() != null) {
+                long minutes = java.time.Duration.between(downtime.getStartTime(), now).toMinutes();
+                downtime.setTotalDowntimeMinutes((Long) minutes);
+            }
+
+            // Điền thông tin lý do hủy hệ thống theo yêu cầu
+            downtime.setRootCause("Ticket cancelled");
+            downtime.setActionTaken("Ticket cancelled");
+
+            // Lưu cập nhật thông tin xuống DB thông qua Adapter
+            repository.updateDowntime(downtime);
+
+            // (Tùy chọn) Nếu nghiệp vụ cần khôi phục lại trạng thái Máy về trạng thái trước đó (ví dụ: OPERATIONAL):
+            // repository.findMachineStatusIdByName("OPERATIONAL").ifPresent(statusId -> {
+            //     repository.updateMachineStatus(downtime.getMachineId(), statusId);
+            // });
+        });
+
+        // 3. Publish Audit Log
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CANCEL_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", ticketId,
+                jsonSerializer.toJson(Map.of("status", "OPEN")),
+                jsonSerializer.toJson(Map.of("status", "CANCELLED")), null));
     }
 
     @Override
@@ -177,8 +235,13 @@ public class MaintenanceService implements MaintenanceUseCase {
         Machine machine = machineRepository.findById(ticket.getMachineId())
                 .orElseThrow(() -> new BusinessException("Machine associated with the ticket not found"));
 
-        Machine updatedMachine = Machine.changeStatus(machine, targetMachineStatusId, currentUserPort.getCurrentUserId());
-
+        UUID currentUserId = currentUserPort.getCurrentUserId();
+        Machine updatedMachine = Machine.changeStatus(machine, targetMachineStatusId, currentUserId);
         machineRepository.update(updatedMachine);
+
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CLOSE_MAINTENANCE_TICKET,
+                "MAINTENANCE_TICKET", request.getTicketId(),
+                jsonSerializer.toJson(Map.of("status", "RESOLVED")),
+                jsonSerializer.toJson(Map.of("status", "CLOSED", "actionTaken", request.getActionTaken())), null));
     }
 }

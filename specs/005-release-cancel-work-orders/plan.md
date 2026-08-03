@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement backend endpoints `POST /api/v1/work-orders/{id}/release-materials` and `POST /api/v1/work-orders/{id}/cancel` in the Spring Boot 4-layer Clean Architecture.
+Implement backend endpoints `POST /api/work-orders/{id}/release-materials` and `POST /api/work-orders/{id}/cancel` in the Spring Boot 4-layer Clean Architecture.
 The implementation will handle stock balance updates (`RESERVED` → `AVAILABLE`), `RELEASE_RESERVATION` stock movement logging, work order status transitions to `CANCELLED`, multi-lot traceability by querying historical `RESERVE` movements, and pessimistic database locking (`SELECT FOR UPDATE`) to prevent race conditions.
 
 ## Technical Context

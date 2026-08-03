@@ -2,10 +2,14 @@ package fpt.qn.mes.master.product.application.service;
 
 import java.util.UUID;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fpt.qn.mes.audit.domain.entities.AuditAction;
+import fpt.qn.mes.audit.domain.events.AuditEvent;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.common.util.PaginationUtils;
 import fpt.qn.mes.master.product.application.dto.product.ProductResponse;
@@ -44,6 +48,8 @@ public class ProductService implements ProductUseCase {
     MovementStockCheckPort movementStockCheckPort;
     ProductDtoMapper mapper;
     CurrentUserPort currentUserPort;
+    ApplicationEventPublisher eventPublisher;
+    JsonSerializerPort jsonSerializer;
 
     @Override
     @Transactional(readOnly = true)
@@ -97,6 +103,8 @@ public class ProductService implements ProductUseCase {
         UUID currentUserId = currentUserPort.getCurrentUserId();
         var product = Product.create(request.getCode(), request.getName(), request.getVersion(), request.getProductTypeId(), request.getUnitId(), activeStatus.getId(), currentUserId);
         productRepository.save(product);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_PRODUCT,
+                "PRODUCT", product.getId(), null, jsonSerializer.toJson(product), null));
     }
 
     @Override
@@ -120,6 +128,8 @@ public class ProductService implements ProductUseCase {
         UUID currentUserId = currentUserPort.getCurrentUserId();
         var updated = Product.update(existing, request.getName(), request.getProductTypeId(), request.getUnitId(), currentUserId);
         productRepository.update(updated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.UPDATE_PRODUCT,
+                "PRODUCT", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(updated), null));
     }
 
     @Override
@@ -130,7 +140,10 @@ public class ProductService implements ProductUseCase {
         ProductStatus activeStatus = productStatusRepository.findByName(ProductStatusConstants.ACTIVE)
                 .orElseThrow(() -> new ProductStatusNotFoundException("ACTIVE status not found"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        productRepository.update(Product.changeStatus(existing, activeStatus.getId(), currentUserId));
+        var activated = Product.changeStatus(existing, activeStatus.getId(), currentUserId);
+        productRepository.update(activated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.ACTIVATE_PRODUCT,
+                "PRODUCT", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(activated), null));
     }
 
     @Override
@@ -141,6 +154,9 @@ public class ProductService implements ProductUseCase {
         ProductStatus inactiveStatus = productStatusRepository.findByName(ProductStatusConstants.INACTIVE)
                 .orElseThrow(() -> new ProductStatusNotFoundException("INACTIVE status not found"));
         UUID currentUserId = currentUserPort.getCurrentUserId();
-        productRepository.update(Product.changeStatus(existing, inactiveStatus.getId(), currentUserId));
+        var deactivated = Product.changeStatus(existing, inactiveStatus.getId(), currentUserId);
+        productRepository.update(deactivated);
+        eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.DEACTIVATE_PRODUCT,
+                "PRODUCT", id, jsonSerializer.toJson(existing), jsonSerializer.toJson(deactivated), null));
     }
 }

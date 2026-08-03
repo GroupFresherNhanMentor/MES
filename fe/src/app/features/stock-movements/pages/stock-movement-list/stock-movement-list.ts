@@ -12,13 +12,15 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 import { ApiService } from '../../../../core/services/api';
 import { API } from '../../../../configs/api-endpoints';
+import { JoinWithPipe } from '../../../../shared/pipes/join-with.pipe';
 import type { StockMovementDto } from '../../../../core/models/stock-movement.model';
 import type { PageResponse } from '../../../../core/models/api.model';
 
 @Component({
   selector: 'app-stock-movement-list',
+  standalone: true,
   imports: [
-    DatePipe, FormsModule,
+    DatePipe, FormsModule, JoinWithPipe,
     MatTableModule, MatButtonModule, MatIconModule, MatFormFieldModule,
     MatInputModule, MatCardModule, MatPaginatorModule, MatProgressBarModule,
   ],
@@ -56,11 +58,8 @@ import type { PageResponse } from '../../../../core/models/api.model';
 
             <ng-container matColumnDef="product">
               <th mat-header-cell *matHeaderCellDef>Product</th>
-              <td mat-cell *matCellDef="let m">
-                <div class="flex flex-col">
-                  <span class="font-medium text-text-primary">{{ m.product?.name || '—' }}</span>
-                  <span class="font-mono text-xs text-text-muted">{{ m.product?.code }}</span>
-                </div>
+              <td mat-cell *matCellDef="let m" class="font-medium text-text-primary">
+                {{ m.product?.name | joinWith: m.product?.code }}
               </td>
             </ng-container>
 
@@ -73,25 +72,15 @@ import type { PageResponse } from '../../../../core/models/api.model';
 
             <ng-container matColumnDef="from">
               <th mat-header-cell *matHeaderCellDef>From</th>
-              <td mat-cell *matCellDef="let m">
-                @if (m.fromWarehouse) {
-                  <div class="flex flex-col">
-                    <span class="text-text-primary">{{ m.fromWarehouse.name }}</span>
-                    <span class="font-mono text-xs text-text-muted">{{ m.fromLocation?.code }}</span>
-                  </div>
-                } @else { <span class="text-text-muted">—</span> }
+              <td mat-cell *matCellDef="let m" class="text-text-primary">
+                {{ m.fromWarehouse?.name | joinWith: m.fromLocation?.code }}
               </td>
             </ng-container>
 
             <ng-container matColumnDef="to">
               <th mat-header-cell *matHeaderCellDef>To</th>
-              <td mat-cell *matCellDef="let m">
-                @if (m.toWarehouse) {
-                  <div class="flex flex-col">
-                    <span class="text-text-primary">{{ m.toWarehouse.name }}</span>
-                    <span class="font-mono text-xs text-text-muted">{{ m.toLocation?.code }}</span>
-                  </div>
-                } @else { <span class="text-text-muted">—</span> }
+              <td mat-cell *matCellDef="let m" class="text-text-primary">
+                {{ m.toWarehouse?.name | joinWith: m.toLocation?.code }}
               </td>
             </ng-container>
 

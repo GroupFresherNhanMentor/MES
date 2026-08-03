@@ -68,6 +68,9 @@ export const API = {
     resume: (id: string | number) => `${BASE}/work-orders/${id}/resume`,
     complete: (id: string | number) => `${BASE}/work-orders/${id}/complete`,
     cancel: (id: string | number) => `${BASE}/work-orders/${id}/cancel`,
+    statuses: `${BASE}/work-orders/statuses`,
+    priorities: `${BASE}/work-orders/priorities`,
+    eventTypes: `${BASE}/work-orders/event-types`,
   },
   stockBalances: {
     base: `${BASE}/stock-balances`,
@@ -105,6 +108,7 @@ export const API = {
     cancel: (id: string | number) => `${BASE}/maintenance/${id}/cancel`,
     ticketStatuses: `${BASE}/maintenance/ticket-statuses`,
     ticketPriorities: `${BASE}/maintenance/ticket-priorities`,
+    engineers: `${BASE}/maintenance/engineers`,
     downtimeByTicket: (id: string | number) => `${BASE}/maintenance/${id}/downtime`,
   },
   reports: {

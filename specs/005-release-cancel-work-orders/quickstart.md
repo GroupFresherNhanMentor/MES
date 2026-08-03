@@ -1,6 +1,6 @@
 # Quickstart & Manual Validation Guide: Release and Cancel Work Orders
 
-This guide outlines end-to-end verification steps for `POST /api/v1/work-orders/{id}/release-materials` and `POST /api/v1/work-orders/{id}/cancel`.
+This guide outlines end-to-end verification steps for `POST /api/work-orders/{id}/release-materials` and `POST /api/work-orders/{id}/cancel`.
 
 ## Prerequisites
 
@@ -13,13 +13,13 @@ This guide outlines end-to-end verification steps for `POST /api/v1/work-orders/
 ## Scenario 1: Release Reserved Materials
 
 ### Step 1: Create and Reserve a Work Order
-- Call `POST /api/v1/work-orders` to create a Work Order.
-- Call `POST /api/v1/work-orders/{id}/reserve-materials` to reserve raw materials.
+- Call `POST /api/work-orders` to create a Work Order.
+- Call `POST /api/work-orders/{id}/reserve-materials` to reserve raw materials.
 - Verify status is `READY_TO_PRODUCE` and material `reservedQuantity > 0`.
 
 ### Step 2: Call Release Materials Endpoint
 ```bash
-curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/release-materials \
+curl -X POST http://localhost:8080/api/work-orders/{WO_ID}/release-materials \
   -H "Authorization: Bearer $PLANNER_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -36,12 +36,12 @@ curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/release-materials 
 ## Scenario 2: Cancel Work Order (Auto-Release)
 
 ### Step 1: Create and Reserve another Work Order
-- Call `POST /api/v1/work-orders` to create a Work Order.
-- Call `POST /api/v1/work-orders/{id}/reserve-materials`.
+- Call `POST /api/work-orders` to create a Work Order.
+- Call `POST /api/work-orders/{id}/reserve-materials`.
 
 ### Step 2: Call Cancel Endpoint
 ```bash
-curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/cancel \
+curl -X POST http://localhost:8080/api/work-orders/{WO_ID}/cancel \
   -H "Authorization: Bearer $PLANNER_TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -57,7 +57,7 @@ curl -X POST http://localhost:8080/api/v1/work-orders/{WO_ID}/cancel \
 ## Scenario 3: Validation Error Handling
 
 ### Step 1: Attempt to Cancel an In-Progress Work Order
-- Call `POST /api/v1/work-orders/{WO_ID}/cancel` on a Work Order that is in `IN_PROGRESS` status.
+- Call `POST /api/work-orders/{WO_ID}/cancel` on a Work Order that is in `IN_PROGRESS` status.
 
 ### Expected Outcome
 1. HTTP Status `400 Bad Request`.

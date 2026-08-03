@@ -1,4 +1,4 @@
-# Implementation Plan: Create Work Order (`POST /api/v1/work-orders`)
+# Implementation Plan: Create Work Order (`POST /api/work-orders`)
 
 **Branch**: `wo-002-create-work-order` | **Date**: 2026-07-29 | **Spec**: [spec.md](file:///D:/Programming/FPT-Software/OJT/MES/MES/specs/wo-002-create-work-order/spec.md)
 
@@ -6,7 +6,7 @@
 
 ## Summary
 
-Implement the `POST /api/v1/work-orders` (and `POST /api/work-orders`) endpoint to create a new Work Order. The implementation verifies that the user possesses `ROLE_PLANNER`, validates that `plannedQuantity > 0` and `plannedEndDate > plannedStartDate`, verifies that the finished product has an `ACTIVE` BOM (returning error `BOM_NOT_ACTIVE` if missing), automatically links the active `bomId` to the Work Order, calculates material requirements for each BOM component using `requiredQuantity = plannedQuantity * quantityPerUnit * (1 + scrapRate)` and saves them to `work_order_materials`, sets initial status to `PLANNED`, and records an audit log with action `CREATE_WORK_ORDER`.
+Implement the `POST /api/work-orders` endpoint to create a new Work Order. The implementation verifies that the user possesses `ROLE_ADMIN` or `ROLE_PLANNER`, validates that `plannedQuantity > 0` and `plannedEndDate > plannedStartDate`, verifies that the finished product has an `ACTIVE` BOM (returning error `BOM_NOT_ACTIVE` if missing), automatically links the active `bomId` to the Work Order, calculates material requirements for each BOM component using `requiredQuantity = plannedQuantity * quantityPerUnit * (1 + scrapRate)` and saves them to `work_order_materials`, sets initial status to `PLANNED`, and records an audit log with action `CREATE_WORK_ORDER`.
 
 ## Technical Context
 
@@ -28,7 +28,7 @@ Implement the `POST /api/v1/work-orders` (and `POST /api/work-orders`) endpoint 
 - No framework annotations in domain entities (`WorkOrder`, `WorkOrderMaterial`, `WorkOrderEvent`). **PASSED**
 - No Java Records, No Lombok on domain entities, No method references (`Bom::getId` forbidden, use `b -> b.getId()`). **PASSED**
 - All controller responses wrapped in `ApiResponse<T>`. **PASSED**
-- Role-based authorization enforced via `@PreAuthorize("hasRole('PLANNER')")`. **PASSED**
+- Role-based authorization enforced via `@PreAuthorize("hasAnyRole('PLANNER', 'ADMIN')")`. **PASSED**
 
 ## Project Structure
 

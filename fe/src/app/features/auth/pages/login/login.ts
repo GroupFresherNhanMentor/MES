@@ -87,7 +87,7 @@ const MOCK_USERS: MockUser[] = [
       top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
     }
     .card {
-      position: relative; z-index: 10; width: 440px; padding: 40px; text-align: center;
+      position: relative; z-index: 10; max-width: 440px; width: 92vw; min-width: 280px; padding: 40px; text-align: center;
       background: rgba(41, 37, 36, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       border: 1px solid #44403c; border-radius: 16px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
     }

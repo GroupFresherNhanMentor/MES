@@ -1,4 +1,4 @@
-# Data Model: Get Work Order Detail (`GET /api/v1/work-orders/{id}`)
+# Data Model: Get Work Order Detail (`GET /api/work-orders/{id}`)
 
 ## Entities & DTOs
 
@@ -38,6 +38,7 @@ public class WorkOrderMaterialDto {
 public class WorkOrderEventDto {
     UUID id;
     UUID workOrderId;
+    UUID productionRunId;
     UUID eventTypeId;
     UUID operatorId; // Performer
     Instant eventTimestamp; // Event Time
@@ -75,6 +76,7 @@ erDiagram
     WORK_ORDER_EVENTS {
         uuid id PK
         uuid work_order_id FK
+        uuid production_run_id FK
         uuid event_type_id FK
         uuid operator_id FK
         timestamp event_timestamp

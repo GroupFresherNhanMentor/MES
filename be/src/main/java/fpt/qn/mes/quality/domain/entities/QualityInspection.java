@@ -40,6 +40,7 @@ public class QualityInspection {
     ProductRef product;
     StockLotRef lot;
     BigDecimal quantity;
+    BigDecimal remainingQuantity;
     QcStatus qcStatus;
     Instant createdAt;
 
@@ -51,6 +52,7 @@ public class QualityInspection {
             .product(ProductRef.builder().id(productId).build())
             .lot(StockLotRef.builder().id(lotId).build())
             .quantity(quantity)
+            .remainingQuantity(quantity)
             .qcStatus(qcStatus)
             .createdAt(Instant.now())
             .build();

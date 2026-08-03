@@ -22,12 +22,6 @@ public class AuditLogPersistenceAdapter implements AuditLogPort {
     DSLContext ctx;
 
     @Override
-    public void recordStatusTransition(UUID actorId, UUID workOrderId, String oldStatus, String newStatus) {
-        // Reservation flow uses the historical default action for backward-compatible audit entries.
-        recordStatusTransition(actorId, workOrderId, oldStatus, newStatus, "RESERVE_MATERIAL");
-    }
-
-    @Override
     public void recordStatusTransition(UUID actorId, UUID workOrderId, String oldStatus, String newStatus, String action) {
         // Store status values as JSON strings because audit_logs uses JSONB columns.
         ctx.insertInto(AUDIT_LOGS)

@@ -34,7 +34,7 @@
 
 ## Decision 3: Use pessimistic row locking with deterministic FIFO allocation
 
-**Decision**: Lock the Work Order row, the requested machine row when its availability is checked, and all eligible `AVAILABLE` stock balance rows using `SELECT FOR UPDATE`. Select lots in FIFO order by `stock_lots.created_at`, with deterministic tie-breakers for equal timestamps.
+**Decision**: Lock the Work Order row and all eligible `AVAILABLE` stock balance rows using `SELECT FOR UPDATE`. Select lots in FIFO order by `stock_lots.created_at`, with deterministic tie-breakers for equal timestamps. Machine availability is locked and checked only at start.
 
 **Rationale**:
 
@@ -51,7 +51,7 @@
 
 ## Decision 4: Make reservation all-or-nothing and persist shortage status
 
-**Decision**: Validate every material and machine before changing stock. On shortage, write only the `MATERIAL_SHORTAGE` status and its audit record, then return a structured `INSUFFICIENT_STOCK` error without stock or material reservation changes. Configure the service transaction so the expected shortage exception does not roll back the shortage status record.
+**Decision**: Validate every material before changing stock. On shortage, write only the `MATERIAL_SHORTAGE` status and its audit record, then return a structured `INSUFFICIENT_STOCK` error without stock or material reservation changes. Configure the service transaction so the expected shortage exception does not roll back the shortage status record.
 
 **Rationale**:
 
@@ -81,20 +81,20 @@
 - Add a second reservation ledger table: rejected because the existing movement ledger already models this event.
 - Leave `workOrderId` unmapped: rejected because it violates auditability and the data model.
 
-## Decision 6: Implement API versioning without breaking current Work Order routes
+## Decision 6: Standardize the Work Order route
 
-**Decision**: Expose the requested `/api/v1/work-orders/{id}/reserve-materials` route while retaining the existing `/api/work-orders` route mapping for current clients.
+**Decision**: Expose Work Order operations only under `/api/work-orders`, including `/api/work-orders/{id}/reserve-materials`.
 
 **Rationale**:
 
-- The requested contract is explicitly versioned.
-- The existing controller is rooted at `/api/work-orders`; replacing it outright would break already implemented Work Order endpoints.
-- The route mapping must remain documented consistently with the requested endpoint.
+- The project-wide API convention uses unversioned `/api/{resources}` paths.
+- A single controller root keeps all Work Order operations and authorization rules consistent.
+- Tests, contracts, and client references use the same canonical route.
 
 **Alternatives considered**:
 
-- Replace `/api` with `/api/v1`: rejected because it breaks existing routes.
-- Implement only `/api/work-orders/{id}/reserve-materials`: rejected because it does not satisfy the requested endpoint.
+- Retain a versioned route alias: rejected because no shipped compatibility requirement exists and duplicate routes increase maintenance cost.
+- Version only the reserve action: rejected because one resource must not expose mixed route conventions.
 - Add a second duplicate controller with copied business logic: rejected because it creates two presentation paths for one use case.
 
 ## Decision 7: Audit status transitions in the same business transaction

@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Create Work Order (`POST /api/v1/work-orders`)
+# Specification Quality Checklist: Create Work Order (`POST /api/work-orders`)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-07-29

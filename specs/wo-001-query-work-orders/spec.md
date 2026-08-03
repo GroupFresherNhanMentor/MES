@@ -1,4 +1,4 @@
-# Feature Specification: Query Work Orders (`GET /api/v1/work-orders`)
+# Feature Specification: Query Work Orders (`GET /api/work-orders`)
 
 **Feature Branch**: `wo-001-query-work-orders`
 
@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Implement GET /api/v1/work-orders endpoint"
+**Input**: User description: "Implement GET /api/work-orders endpoint"
 
 ## User Scenarios & Testing *(mandatory)*
 

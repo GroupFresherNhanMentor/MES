@@ -14,7 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
+import fpt.qn.mes.common.port.out.JsonSerializerPort;
 import fpt.qn.mes.master.line.application.dto.line.create.CreateLineRequest;
 import fpt.qn.mes.master.line.application.dto.line.LineResponse;
 import fpt.qn.mes.master.line.application.exception.LineConflictException;
@@ -36,6 +38,8 @@ class LineServiceTest {
     @Mock LineMachinePort lineMachinePort;
     @Mock LineDtoMapper mapper;
     @Mock CurrentUserPort currentUserPort;
+    @Mock ApplicationEventPublisher eventPublisher;
+    @Mock JsonSerializerPort jsonSerializer;
     @InjectMocks LineService lineService;
 
     UUID id = UUID.randomUUID();

@@ -3,6 +3,7 @@ package fpt.qn.mes.bom.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -266,7 +267,7 @@ class BomServiceTest {
     }
 
     @Test
-    void activateBom_throwsInvalidStatus_whenNotDraft() {
+    void activateBom_throwsInvalidStatus_whenAlreadyActive() {
         UUID bomId = UUID.randomUUID();
         Bom activeBom = Bom.builder()
                 .id(bomId)
@@ -284,6 +285,31 @@ class BomServiceTest {
 
         assertThrows(InvalidBomStatusException.class, () -> bomService.activateBom(bomId));
         verify(bomRepository, never()).update(any(Bom.class));
+    }
+
+    @Test
+    void activateBom_transitionsToActive_whenInactive() {
+        UUID bomId = UUID.randomUUID();
+        Bom inactiveBom = Bom.builder()
+                .id(bomId)
+                .finishedProductId(finishedProductId)
+                .version(1)
+                .bomStatus(inactiveStatus)
+                .createdAt(Instant.now())
+                .items(List.of(BomItem.builder().id(UUID.randomUUID()).build()))
+                .build();
+
+        when(bomRepository.findById(bomId)).thenReturn(Optional.of(inactiveBom));
+        when(bomStatusRepository.findByName("DRAFT")).thenReturn(Optional.of(draftStatus));
+        when(bomStatusRepository.findByName("ACTIVE")).thenReturn(Optional.of(activeStatus));
+        when(bomStatusRepository.findByName("INACTIVE")).thenReturn(Optional.of(inactiveStatus));
+        when(currentUserPort.getCurrentUserId()).thenReturn(userId);
+
+        bomService.activateBom(bomId);
+
+        verify(bomRepository).deactivateActiveBomsForProduct(finishedProductId, activeStatus.getId(), inactiveStatus.getId());
+        verify(bomRepository).update(argThat(b -> b.getBomStatus().getId().equals(activeStatus.getId())));
+        verify(eventPublisher).publishEvent(any(AuditEvent.class));
     }
 
     @Test

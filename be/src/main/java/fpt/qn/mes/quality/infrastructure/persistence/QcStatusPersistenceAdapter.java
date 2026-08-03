@@ -52,6 +52,13 @@ public class QcStatusPersistenceAdapter extends BaseRepository<QcStatusesRecord>
     }
 
     @Override
+    public Optional<QcStatus> findByName(String name) {
+        return dslCtx.selectFrom(QC_STATUSES)
+            .where(QC_STATUSES.NAME.eq(name))
+            .fetchOptional(r -> mapper.toDomain(r));
+    }
+
+    @Override
     public List<QcStatus> findAll() {
         return dslCtx.selectFrom(QC_STATUSES)
             .orderBy(QC_STATUSES.NAME.asc())

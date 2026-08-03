@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import fpt.qn.mes.common.dto.response.ApiResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeResponse;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceEngineerResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -78,6 +79,14 @@ public class MaintenanceQueryController {
     @PreAuthorize("hasAnyRole('MAINTENANCE_ENGINEER', 'OPERATOR', 'PLANNER', 'FACTORY_MANAGER', 'ADMIN')")
     public ResponseEntity<List<MaintenanceMetadataResponse>> getAllTicketTypes() {
         return ResponseEntity.ok(maintenanceQueryUseCase.getAllTicketTypes());
+    }
+
+    @GetMapping("/engineers")
+    @Operation(summary = "Lấy danh sách maintenance engineer")
+    @PreAuthorize("hasAnyRole('MAINTENANCE_ENGINEER', 'OPERATOR', 'PLANNER', 'FACTORY_MANAGER', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<MaintenanceEngineerResponse>>> getMaintenanceEngineers() {
+        List<MaintenanceEngineerResponse> engineers = maintenanceQueryUseCase.getMaintenanceEngineers();
+        return ResponseEntity.ok(ApiResponse.success(engineers, "Maintenance engineers retrieved"));
     }
 
     @GetMapping("/{ticketId}/downtime")

@@ -1,6 +1,5 @@
 package fpt.qn.mes.workorder.domain.entities;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,20 +14,14 @@ import lombok.experimental.FieldDefaults;
 public class WorkOrderEvent {
     UUID id;
     UUID workOrderId;
+    UUID productionRunId;
     UUID eventTypeId;
-    UUID machineId;
-    UUID productionLineId;
     UUID operatorId;
-    BigDecimal actualQuantity;
-    BigDecimal goodQuantity;
-    BigDecimal defectQuantity;
-    BigDecimal scrapQuantity;
     Instant eventTimestamp;
     String note;
 
-    public static WorkOrderEvent create(UUID workOrderId, UUID eventTypeId, UUID machineId, UUID productionLineId,
-            UUID operatorId, BigDecimal actualQuantity, BigDecimal goodQuantity, BigDecimal defectQuantity,
-            BigDecimal scrapQuantity, String note) {
+    public static WorkOrderEvent create(UUID workOrderId, UUID productionRunId, UUID eventTypeId, UUID operatorId,
+            String note) {
         throw new UnsupportedOperationException("Not implemented");
     }
 }

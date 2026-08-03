@@ -176,11 +176,19 @@ public class QualityPersistenceAdapter extends BaseRepository<QualityInspections
 
     @Override
     public BigDecimal sumResultQuantities(UUID inspectionId) {
-        BigDecimal sum = ctx.select(QUALITY_INSPECTION_RESULTS.QUANTITY.sum())
+        BigDecimal sum = ctx.select(DSL.sum(QUALITY_INSPECTION_RESULTS.QUANTITY))
             .from(QUALITY_INSPECTION_RESULTS)
             .where(QUALITY_INSPECTION_RESULTS.INSPECTION_ID.eq(inspectionId))
             .fetchOneInto(BigDecimal.class);
         return sum != null ? sum : BigDecimal.ZERO;
+    }
+
+    @Override
+    public void decrementRemainingQuantity(UUID inspectionId, BigDecimal amount) {
+        ctx.update(QUALITY_INSPECTIONS)
+            .set(QUALITY_INSPECTIONS.REMAINING_QUANTITY, QUALITY_INSPECTIONS.REMAINING_QUANTITY.subtract(amount))
+            .where(QUALITY_INSPECTIONS.ID.eq(inspectionId))
+            .execute();
     }
 
     @Override

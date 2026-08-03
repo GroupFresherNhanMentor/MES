@@ -1,4 +1,4 @@
-# Research: Query Work Orders (`GET /api/v1/work-orders`)
+# Research: Query Work Orders (`GET /api/work-orders`)
 
 ## Phase 0 Findings & Architectural Decisions
 
