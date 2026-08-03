@@ -93,11 +93,12 @@ export const API = {
   },
   qualityInspections: {
     base: `${BASE}/quality-inspections`,
+    results: (id: string | number) => `${BASE}/quality-inspections/${id}/results`,
     pass: (id: string | number) => `${BASE}/quality-inspections/${id}/pass`,
     fail: (id: string | number) => `${BASE}/quality-inspections/${id}/fail`,
-    hold: (id: string | number) => `${BASE}/quality-inspections/${id}/hold`,
-    release: (id: string | number) => `${BASE}/quality-inspections/${id}/release`,
-    scrap: (id: string | number) => `${BASE}/quality-inspections/${id}/scrap`,
+    defectTypes: `${BASE}/defect-types`,
+    qcActions: `${BASE}/qc-actions`,
+    qcStatuses: `${BASE}/qc-statuses`,
   },
   maintenanceTickets: {
     base: `${BASE}/maintenance`,
