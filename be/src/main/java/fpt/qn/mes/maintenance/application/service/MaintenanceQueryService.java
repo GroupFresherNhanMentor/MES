@@ -6,6 +6,7 @@ import java.util.UUID;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.maintenance.application.dto.request.MaintenanceTicketSearchQuery;
 import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeResponse;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceEngineerResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceMetadataResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
 import fpt.qn.mes.maintenance.application.exception.ResourceNotFoundException;
@@ -89,6 +90,11 @@ public class MaintenanceQueryService implements MaintenanceQueryUseCase {
     @Override
     public List<MaintenanceMetadataResponse> getAllTicketTypes() {
         return repository.findAllTicketTypes();
+    }
+
+    @Override
+    public List<MaintenanceEngineerResponse> getMaintenanceEngineers() {
+        return repository.findMaintenanceEngineers();
     }
 
     @Override

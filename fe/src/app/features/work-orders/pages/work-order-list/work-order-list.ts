@@ -183,7 +183,7 @@ export class WorkOrderList {
   }
 
   canCreate(): boolean {
-    return this.auth.getCurrentUser()?.role === 'PLANNER' && this.statuses().length > 0;
+    return ['ADMIN', 'PLANNER'].includes(this.auth.getCurrentUser()?.role ?? '') && this.statuses().length > 0;
   }
 
   openCreate(): void {

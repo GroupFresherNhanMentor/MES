@@ -62,7 +62,7 @@ public class WorkOrderController {
         return ResponseEntity.ok(ApiResponse.success(response, "Work Order details retrieved successfully"));
     }
 
-    @PreAuthorize("hasRole('PLANNER')")
+    @PreAuthorize("hasAnyRole('PLANNER', 'ADMIN')")
     @PostMapping
     public ResponseEntity<ApiResponse<WorkOrderResponse>> create(
             @Valid @RequestBody CreateWorkOrderRequest req,

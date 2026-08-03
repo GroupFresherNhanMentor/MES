@@ -22,11 +22,11 @@ When an active BOM is retrieved:
 
 ### Decision
 Annotate `WorkOrderController.create(...)` with:
-`@PreAuthorize("hasRole('PLANNER')")`
+`@PreAuthorize("hasAnyRole('PLANNER', 'ADMIN')")`
 
 ### Rationale
-- Aligns strictly with SRS requirement FR-WO-001 (only `PLANNER` role can create Work Orders).
-- Returns HTTP 403 Forbidden automatically when accessed by `ADMIN`, `OPERATOR`, `AUDITOR`, or unprivileged roles.
+- Allows operational planners and administrators to create Work Orders.
+- Returns HTTP 403 Forbidden automatically when accessed by `OPERATOR`, `AUDITOR`, or unprivileged roles.
 
 ---
 

@@ -5,6 +5,7 @@ import java.util.UUID;
 import fpt.qn.mes.common.dto.response.PageResponse;
 import fpt.qn.mes.maintenance.application.dto.request.MaintenanceTicketSearchQuery;
 import fpt.qn.mes.maintenance.application.dto.response.MachineDowntimeResponse;
+import fpt.qn.mes.maintenance.application.dto.response.MaintenanceEngineerResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceTicketResponse;
 import fpt.qn.mes.maintenance.application.dto.response.MaintenanceMetadataResponse;
 import fpt.qn.mes.maintenance.domain.entities.MachineDowntime;
@@ -16,5 +17,6 @@ public interface MaintenanceQueryUseCase {
     List<MaintenanceMetadataResponse> getAllTicketStatuses();
     List<MaintenanceMetadataResponse> getAllTicketPriorities();
     List<MaintenanceMetadataResponse> getAllTicketTypes();
+    List<MaintenanceEngineerResponse> getMaintenanceEngineers();
     MachineDowntimeResponse getDowntimeByTicketId(UUID ticketId);
 }
