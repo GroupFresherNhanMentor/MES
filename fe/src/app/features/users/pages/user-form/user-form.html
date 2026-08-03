@@ -44,18 +44,31 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Role</mat-label>
+      <mat-label>Add Role</mat-label>
       <mat-select
-        [(ngModel)]="selectedRoleId"
-        name="roleId"
-        required
+        [ngModel]="rolePickerId"
+        (ngModelChange)="addRole($event)"
+        name="rolePickerId"
         [disabled]="rolesLoading()"
       >
-        @for (role of roles; track role.id) {
+        @for (role of availableRoles(); track role.id) {
           <mat-option [value]="role.id">{{ role.name }}</mat-option>
         }
       </mat-select>
     </mat-form-field>
+
+    @if (selectedRoles().length > 0) {
+      <mat-chip-set aria-label="Selected roles">
+        @for (role of selectedRoles(); track role.id) {
+          <mat-chip [removable]="true" (removed)="removeRole(role.id)">
+            {{ role.name }}
+            <button matChipRemove type="button" [attr.aria-label]="'Remove ' + role.name">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip>
+        }
+      </mat-chip-set>
+    }
   </div>
 </mat-dialog-content>
 

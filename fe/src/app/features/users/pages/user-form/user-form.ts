@@ -1,8 +1,10 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatChipsModule } from '@angular/material/chips';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
@@ -22,8 +24,10 @@ import { ApiService } from '../../../../core/services/api';
   imports: [
     FormsModule,
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
     MatFormFieldModule,
+    MatIconModule,
     MatInputModule,
     MatSelectModule,
     MatSnackBarModule,
@@ -42,7 +46,8 @@ export class UserFormComponent implements OnInit {
   username = '';
   password = '';
   fullName = '';
-  selectedRoleId = '';
+  rolePickerId = '';
+  selectedRoleIds: string[] = [];
   roles: RoleDto[] = [];
 
   ngOnInit(): void {
@@ -56,9 +61,6 @@ export class UserFormComponent implements OnInit {
       next: (response) => {
         if (response.success && response.data) {
           this.roles = response.data;
-          if (!this.data && this.roles.length > 0) {
-            this.selectedRoleId = this.roles[0].id;
-          }
         }
         this.rolesLoading.set(false);
       },
@@ -74,7 +76,7 @@ export class UserFormComponent implements OnInit {
       usernameValid &&
       passwordValid &&
       fullNameValid &&
-      !!this.selectedRoleId &&
+      this.selectedRoleIds.length > 0 &&
       !this.rolesLoading() &&
       !this.saving()
     );
@@ -120,6 +122,27 @@ export class UserFormComponent implements OnInit {
     });
   }
 
+  availableRoles(): RoleDto[] {
+    return this.roles.filter((role) => !this.selectedRoleIds.includes(role.id));
+  }
+
+  selectedRoles(): RoleDto[] {
+    return this.selectedRoleIds
+      .map((roleId) => this.roles.find((role) => role.id === roleId))
+      .filter((role): role is RoleDto => role !== undefined);
+  }
+
+  addRole(roleId: string): void {
+    if (roleId && !this.selectedRoleIds.includes(roleId)) {
+      this.selectedRoleIds = [...this.selectedRoleIds, roleId];
+    }
+    this.rolePickerId = '';
+  }
+
+  removeRole(roleId: string): void {
+    this.selectedRoleIds = this.selectedRoleIds.filter((id) => id !== roleId);
+  }
+
   private loadAssignedRoles(): void {
     if (!this.data) {
       return;
@@ -127,14 +150,14 @@ export class UserFormComponent implements OnInit {
 
     this.api.get<RoleDto[]>(API.users.roles(this.data.id)).subscribe((response) => {
       if (response.success && response.data) {
-        this.selectedRoleId = response.data[0]?.id ?? '';
+        this.selectedRoleIds = response.data.map((role) => role.id);
       }
     });
   }
 
   private saveRoles(userId: string, successMessage: string): void {
     const request: ReplaceUserRolesRequest = {
-      roleIds: [this.selectedRoleId],
+      roleIds: this.selectedRoleIds,
     };
     this.api.put<RoleDto[]>(API.users.roles(userId), request).subscribe({
       next: (response) => {

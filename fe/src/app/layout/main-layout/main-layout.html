@@ -17,7 +17,11 @@
     <mat-menu #userMenu="matMenu">
       <div class="px-4 py-3">
         <div class="text-sm font-semibold text-text-primary">{{ currentUser?.fullName ?? 'User' }}</div>
-        <div class="text-[11px] text-text-secondary uppercase tracking-wider">{{ currentUser?.role }}</div>
+        <div class="text-[11px] text-text-secondary uppercase tracking-wider">
+          @for (role of currentUserRoles; track role) {
+            <div>{{ role }}</div>
+          }
+        </div>
       </div>
       <mat-divider />
       <button mat-menu-item (click)="logout()"><mat-icon>logout</mat-icon> Logout</button>
