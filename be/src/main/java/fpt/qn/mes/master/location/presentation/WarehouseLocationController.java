@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,17 +35,20 @@ public class WarehouseLocationController {
     WarehouseLocationUseCase warehouseLocationUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE_MANAGER', 'PLANNER', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR')")
     public ResponseEntity<ApiResponse<PageResponse<WarehouseLocationResponse>>> getWarehouseLocations(
             @PathVariable UUID warehouseId, @ModelAttribute WarehouseLocationSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(warehouseLocationUseCase.getWarehouseLocations(warehouseId, request), "OK"));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE_MANAGER', 'PLANNER', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR')")
     public ResponseEntity<ApiResponse<WarehouseLocationResponse>> getWarehouseLocationById(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(warehouseLocationUseCase.getWarehouseLocationById(id), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'WAREHOUSE_MANAGER')")
     public ResponseEntity<ApiResponse<Void>> createWarehouseLocation(
             @PathVariable UUID warehouseId, @Valid @RequestBody CreateWarehouseLocationRequest request) {
         warehouseLocationUseCase.createWarehouseLocation(warehouseId, request);
@@ -52,6 +56,7 @@ public class WarehouseLocationController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateWarehouseLocation(
             @PathVariable UUID id, @Valid @RequestBody UpdateWarehouseLocationRequest request) {
         warehouseLocationUseCase.updateWarehouseLocation(id, request);
@@ -59,12 +64,14 @@ public class WarehouseLocationController {
     }
 
     @PutMapping("/{id}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> activateWarehouseLocation(@PathVariable UUID id) {
         warehouseLocationUseCase.activateWarehouseLocation(id);
         return ResponseEntity.ok(ApiResponse.success("Activated"));
     }
 
     @PutMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivateWarehouseLocation(@PathVariable UUID id) {
         warehouseLocationUseCase.deactivateWarehouseLocation(id);
         return ResponseEntity.ok(ApiResponse.success("Deactivated"));

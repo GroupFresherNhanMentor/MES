@@ -135,11 +135,13 @@ public class WorkOrderController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{workOrderId}/materials")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderMaterialResponse>>> getMaterials(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
@@ -147,18 +149,21 @@ public class WorkOrderController {
     }
 
     @PostMapping("/{workOrderId}/materials")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     public ResponseEntity<ApiResponse<WorkOrderMaterialResponse>> addMaterial(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderMaterialRequest req) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @DeleteMapping("/{workOrderId}/materials/{materialId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER')")
     public ResponseEntity<ApiResponse<Void>> deleteMaterial(
             @PathVariable UUID workOrderId, @PathVariable UUID materialId) {
         throw new UnsupportedOperationException("Not implemented");
     }
 
     @GetMapping("/{workOrderId}/events")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
     public ResponseEntity<ApiResponse<PageResponse<WorkOrderEventResponse>>> getEvents(
             @PathVariable UUID workOrderId,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
@@ -166,6 +171,7 @@ public class WorkOrderController {
     }
 
     @PostMapping("/{workOrderId}/events")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR')")
     public ResponseEntity<ApiResponse<WorkOrderEventResponse>> addEvent(
             @PathVariable UUID workOrderId, @Valid @RequestBody CreateWorkOrderEventRequest req) {
         throw new UnsupportedOperationException("Not implemented");

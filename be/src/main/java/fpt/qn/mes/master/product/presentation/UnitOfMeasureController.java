@@ -2,6 +2,7 @@ package fpt.qn.mes.master.product.presentation;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,12 +30,14 @@ public class UnitOfMeasureController {
     UnitOfMeasureUseCase unitOfMeasureUseCase;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<UnitOfMeasureResponse>>> getUnitsOfMeasure(
             @ModelAttribute UnitOfMeasureSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(unitOfMeasureUseCase.getUnitsOfMeasure(request), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createUnitOfMeasure(
             @Valid @RequestBody CreateUnitOfMeasureRequest request) {
         unitOfMeasureUseCase.createUnitOfMeasure(request);

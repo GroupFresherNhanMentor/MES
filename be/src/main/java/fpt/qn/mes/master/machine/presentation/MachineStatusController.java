@@ -2,6 +2,7 @@ package fpt.qn.mes.master.machine.presentation;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,12 +30,14 @@ public class MachineStatusController {
     MachineStatusUseCase machineStatusUseCase;
 
     @GetMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ApiResponse<PageResponse<MachineStatusResponse>>> getMachineStatuses(
             @ModelAttribute MachineStatusSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(machineStatusUseCase.getMachineStatuses(request), "OK"));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> createMachineStatus(
             @Valid @RequestBody CreateMachineStatusRequest request) {
         machineStatusUseCase.createMachineStatus(request);

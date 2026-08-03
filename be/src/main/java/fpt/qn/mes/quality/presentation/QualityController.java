@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,12 +36,14 @@ public class QualityController {
     QualityUseCase qualityUseCase;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'QC_INSPECTOR', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR', 'PLANNER')")
     public ResponseEntity<ApiResponse<PageResponse<QualityInspectionResponse>>> getAll(
             @Valid QualityInspectionSearchRequest request) {
         return ResponseEntity.ok(ApiResponse.success(qualityUseCase.getInspections(request), "OK"));
     }
 
     @GetMapping("/{id}/results")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QC_INSPECTOR', 'FACTORY_MANAGER', 'AUDITOR', 'OPERATOR', 'PLANNER')")
     public ResponseEntity<ApiResponse<PageResponse<QualityInspectionResultResponse>>> getResults(
             @PathVariable UUID id,
             @Valid QualityInspectionResultSearchRequest request) {
@@ -48,6 +51,7 @@ public class QualityController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'QC_INSPECTOR')")
     public ResponseEntity<ApiResponse<Void>> create(
             @Valid @RequestBody CreateQualityInspectionRequest req) {
         qualityUseCase.createInspection(req);
@@ -55,6 +59,7 @@ public class QualityController {
     }
 
     @PostMapping("/{inspectionId}/pass")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QC_INSPECTOR')")
     public ResponseEntity<ApiResponse<Void>> pass(
             @PathVariable UUID inspectionId,
             @Valid @RequestBody PassQcRequest request) {
@@ -63,6 +68,7 @@ public class QualityController {
     }
 
     @PostMapping("/{inspectionId}/fail")
+    @PreAuthorize("hasAnyRole('ADMIN', 'QC_INSPECTOR')")
     public ResponseEntity<ApiResponse<Void>> fail(
             @PathVariable UUID inspectionId,
             @Valid @RequestBody FailQcRequest request) {
