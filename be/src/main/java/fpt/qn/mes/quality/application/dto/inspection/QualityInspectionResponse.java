@@ -55,6 +55,7 @@ public class QualityInspectionResponse {
     ProductInfo product;
     StockLotInfo lot;
     BigDecimal quantity;
+    BigDecimal remainingQuantity;
     String qcStatusName;
     Instant createdAt;
 }

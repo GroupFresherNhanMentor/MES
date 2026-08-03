@@ -396,7 +396,7 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         try {
             var response = workOrderService.reserveMaterials(workOrderId);
 
-            assertThat(response.getStatus()).isEqualTo("READY_TO_PRODUCE");
+            assertThat(response.getStatus().getName()).isEqualTo("READY_TO_PRODUCE");
             assertThat(dsl.select(WORK_ORDERS.WORK_ORDER_STATUS_ID).from(WORK_ORDERS)
                     .where(WORK_ORDERS.ID.eq(workOrderId)).fetchOne(WORK_ORDERS.WORK_ORDER_STATUS_ID))
                     .isEqualTo(dsl.select(WORK_ORDER_STATUSES.ID).from(WORK_ORDER_STATUSES)
@@ -434,6 +434,8 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         request.setFinishedProductId(finishedProductId);
         request.setPlannedQuantity(BigDecimal.ONE);
         request.setWorkOrderStatusId(statusId);
+        request.setPlannedStartDate(Instant.now().plusSeconds(86400));
+        request.setPlannedEndDate(Instant.now().plusSeconds(172800));
         return request;
     }
 

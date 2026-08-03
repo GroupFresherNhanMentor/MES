@@ -43,8 +43,8 @@ export interface CreateWorkOrderRequest {
   code: string;
   finishedProductId: string;
   plannedQuantity: number;
-  plannedStartDate?: string;
-  plannedEndDate?: string;
+  plannedStartDate: string;
+  plannedEndDate: string;
   priorityId?: string;
   workOrderStatusId: string;
 }

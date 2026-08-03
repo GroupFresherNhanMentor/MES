@@ -21,7 +21,7 @@ export interface WorkOrderCreateDialogData {
 function endAfterStart(group: AbstractControl): ValidationErrors | null {
   const start = group.get('plannedStartDate')?.value as string | null;
   const end = group.get('plannedEndDate')?.value as string | null;
-  if (start && end && new Date(end) <= new Date(start)) {
+  if (start && end && end < start) {
     return { endBeforeStart: true };
   }
   return null;
@@ -67,16 +67,22 @@ function endAfterStart(group: AbstractControl): ValidationErrors | null {
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Planned start</mat-label>
-          <input matInput type="datetime-local" formControlName="plannedStartDate">
+          <mat-label>Planned start date</mat-label>
+          <input matInput type="date" formControlName="plannedStartDate" [min]="minDate">
+          @if (form.get('plannedStartDate')?.hasError('required') && form.get('plannedStartDate')?.touched) {
+            <mat-error>Planned start date is required</mat-error>
+          }
         </mat-form-field>
 
         <mat-form-field appearance="outline">
-          <mat-label>Planned end</mat-label>
-          <input matInput type="datetime-local" formControlName="plannedEndDate"
-                 [min]="form.get('plannedStartDate')?.value || ''">
+          <mat-label>Planned end date</mat-label>
+          <input matInput type="date" formControlName="plannedEndDate"
+                 [min]="form.get('plannedStartDate')?.value || minDate">
+          @if (form.get('plannedEndDate')?.hasError('required') && form.get('plannedEndDate')?.touched) {
+            <mat-error>Planned end date is required</mat-error>
+          }
           @if (form.hasError('endBeforeStart') && form.get('plannedEndDate')?.touched) {
-            <mat-error>End date must be after start date</mat-error>
+            <mat-error>End date must not be before start date</mat-error>
           }
         </mat-form-field>
 
@@ -121,13 +127,15 @@ export class WorkOrderCreateDialog {
 
   submitting = false;
 
+  readonly minDate: string = new Date().toISOString().slice(0, 10);
+
   readonly form = this.formBuilder.group(
     {
       code: ['', [Validators.required]],
       finishedProductId: ['', [Validators.required]],
       plannedQuantity: [null as number | null, [Validators.required, Validators.min(0.0001)]],
-      plannedStartDate: [''],
-      plannedEndDate: [''],
+      plannedStartDate: ['', [Validators.required]],
+      plannedEndDate: ['', [Validators.required]],
       priorityId: [''],
       workOrderStatusId: [this.data.statuses.find((s) => s.name === 'DRAFT')?.id ?? '', [Validators.required]],
     },
@@ -142,8 +150,8 @@ export class WorkOrderCreateDialog {
       code: value.code ?? '',
       finishedProductId: value.finishedProductId ?? '',
       plannedQuantity: Number(value.plannedQuantity),
-      plannedStartDate: this.toIso(value.plannedStartDate),
-      plannedEndDate: this.toIso(value.plannedEndDate),
+      plannedStartDate: new Date(value.plannedStartDate!).toISOString(),
+      plannedEndDate: new Date(value.plannedEndDate!).toISOString(),
       priorityId: value.priorityId || undefined,
       workOrderStatusId: value.workOrderStatusId ?? '',
     };
@@ -158,9 +166,5 @@ export class WorkOrderCreateDialog {
         this.snackBar.open(response?.error?.message ?? 'Unable to create work order.', 'OK', { duration: 5000 });
       },
     });
-  }
-
-  private toIso(value: string | null): string | undefined {
-    return value ? new Date(value).toISOString() : undefined;
   }
 }

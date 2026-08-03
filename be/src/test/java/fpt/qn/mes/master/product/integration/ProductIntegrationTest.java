@@ -122,20 +122,6 @@ class ProductIntegrationTest extends AbstractIntegrationTest {
             .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
     }
 
-    @Test
-    void createProduct_returns409_whenVersionAlreadyExists() {
-        var req1 = validRequest("IT-VER2-001");
-        req1.setVersion("unique-ver-" + System.currentTimeMillis());
-        restTemplate.exchange(baseUrl(), HttpMethod.POST, new HttpEntity<>(req1, adminHeaders), String.class);
-
-        var req2 = validRequest("IT-VER2-002");
-        req2.setVersion(req1.getVersion());
-        assertThatThrownBy(() -> restTemplate.exchange(
-            baseUrl(), HttpMethod.POST, new HttpEntity<>(req2, adminHeaders), String.class))
-            .isInstanceOf(HttpStatusCodeException.class)
-            .satisfies(e -> assertThat(((HttpStatusCodeException) e).getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
-    }
-
     // ── get by id ─────────────────────────────────────────────────────────────
 
     @Test

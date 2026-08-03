@@ -3,6 +3,8 @@ package fpt.qn.mes.workorder.application.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +51,7 @@ import fpt.qn.mes.workorder.application.port.out.WorkOrderCompletionPort;
 import fpt.qn.mes.workorder.application.port.out.dto.ActiveProductionRun;
 import fpt.qn.mes.workorder.application.port.out.dto.CompletionReferences;
 import fpt.qn.mes.workorder.application.port.out.dto.CompletionReservationAllocation;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
@@ -132,13 +135,27 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderResponse createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
-        if (req.getPlannedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidInputException("Planned quantity must be greater than 0");
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        if (req.getPlannedStartDate() != null) {
+            LocalDate startDate = req.getPlannedStartDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (startDate.isBefore(today)) {
+                throw new InvalidInputException("Planned start date must not be in the past");
+            }
         }
-        if (req.getPlannedStartDate() != null && req.getPlannedEndDate() != null
-                && !req.getPlannedStartDate().isBefore(req.getPlannedEndDate())) {
-            throw new InvalidInputException("Planned start date must be before planned end date");
+        if (req.getPlannedEndDate() != null) {
+            LocalDate endDate = req.getPlannedEndDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (endDate.isBefore(today)) {
+                throw new InvalidInputException("Planned end date must not be in the past");
+            }
         }
+        if (req.getPlannedStartDate() != null && req.getPlannedEndDate() != null) {
+            LocalDate startDate = req.getPlannedStartDate().atZone(ZoneOffset.UTC).toLocalDate();
+            LocalDate endDate = req.getPlannedEndDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (endDate.isBefore(startDate)) {
+                throw new InvalidInputException("Planned end date must not be before planned start date");
+            }
+        }
+
         if (repository.existsByCode(req.getCode())) {
             throw new WorkOrderCodeExistsException("Work Order code '" + req.getCode() + "' already exists");
         }
@@ -152,18 +169,10 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderStateException("Work Order status must be an initial status");
         }
 
-        WorkOrder workOrder = WorkOrder.builder()
-                .code(req.getCode())
-                .finishedProductId(req.getFinishedProductId())
-                .bomId(activeBom.getId())
-                .plannedQuantity(req.getPlannedQuantity())
-                .plannedStartDate(req.getPlannedStartDate())
-                .plannedEndDate(req.getPlannedEndDate())
-                .priorityId(req.getPriorityId())
-                .workOrderStatusId(statusId)
-                .createdBy(currentUserId)
-                .createdAt(Instant.now())
-                .build();
+        WorkOrder workOrder = WorkOrder.create(
+                req.getCode(), req.getFinishedProductId(), activeBom.getId(),
+                req.getPlannedQuantity(), req.getPlannedStartDate(), req.getPlannedEndDate(),
+                req.getPriorityId(), statusId, currentUserId);
 
         WorkOrder saved = repository.save(workOrder);
         eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_WORK_ORDER,
@@ -176,6 +185,7 @@ public class WorkOrderService implements WorkOrderUseCase {
                 BigDecimal reqQty = req.getPlannedQuantity().multiply(item.getQuantityPerUnit()).multiply(multiplier);
 
                 WorkOrderMaterial mat = WorkOrderMaterial.builder()
+                        .id(UuidV7.generate())
                         .workOrderId(saved.getId())
                         .materialProductId(item.getMaterialProductId())
                         .requiredQuantity(reqQty)

@@ -33,6 +33,7 @@ import fpt.qn.mes.workorder.application.dto.response.WorkOrderMaterialResponse;
 import static fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.*;
 import fpt.qn.mes.workorder.application.mapper.WorkOrderDtoMapper;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 import org.springframework.context.ApplicationEventPublisher;
 import fpt.qn.mes.auth.application.port.out.CurrentUserPort;
 import fpt.qn.mes.common.port.out.JsonSerializerPort;
@@ -178,6 +179,7 @@ class WorkOrderServiceTest {
         req.setPlannedQuantity(BigDecimal.valueOf(100));
 
         when(repository.findStatusIdByName("DRAFT")).thenReturn(Optional.of(statusId));
+        when(repository.existsByIdAndIsInitial(statusId)).thenReturn(true);
         when(bomRepository.findActiveByFinishedProductId(productId)).thenReturn(Optional.of(activeBom));
         when(repository.save(any(WorkOrder.class))).thenReturn(sampleEntity);
         when(mapper.toDto(any(WorkOrder.class))).thenReturn(sampleDto);
@@ -486,7 +488,8 @@ class WorkOrderServiceTest {
         UUID id = sampleEntity.getId();
 
         when(repository.findForUpdate(id)).thenReturn(Optional.of(sampleEntity));
-        when(repository.findStatusNameById(statusId)).thenReturn(Optional.of("DRAFT"));
+        when(repository.findStatusById(statusId)).thenReturn(Optional.of(
+                WorkOrderStatus.builder().id(statusId).name("DRAFT").isInitial(true).isFinal(false).build()));
 
         // Act & Assert
         org.junit.jupiter.api.Assertions.assertThrows(
