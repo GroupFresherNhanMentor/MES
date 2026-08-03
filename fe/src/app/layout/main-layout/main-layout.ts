@@ -43,6 +43,11 @@ export class MainLayout {
   private readonly breakpointObserver = inject(BreakpointObserver);
 
   readonly currentUser = this.authService.getCurrentUser();
+  readonly currentUserRoles = this.currentUser?.roles?.length
+    ? this.currentUser.roles
+    : this.currentUser?.role
+      ? [this.currentUser.role]
+      : [];
   readonly isAdmin = this.currentUser?.role === 'ADMIN';
   readonly isLoading = this.loadingService.isLoading;
 
