@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -54,6 +55,7 @@ import org.springframework.web.client.RestTemplate;
 
 import fpt.qn.mes.AbstractIntegrationTest;
 import fpt.qn.mes.auth.application.security.AppUserPrincipal;
+import fpt.qn.mes.workorder.application.dto.request.CreateWorkOrderRequest;
 import fpt.qn.mes.workorder.application.dto.request.StartWorkOrderRequest;
 import fpt.qn.mes.workorder.application.exception.WorkOrderExceptions.MachineNotAvailableException;
 import fpt.qn.mes.workorder.application.service.WorkOrderService;
@@ -65,6 +67,9 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
     int port;
 
     RestTemplate restTemplate;
+
+    @Autowired
+    TestRestTemplate testRestTemplate;
 
     @Autowired
     DSLContext dsl;
@@ -127,6 +132,66 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         workOrderDataSeeder.run(new DefaultApplicationArguments(new String[0]));
 
         assertThat(dsl.fetchCount(WORK_ORDER_STATUS_TRANSITIONS)).isEqualTo(transitionsBefore);
+    }
+
+    @Test
+    void createWorkOrder_allowsAdminAndPlanner_andRejectsOperator() {
+        UUID finishedProductId = UUID.randomUUID();
+        UUID bomId = UUID.randomUUID();
+        UUID plannerId = UUID.randomUUID();
+        UUID operatorId = UUID.randomUUID();
+        UUID plannerRoleId = roleId("PLANNER");
+        UUID operatorRoleId = roleId("OPERATOR");
+        UUID finishedTypeId = dsl.select(PRODUCT_TYPES.ID).from(PRODUCT_TYPES)
+                .where(PRODUCT_TYPES.NAME.eq("FINISHED_GOOD")).fetchOne(PRODUCT_TYPES.ID);
+        UUID unitId = dsl.select(UNITS_OF_MEASURE.ID).from(UNITS_OF_MEASURE)
+                .where(UNITS_OF_MEASURE.NAME.eq("PCS")).fetchOne(UNITS_OF_MEASURE.ID);
+        UUID productStatusId = dsl.select(PRODUCT_STATUSES.ID).from(PRODUCT_STATUSES)
+                .where(PRODUCT_STATUSES.NAME.eq("ACTIVE")).fetchOne(PRODUCT_STATUSES.ID);
+        UUID bomStatusId = dsl.select(BOM_STATUSES.ID).from(BOM_STATUSES)
+                .where(BOM_STATUSES.NAME.eq("ACTIVE")).fetchOne(BOM_STATUSES.ID);
+        UUID plannedStatusId = statusId("PLANNED");
+
+        dsl.insertInto(USERS).columns(USERS.ID, USERS.USERNAME, USERS.PASSWORD_HASH, USERS.ACTIVE)
+                .values(plannerId, "planner_" + plannerId, "hash", true)
+                .values(operatorId, "operator_" + operatorId, "hash", true)
+                .execute();
+        dsl.insertInto(USER_ROLES).columns(USER_ROLES.USER_ID, USER_ROLES.ROLE_ID)
+                .values(plannerId, plannerRoleId)
+                .values(operatorId, operatorRoleId)
+                .execute();
+        dsl.insertInto(PRODUCTS).columns(PRODUCTS.ID, PRODUCTS.CODE, PRODUCTS.NAME, PRODUCTS.PRODUCT_TYPE_ID,
+                        PRODUCTS.UNIT_ID, PRODUCTS.PRODUCT_STATUS_ID)
+                .values(finishedProductId, "FG_" + finishedProductId, "Create authorization product", finishedTypeId,
+                        unitId, productStatusId)
+                .execute();
+        dsl.insertInto(BOMS).columns(BOMS.ID, BOMS.FINISHED_PRODUCT_ID, BOMS.VERSION, BOMS.BOM_STATUS_ID,
+                        BOMS.CREATED_BY)
+                .values(bomId, finishedProductId, 1, bomStatusId, plannerId)
+                .execute();
+
+        CreateWorkOrderRequest adminRequest = createRequest("WO_ADMIN_" + UUID.randomUUID(), finishedProductId, plannedStatusId);
+        CreateWorkOrderRequest plannerRequest = createRequest("WO_PLANNER_" + UUID.randomUUID(), finishedProductId, plannedStatusId);
+        CreateWorkOrderRequest operatorRequest = createRequest("WO_OPERATOR_" + UUID.randomUUID(), finishedProductId, plannedStatusId);
+
+        var adminResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
+                new HttpEntity<>(adminRequest, authHeaders(generateAdminToken())), String.class);
+        var plannerResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
+                new HttpEntity<>(plannerRequest, authHeaders(generateToken(plannerId, "planner_" + plannerId))),
+                String.class);
+        var operatorResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
+                new HttpEntity<>(operatorRequest, authHeaders(generateToken(operatorId, "operator_" + operatorId))),
+                String.class);
+
+        UUID adminId = dsl.select(USERS.ID).from(USERS).where(USERS.USERNAME.eq("admin")).fetchOne(USERS.ID);
+        assertThat(adminResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(plannerResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(operatorResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(dsl.fetchCount(WORK_ORDERS, WORK_ORDERS.CODE.in(adminRequest.getCode(), plannerRequest.getCode())))
+                .isEqualTo(2);
+        assertThat(dsl.fetchCount(WORK_ORDERS, WORK_ORDERS.CODE.eq(operatorRequest.getCode()))).isZero();
+        assertThat(dsl.fetchCount(AUDIT_LOGS, AUDIT_LOGS.ACTION.eq("CREATE_WORK_ORDER")
+                .and(AUDIT_LOGS.ACTOR_ID.in(adminId, plannerId)))).isGreaterThanOrEqualTo(2);
     }
 
     @Test
@@ -346,6 +411,25 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/json");
         return headers;
+    }
+
+    private HttpHeaders authHeaders(String token) {
+        HttpHeaders headers = jsonHeaders();
+        headers.setBearerAuth(token);
+        return headers;
+    }
+
+    private CreateWorkOrderRequest createRequest(String code, UUID finishedProductId, UUID statusId) {
+        CreateWorkOrderRequest request = new CreateWorkOrderRequest();
+        request.setCode(code);
+        request.setFinishedProductId(finishedProductId);
+        request.setPlannedQuantity(BigDecimal.ONE);
+        request.setWorkOrderStatusId(statusId);
+        return request;
+    }
+
+    private UUID roleId(String name) {
+        return dsl.select(ROLES.ID).from(ROLES).where(ROLES.NAME.eq(name)).fetchOne(ROLES.ID);
     }
 
     private UUID statusId(String name) {

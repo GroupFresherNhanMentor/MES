@@ -5,12 +5,14 @@ import { of } from 'rxjs';
 
 import { API } from '../../../../configs/api-endpoints';
 import { ApiService } from '../../../../core/services/api';
+import { AuthService } from '../../../../core/services/auth';
 import { WorkOrderList } from './work-order-list';
 
 describe('WorkOrderList', () => {
   let fixture: ComponentFixture<WorkOrderList>;
   let component: WorkOrderList;
   let api: { get: ReturnType<typeof vi.fn> };
+  let auth: { getCurrentUser: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     api = {
@@ -33,10 +35,15 @@ describe('WorkOrderList', () => {
         });
       }),
     };
+    auth = { getCurrentUser: vi.fn().mockReturnValue({ role: 'PLANNER' }) };
 
     await TestBed.configureTestingModule({
       imports: [WorkOrderList],
-      providers: [provideRouter([]), { provide: ApiService, useValue: api }],
+      providers: [
+        provideRouter([]),
+        { provide: ApiService, useValue: api },
+        { provide: AuthService, useValue: auth },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(WorkOrderList);
@@ -51,5 +58,13 @@ describe('WorkOrderList', () => {
 
   it('resolves the finished-product label from the loaded products', () => {
     expect(component.productLabel('product-1')).toBe('FG-001 - Finished good');
+  });
+
+  it('allows ADMIN and PLANNER to create work orders after statuses load', () => {
+    expect(component.canCreate()).toBe(true);
+    auth.getCurrentUser.mockReturnValue({ role: 'ADMIN' });
+    expect(component.canCreate()).toBe(true);
+    auth.getCurrentUser.mockReturnValue({ role: 'OPERATOR' });
+    expect(component.canCreate()).toBe(false);
   });
 });

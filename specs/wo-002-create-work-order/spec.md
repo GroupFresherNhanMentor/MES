@@ -27,16 +27,16 @@ As a Production Planner, I want to create a new Work Order for a finished produc
 
 ### User Story 2 - Role Access Control & Audit Logging (Priority: P2)
 
-As a Factory Auditor/Manager, I want all Work Order creation attempts to be restricted to authorized roles (PLANNER) and automatically logged to the audit log system so that operational actions are fully traceable.
+As a Factory Auditor/Manager, I want all Work Order creation attempts to be restricted to authorized roles (ADMIN or PLANNER) and automatically logged to the audit log system so that operational actions are fully traceable.
 
 **Why this priority**: Ensures system security and compliance with factory governance rules by enforcing role-based permissions and audit trails.
 
-**Independent Test**: Send `POST /api/work-orders` with unauthorized roles (e.g. ADMIN, OPERATOR, GUEST) and verify HTTP 403 Forbidden. After a successful creation by a PLANNER, verify an audit log record with `action = "CREATE_WORK_ORDER"` is written.
+**Independent Test**: Send `POST /api/work-orders` with unauthorized roles (e.g. OPERATOR, GUEST) and verify HTTP 403 Forbidden. After a successful creation by an ADMIN or PLANNER, verify an audit log record with `action = "CREATE_WORK_ORDER"` is written.
 
 **Acceptance Scenarios**:
 
 1. **Given** an authenticated user with `PLANNER` role, **When** creating a Work Order, **Then** the request succeeds and an audit log entry with `action = "CREATE_WORK_ORDER"` is recorded.
-2. **Given** an authenticated user with `ADMIN` role, **When** attempting to create a Work Order, **Then** the system returns HTTP 403 Forbidden.
+2. **Given** an authenticated user with `ADMIN` role, **When** creating a Work Order, **Then** the request succeeds and an audit log entry with `action = "CREATE_WORK_ORDER"` is recorded.
 3. **Given** an unauthenticated request, **When** attempting to create a Work Order, **Then** the system returns HTTP 401 Unauthorized.
 
 ---
@@ -66,7 +66,7 @@ As a Production Planner, I want clear validation error messages when entering in
 
 ### Functional Requirements
 
-- **FR-001**: System MUST restrict `POST /api/work-orders` to authenticated users with `ROLE_PLANNER`.
+- **FR-001**: System MUST restrict `POST /api/work-orders` to authenticated users with `ROLE_ADMIN` or `ROLE_PLANNER`.
 - **FR-002**: System MUST validate that `plannedQuantity > 0`, `code` is not blank, `finishedProductId` is provided, and `plannedEndDate` is after `plannedStartDate`.
 - **FR-003**: System MUST verify that a BOM with status `ACTIVE` exists for the given `finishedProductId`. If no active BOM exists, system MUST return error response with error code `BOM_NOT_ACTIVE`.
 - **FR-004**: System MUST automatically bind the active `bomId` to the newly created Work Order.
