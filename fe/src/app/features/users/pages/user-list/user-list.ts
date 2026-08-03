@@ -106,7 +106,7 @@ export class UserListComponent {
   openCreate(): void {
     this.dialog
       .open(UserFormComponent, {
-        width: '520px',
+        width: '500px',
         panelClass: 'ff-dialog-panel',
       })
       .afterClosed()
@@ -120,7 +120,7 @@ export class UserListComponent {
   openEdit(user: UserDto): void {
     this.dialog
       .open(UserFormComponent, {
-        width: '520px',
+        width: '500px',
         panelClass: 'ff-dialog-panel',
         data: user,
       })

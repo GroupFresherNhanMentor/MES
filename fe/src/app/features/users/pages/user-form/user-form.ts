@@ -42,7 +42,7 @@ export class UserFormComponent implements OnInit {
   username = '';
   password = '';
   fullName = '';
-  selectedRoleIds: string[] = [];
+  selectedRoleId = '';
   roles: RoleDto[] = [];
 
   ngOnInit(): void {
@@ -56,6 +56,9 @@ export class UserFormComponent implements OnInit {
       next: (response) => {
         if (response.success && response.data) {
           this.roles = response.data;
+          if (!this.data && this.roles.length > 0) {
+            this.selectedRoleId = this.roles[0].id;
+          }
         }
         this.rolesLoading.set(false);
       },
@@ -71,7 +74,7 @@ export class UserFormComponent implements OnInit {
       usernameValid &&
       passwordValid &&
       fullNameValid &&
-      this.selectedRoleIds.length > 0 &&
+      !!this.selectedRoleId &&
       !this.rolesLoading() &&
       !this.saving()
     );
@@ -124,14 +127,14 @@ export class UserFormComponent implements OnInit {
 
     this.api.get<RoleDto[]>(API.users.roles(this.data.id)).subscribe((response) => {
       if (response.success && response.data) {
-        this.selectedRoleIds = response.data.map((role) => role.id);
+        this.selectedRoleId = response.data[0]?.id ?? '';
       }
     });
   }
 
   private saveRoles(userId: string, successMessage: string): void {
     const request: ReplaceUserRolesRequest = {
-      roleIds: this.selectedRoleIds,
+      roleIds: [this.selectedRoleId],
     };
     this.api.put<RoleDto[]>(API.users.roles(userId), request).subscribe({
       next: (response) => {

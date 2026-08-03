@@ -1,7 +1,7 @@
-<h2 mat-dialog-title>{{ data ? 'Edit User' : 'Add User' }}</h2>
+<h2 mat-dialog-title>{{ data ? 'Edit' : 'Add' }} User</h2>
 
 <mat-dialog-content>
-  <div class="flex flex-col gap-3 pt-2">
+  <div style="display:flex; flex-direction:column; gap:12px; padding-top:8px;">
     <mat-form-field appearance="outline">
       <mat-label>Username</mat-label>
       <input
@@ -14,9 +14,6 @@
         autocomplete="username"
         [disabled]="!!data"
       />
-      @if (!data) {
-        <mat-hint>At least 3 characters</mat-hint>
-      }
     </mat-form-field>
 
     @if (!data) {
@@ -32,7 +29,6 @@
           maxlength="255"
           autocomplete="new-password"
         />
-        <mat-hint>At least 8 characters</mat-hint>
       </mat-form-field>
     }
 
@@ -48,35 +44,22 @@
     </mat-form-field>
 
     <mat-form-field appearance="outline">
-      <mat-label>Roles</mat-label>
+      <mat-label>Role</mat-label>
       <mat-select
-        [(ngModel)]="selectedRoleIds"
-        name="roleIds"
-        multiple
+        [(ngModel)]="selectedRoleId"
+        name="roleId"
         required
         [disabled]="rolesLoading()"
       >
         @for (role of roles; track role.id) {
-          <mat-option [value]="role.id">
-            {{ role.name }}
-            @if (role.description) {
-              — {{ role.description }}
-            }
-          </mat-option>
+          <mat-option [value]="role.id">{{ role.name }}</mat-option>
         }
       </mat-select>
-      @if (rolesLoading()) {
-        <mat-hint>Loading roles...</mat-hint>
-      } @else {
-        <mat-hint>Select at least one role</mat-hint>
-      }
     </mat-form-field>
   </div>
 </mat-dialog-content>
 
 <mat-dialog-actions align="end">
-  <button mat-button mat-dialog-close [disabled]="saving()">Cancel</button>
-  <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="!isValid()">
-    {{ saving() ? 'Saving...' : 'Save' }}
-  </button>
+  <button mat-button mat-dialog-close>Cancel</button>
+  <button mat-raised-button class="ff-btn-primary" (click)="save()" [disabled]="saving() || !isValid()">Save</button>
 </mat-dialog-actions>
