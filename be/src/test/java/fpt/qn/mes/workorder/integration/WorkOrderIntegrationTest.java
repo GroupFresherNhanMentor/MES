@@ -177,10 +177,10 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         var adminResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
                 new HttpEntity<>(adminRequest, authHeaders(generateAdminToken())), String.class);
         var plannerResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
-                new HttpEntity<>(plannerRequest, authHeaders(generateToken(plannerId, "planner_" + plannerId))),
+                new HttpEntity<>(plannerRequest, authHeaders(generateToken("planner_" + plannerId, "PLANNER"))),
                 String.class);
         var operatorResponse = testRestTemplate.exchange("/api/work-orders", HttpMethod.POST,
-                new HttpEntity<>(operatorRequest, authHeaders(generateToken(operatorId, "operator_" + operatorId))),
+                new HttpEntity<>(operatorRequest, authHeaders(generateToken("operator_" + operatorId, "OPERATOR"))),
                 String.class);
 
         UUID adminId = dsl.select(USERS.ID).from(USERS).where(USERS.USERNAME.eq("admin")).fetchOne(USERS.ID);
