@@ -253,8 +253,11 @@ public class WorkOrderCompletionPersistenceAdapter implements WorkOrderCompletio
                 .set(STOCK_BALANCES.STOCK_STATUS_ID, references.getQualityInspectionStatusId()).set(STOCK_BALANCES.QUANTITY, quantity)
                 .set(STOCK_BALANCES.VERSION, 0L).set(STOCK_BALANCES.CREATED_AT, now).set(STOCK_BALANCES.UPDATED_AT, now).execute();
         ctx.insertInto(QUALITY_INSPECTIONS).set(QUALITY_INSPECTIONS.ID, UuidV7.generate())
-                .set(QUALITY_INSPECTIONS.WORK_ORDER_ID, workOrder.getId()).set(QUALITY_INSPECTIONS.PRODUCT_ID, workOrder.getFinishedProductId())
-                .set(QUALITY_INSPECTIONS.LOT_ID, lotId).set(QUALITY_INSPECTIONS.QUANTITY, quantity)
+                .set(QUALITY_INSPECTIONS.WORK_ORDER_ID, workOrder.getId())
+                .set(QUALITY_INSPECTIONS.PRODUCT_ID, workOrder.getFinishedProductId())
+                .set(QUALITY_INSPECTIONS.LOT_ID, lotId)
+                .set(QUALITY_INSPECTIONS.QUANTITY, quantity)
+                .set(QUALITY_INSPECTIONS.REMAINING_QUANTITY, quantity)
                 .set(QUALITY_INSPECTIONS.QC_STATUS_ID, references.getPendingInspectionStatusId()).set(QUALITY_INSPECTIONS.CREATED_AT, now).execute();
         // Zero classifications remain traceable through lot, balance, and inspection but have no physical movement.
         if (quantity.compareTo(BigDecimal.ZERO) > 0) {

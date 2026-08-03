@@ -39,7 +39,7 @@ public interface WorkOrderUseCase {
 
     PageResponse<WorkOrderEventResponse> getEvents(UUID workOrderId, int page, int size);
     WorkOrderEventResponse addEvent(UUID workOrderId, CreateWorkOrderEventRequest request);
-    List<WorkOrderStatusResponse> getWorkOrderStatuses();
+    List<WorkOrderStatusResponse> getWorkOrderStatuses(Boolean isInitial, Boolean isFinal);
     List<WorkOrderPriorityResponse> getWorkOrderPriorities();
     List<WorkOrderEventTypeResponse> getWorkOrderEventTypes();
 }

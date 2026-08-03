@@ -56,10 +56,7 @@ export class BomDetail implements OnInit {
   editScrapRate = signal<number>(0);
 
   currentUser = this.auth.getCurrentUser();
-  canWrite = computed(() => {
-    const role = this.currentUser?.role;
-    return role === 'PLANNER';
-  });
+  canWrite = computed(() => this.auth.hasAnyRole('PLANNER'));
 
   isDraft = computed(() => this.bom()?.bomStatus?.name === 'DRAFT');
   isActive = computed(() => this.bom()?.bomStatus?.name === 'ACTIVE');

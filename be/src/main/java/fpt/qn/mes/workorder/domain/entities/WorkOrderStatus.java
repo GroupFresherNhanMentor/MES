@@ -14,4 +14,6 @@ public class WorkOrderStatus {
     UUID id;
     String name;
     String description;
+    boolean isInitial;
+    boolean isFinal;
 }

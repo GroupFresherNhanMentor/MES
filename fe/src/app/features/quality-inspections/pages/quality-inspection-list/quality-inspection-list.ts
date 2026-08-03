@@ -9,7 +9,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
-import { forkJoin, map } from 'rxjs';
 import { QualityInspectionService } from '../../services/quality-inspection.service';
 import { QualityInspectionCreateDialog } from '../../components/quality-inspection-create-dialog';
 import { QualityInspectionDecisionDialog } from '../../components/quality-inspection-decision-dialog';
@@ -56,12 +55,7 @@ import type { QualityInspectionDto } from '../../../../core/models/quality-inspe
             </ng-container>
             <ng-container matColumnDef="remaining">
               <th mat-header-cell *matHeaderCellDef>REMAINING</th>
-              <td mat-cell *matCellDef="let q">
-                <ng-container *ngIf="remainingMap().get(q.id) !== undefined; else noRemaining">
-                  {{ remainingMap().get(q.id) | number }}
-                </ng-container>
-                <ng-template #noRemaining>-</ng-template>
-              </td>
+              <td mat-cell *matCellDef="let q">{{ q.remainingQuantity | number }}</td>
             </ng-container>
             <ng-container matColumnDef="status">
               <th mat-header-cell *matHeaderCellDef>STATUS</th>
@@ -116,7 +110,6 @@ export class QualityInspectionList {
   total = signal(0);
   page = signal(0);
   size = signal(20);
-  remainingMap = signal<Map<string, number>>(new Map());
   displayedColumns = ['code', 'product', 'lot', 'quantity', 'remaining', 'status', 'createdAt', 'actions'];
 
   constructor() { this.load(); }
@@ -124,29 +117,9 @@ export class QualityInspectionList {
   load() {
     this.service.getInspections({ page: this.page(), size: this.size() }).subscribe(r => {
       if (r.success && r.data) {
-        const rows = r.data.items || [];
-        this.items.set(rows);
+        this.items.set(r.data.items || []);
         this.total.set(r.data.totalElements || 0);
-        this.loadRemaining(rows);
       }
-    });
-  }
-
-  private loadRemaining(rows: QualityInspectionDto[]): void {
-    if (rows.length === 0) {
-      this.remainingMap.set(new Map());
-      return;
-    }
-    const remaining$ = rows.map(q =>
-      this.service.getInspectionRemaining(q.id, q.quantity).pipe(
-        map(remaining => ({ id: q.id, remaining })),
-      ),
-    );
-    forkJoin(remaining$).subscribe({
-      next: (entries) => {
-        this.remainingMap.set(new Map(entries.map(e => [e.id, e.remaining])));
-      },
-      error: () => this.remainingMap.set(new Map()),
     });
   }
 

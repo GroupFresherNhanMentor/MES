@@ -179,8 +179,10 @@ public class WorkOrderController {
 
     @GetMapping("/statuses")
     @PreAuthorize("hasAnyRole('ADMIN', 'PLANNER', 'OPERATOR', 'FACTORY_MANAGER', 'AUDITOR')")
-    public ResponseEntity<ApiResponse<List<WorkOrderStatusResponse>>> getWorkOrderStatuses() {
-        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderStatuses(), "OK"));
+    public ResponseEntity<ApiResponse<List<WorkOrderStatusResponse>>> getWorkOrderStatuses(
+            @RequestParam(required = false) Boolean isInitial,
+            @RequestParam(required = false) Boolean isFinal) {
+        return ResponseEntity.ok(ApiResponse.success(workOrderUseCase.getWorkOrderStatuses(isInitial, isFinal), "OK"));
     }
 
     @GetMapping("/priorities")

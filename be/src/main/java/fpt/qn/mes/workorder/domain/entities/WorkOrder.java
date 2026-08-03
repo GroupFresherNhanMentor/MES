@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import fpt.qn.mes.common.util.UuidV7;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -27,6 +28,18 @@ public class WorkOrder {
 
     public static WorkOrder create(String code, UUID finishedProductId, UUID bomId, BigDecimal plannedQuantity,
             Instant plannedStartDate, Instant plannedEndDate, UUID priorityId, UUID workOrderStatusId, UUID createdBy) {
-        throw new UnsupportedOperationException("Not implemented");
+        return WorkOrder.builder()
+                .id(UuidV7.generate())
+                .code(code)
+                .finishedProductId(finishedProductId)
+                .bomId(bomId)
+                .plannedQuantity(plannedQuantity)
+                .plannedStartDate(plannedStartDate)
+                .plannedEndDate(plannedEndDate)
+                .priorityId(priorityId)
+                .workOrderStatusId(workOrderStatusId)
+                .createdBy(createdBy)
+                .createdAt(Instant.now())
+                .build();
     }
 }

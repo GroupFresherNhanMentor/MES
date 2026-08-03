@@ -23,6 +23,7 @@ export interface QualityInspectionDto {
   product?: ProductInfo;
   lot?: StockLotInfo;
   quantity: number;
+  remainingQuantity: number;
   qcStatusName: string;
   createdAt: string;
 }

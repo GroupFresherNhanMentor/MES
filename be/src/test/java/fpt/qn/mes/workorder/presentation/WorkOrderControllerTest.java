@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import fpt.qn.mes.workorder.application.dto.response.ReserveWorkOrderMaterialsResponse;
+import fpt.qn.mes.workorder.application.dto.workorderstatus.WorkOrderStatusResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -180,7 +181,7 @@ class WorkOrderControllerTest {
         ReserveWorkOrderMaterialsResponse expectedResponse =
                 ReserveWorkOrderMaterialsResponse.builder()
                         .workOrderId(id)
-                        .status("READY_TO_PRODUCE")
+                        .status(WorkOrderStatusResponse.builder().id(UUID.randomUUID()).name("READY_TO_PRODUCE").build())
                         .build();
 
         when(workOrderUseCase.reserveMaterials(id)).thenReturn(expectedResponse);

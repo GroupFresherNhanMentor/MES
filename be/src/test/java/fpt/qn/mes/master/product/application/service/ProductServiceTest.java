@@ -85,7 +85,6 @@ class ProductServiceTest {
     @Test
     void createProduct_savesProduct_whenAllRefsAreValid() {
         when(productRepository.existsByCode("TEST-001")).thenReturn(false);
-        when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(true);
         when(unitOfMeasureRepository.existsById(unitId)).thenReturn(true);
         when(productStatusRepository.findByName(ProductStatusConstants.ACTIVE))
@@ -107,18 +106,8 @@ class ProductServiceTest {
     }
 
     @Test
-    void createProduct_throwsConflict_whenVersionAlreadyExists() {
-        when(productRepository.existsByCode("TEST-001")).thenReturn(false);
-        when(productRepository.existsByVersion("v1.0")).thenReturn(true);
-
-        assertThrows(ProductConflictException.class, () -> productService.createProduct(createReq));
-        verify(productRepository, never()).save(any());
-    }
-
-    @Test
     void createProduct_throwsNotFound_whenProductTypeDoesNotExist() {
         when(productRepository.existsByCode("TEST-001")).thenReturn(false);
-        when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(false);
 
         assertThrows(ProductTypeNotFoundException.class, () -> productService.createProduct(createReq));
@@ -128,7 +117,6 @@ class ProductServiceTest {
     @Test
     void createProduct_throwsNotFound_whenUnitOfMeasureDoesNotExist() {
         when(productRepository.existsByCode("TEST-001")).thenReturn(false);
-        when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(true);
         when(unitOfMeasureRepository.existsById(unitId)).thenReturn(false);
 
@@ -139,7 +127,6 @@ class ProductServiceTest {
     @Test
     void createProduct_throwsNotFound_whenActiveStatusMissing() {
         when(productRepository.existsByCode("TEST-001")).thenReturn(false);
-        when(productRepository.existsByVersion("v1.0")).thenReturn(false);
         when(productTypeRepository.existsById(typeId)).thenReturn(true);
         when(unitOfMeasureRepository.existsById(unitId)).thenReturn(true);
         when(productStatusRepository.findByName(ProductStatusConstants.ACTIVE)).thenReturn(Optional.empty());

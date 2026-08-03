@@ -3,6 +3,8 @@ package fpt.qn.mes.workorder.application.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,9 +51,11 @@ import fpt.qn.mes.workorder.application.port.out.WorkOrderCompletionPort;
 import fpt.qn.mes.workorder.application.port.out.dto.ActiveProductionRun;
 import fpt.qn.mes.workorder.application.port.out.dto.CompletionReferences;
 import fpt.qn.mes.workorder.application.port.out.dto.CompletionReservationAllocation;
+import fpt.qn.mes.common.util.UuidV7;
 import fpt.qn.mes.workorder.domain.constants.WorkOrderStatusConstants;
 import fpt.qn.mes.workorder.domain.entities.WorkOrder;
 import fpt.qn.mes.workorder.domain.entities.WorkOrderMaterial;
+import fpt.qn.mes.workorder.domain.entities.WorkOrderStatus;
 import fpt.qn.mes.workorder.domain.repository.WorkOrderRepository;
 import fpt.qn.mes.workorder.domain.repository.criteria.WorkOrderSearchCriteria;
 import lombok.AccessLevel;
@@ -131,33 +135,44 @@ public class WorkOrderService implements WorkOrderUseCase {
     @Override
     @Transactional
     public WorkOrderResponse createWorkOrder(CreateWorkOrderRequest req, UUID currentUserId) {
-        if (req.getPlannedQuantity().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new InvalidInputException("Planned quantity must be greater than 0");
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
+        if (req.getPlannedStartDate() != null) {
+            LocalDate startDate = req.getPlannedStartDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (startDate.isBefore(today)) {
+                throw new InvalidInputException("Planned start date must not be in the past");
+            }
         }
-        if (req.getPlannedStartDate() != null && req.getPlannedEndDate() != null
-                && !req.getPlannedStartDate().isBefore(req.getPlannedEndDate())) {
-            throw new InvalidInputException("Planned start date must be before planned end date");
+        if (req.getPlannedEndDate() != null) {
+            LocalDate endDate = req.getPlannedEndDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (endDate.isBefore(today)) {
+                throw new InvalidInputException("Planned end date must not be in the past");
+            }
         }
+        if (req.getPlannedStartDate() != null && req.getPlannedEndDate() != null) {
+            LocalDate startDate = req.getPlannedStartDate().atZone(ZoneOffset.UTC).toLocalDate();
+            LocalDate endDate = req.getPlannedEndDate().atZone(ZoneOffset.UTC).toLocalDate();
+            if (endDate.isBefore(startDate)) {
+                throw new InvalidInputException("Planned end date must not be before planned start date");
+            }
+        }
+
         if (repository.existsByCode(req.getCode())) {
             throw new WorkOrderCodeExistsException("Work Order code '" + req.getCode() + "' already exists");
         }
         Bom activeBom = bomRepository.findActiveByFinishedProductId(req.getFinishedProductId())
                 .orElseThrow(() -> new BomNotActiveException("No active BOM found for finished product: " + req.getFinishedProductId()));
 
-        WorkOrder workOrder = WorkOrder.builder()
-                .code(req.getCode())
-                .finishedProductId(req.getFinishedProductId())
-                .bomId(activeBom.getId())
-                .plannedQuantity(req.getPlannedQuantity())
-                .plannedStartDate(req.getPlannedStartDate())
-                .plannedEndDate(req.getPlannedEndDate())
-                .priorityId(req.getPriorityId())
-                .workOrderStatusId(req.getWorkOrderStatusId() != null ? req.getWorkOrderStatusId()
-                        : repository.findStatusIdByName(WorkOrderStatusConstants.DRAFT)
-                                .orElseThrow(() -> new InvalidWorkOrderStateException("DRAFT Work Order status is not configured")))
-                .createdBy(currentUserId)
-                .createdAt(Instant.now())
-                .build();
+        UUID statusId = req.getWorkOrderStatusId() != null ? req.getWorkOrderStatusId()
+                : repository.findStatusIdByName(WorkOrderStatusConstants.DRAFT)
+                        .orElseThrow(() -> new InvalidWorkOrderStateException("DRAFT Work Order status is not configured"));
+        if (!repository.existsByIdAndIsInitial(statusId)) {
+            throw new InvalidWorkOrderStateException("Work Order status must be an initial status");
+        }
+
+        WorkOrder workOrder = WorkOrder.create(
+                req.getCode(), req.getFinishedProductId(), activeBom.getId(),
+                req.getPlannedQuantity(), req.getPlannedStartDate(), req.getPlannedEndDate(),
+                req.getPriorityId(), statusId, currentUserId);
 
         WorkOrder saved = repository.save(workOrder);
         eventPublisher.publishEvent(AuditEvent.create(currentUserId, AuditAction.CREATE_WORK_ORDER,
@@ -170,6 +185,7 @@ public class WorkOrderService implements WorkOrderUseCase {
                 BigDecimal reqQty = req.getPlannedQuantity().multiply(item.getQuantityPerUnit()).multiply(multiplier);
 
                 WorkOrderMaterial mat = WorkOrderMaterial.builder()
+                        .id(UuidV7.generate())
                         .workOrderId(saved.getId())
                         .materialProductId(item.getMaterialProductId())
                         .requiredQuantity(reqQty)
@@ -186,8 +202,8 @@ public class WorkOrderService implements WorkOrderUseCase {
 
     @Override
     @Transactional(readOnly = true)
-    public List<WorkOrderStatusResponse> getWorkOrderStatuses() {
-        return repository.findAllStatuses().stream()
+    public List<WorkOrderStatusResponse> getWorkOrderStatuses(Boolean isInitial, Boolean isFinal) {
+        return repository.findAllStatuses(isInitial, isFinal).stream()
                 .map(s -> mapper.toDto(s))
                 .toList();
     }
@@ -312,9 +328,11 @@ public class WorkOrderService implements WorkOrderUseCase {
     public ReserveWorkOrderMaterialsResponse reserveMaterials(UUID workOrderId) {
         WorkOrder workOrder = repository.findForUpdate(workOrderId)
                 .orElseThrow(() -> new WorkOrderNotFoundException("Work Order not found with ID: " + workOrderId));
-        String currentStatus = repository.findStatusNameById(workOrder.getWorkOrderStatusId()).orElse("");
-        if (!WorkOrderStatusConstants.PLANNED.equals(currentStatus)
-                && !WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)) {
+        WorkOrderStatus currentStatus = repository.findStatusById(workOrder.getWorkOrderStatusId())
+                .orElseThrow(() -> new WorkOrderNotFoundException("Work Order status not found for ID: " + workOrderId));
+
+        if (!WorkOrderStatusConstants.PLANNED.equals(currentStatus.getName())
+                && !WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus.getName())) {
             throw new InvalidWorkOrderReservationException(
                     "Work Order must be PLANNED or MATERIAL_SHORTAGE to reserve materials");
         }
@@ -328,85 +346,89 @@ public class WorkOrderService implements WorkOrderUseCase {
 
         List<WorkOrderMaterial> materials = repository.findMaterialsByWorkOrderId(workOrderId);
         List<UUID> productIds = materials.stream()
-                .map(WorkOrderMaterial::getMaterialProductId)
+                .map(m -> m.getMaterialProductId())
                 .distinct()
                 .toList();
         List<ReservationStock> stock = reservationPort.findAvailableStock(productIds, availableStatusId);
 
-        Map<UUID, BigDecimal> remainingStockMap = new HashMap<>();
+        // index stock by balance id and by product for efficient lookup
+        Map<UUID, BigDecimal> stockByBalance = new HashMap<>();
         Map<UUID, List<ReservationStock>> stockByProduct = new HashMap<>();
         for (ReservationStock item : stock) {
-            remainingStockMap.put(item.balanceId(), item.quantity());
-            stockByProduct.computeIfAbsent(item.productId(), ignored -> new ArrayList<>()).add(item);
+            stockByBalance.put(item.balanceId(), item.quantity());
+            stockByProduct.computeIfAbsent(item.productId(), k -> new ArrayList<>()).add(item);
         }
 
-        List<ReservationAllocation> allocations = new ArrayList<>();
-        Map<UUID, BigDecimal> reservedByProduct = new HashMap<>();
+        // Phase 1: check all materials — collect shortages without touching stock
         List<ShortageDetail> shortages = new ArrayList<>();
         for (WorkOrderMaterial material : materials) {
-            BigDecimal required = material.getRequiredQuantity() == null
-                    ? BigDecimal.ZERO
-                    : material.getRequiredQuantity();
-            BigDecimal alreadyReserved = material.getReservedQuantity() == null
-                    ? BigDecimal.ZERO
-                    : material.getReservedQuantity();
-            BigDecimal remaining = required.subtract(alreadyReserved);
-            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
+            BigDecimal needed = neededQuantity(material);
+            if (needed.compareTo(BigDecimal.ZERO) <= 0) continue;
 
-            List<ReservationStock> productStock = stockByProduct.getOrDefault(
-                    material.getMaterialProductId(), List.of());
-            BigDecimal available = productStock.stream()
-                    .map(item -> remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-            if (available.compareTo(remaining) < 0) {
-                shortages.add(new ShortageDetail(material.getMaterialProductId(), remaining, available,
-                        remaining.subtract(available)));
-                continue;
-            }
+            BigDecimal available = stockByProduct.getOrDefault(material.getMaterialProductId(), List.of())
+                    .stream()
+                    .map(item -> stockByBalance.getOrDefault(item.balanceId(), BigDecimal.ZERO))
+                    .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
 
-            BigDecimal left = remaining;
-            for (ReservationStock item : productStock) {
-                if (left.compareTo(BigDecimal.ZERO) <= 0) {
-                    break;
-                }
-                BigDecimal availInItem = remainingStockMap.getOrDefault(item.balanceId(), BigDecimal.ZERO);
-                if (availInItem.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
-                BigDecimal amount = availInItem.min(left);
-                allocations.add(new ReservationAllocation(item.balanceId(), item.warehouseId(), item.locationId(),
-                        item.productId(), item.lotId(), amount));
-                remainingStockMap.put(item.balanceId(), availInItem.subtract(amount));
-                left = left.subtract(amount);
+            if (available.compareTo(needed) < 0) {
+                shortages.add(new ShortageDetail(material.getMaterialProductId(), needed, available,
+                        needed.subtract(available)));
             }
-            reservedByProduct.merge(material.getMaterialProductId(), remaining, BigDecimal::add);
         }
 
         UUID actorId = currentUserPort.getCurrentUserId();
+
+        // If any shortage: update status only, no stock changes
         if (!shortages.isEmpty()) {
-            if (!WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus)) {
-                UUID shortageStatusId = requireActiveTransition(workOrder, currentStatus,
+            if (!WorkOrderStatusConstants.MATERIAL_SHORTAGE.equals(currentStatus.getName())) {
+                UUID shortageStatusId = requireActiveTransition(workOrder, currentStatus.getName(),
                         WorkOrderStatusConstants.MATERIAL_SHORTAGE);
                 updateStatus(workOrder, shortageStatusId);
-                auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+                auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus.getName(),
                         WorkOrderStatusConstants.MATERIAL_SHORTAGE, "RESERVE_MATERIAL");
             }
             throw new InsufficientMaterialException(
                     "Insufficient stock for one or more Work Order materials", shortages);
         }
 
-        UUID readyStatusId = requireActiveTransition(workOrder, currentStatus,
+        // Phase 2: all materials satisfied — allocate FEFO lots and create stock movements
+        List<ReservationAllocation> allocations = new ArrayList<>();
+        Map<UUID, BigDecimal> reservedByProduct = new HashMap<>();
+        for (WorkOrderMaterial material : materials) {
+            BigDecimal left = neededQuantity(material);
+            if (left.compareTo(BigDecimal.ZERO) <= 0) continue;
+
+            for (ReservationStock item : stockByProduct.getOrDefault(material.getMaterialProductId(), List.of())) {
+                if (left.compareTo(BigDecimal.ZERO) <= 0) break;
+                BigDecimal available = stockByBalance.getOrDefault(item.balanceId(), BigDecimal.ZERO);
+                if (available.compareTo(BigDecimal.ZERO) <= 0) continue;
+                BigDecimal amount = available.min(left);
+                allocations.add(new ReservationAllocation(item.balanceId(), item.warehouseId(), item.locationId(),
+                        item.productId(), item.lotId(), amount));
+                stockByBalance.put(item.balanceId(), available.subtract(amount));
+                left = left.subtract(amount);
+            }
+            reservedByProduct.merge(material.getMaterialProductId(), neededQuantity(material), (a, b) -> a.add(b));
+        }
+
+        UUID readyStatusId = requireActiveTransition(workOrder, currentStatus.getName(),
                 WorkOrderStatusConstants.READY_TO_PRODUCE);
         reservationPort.applyReservation(workOrderId, allocations, reservedByProduct, availableStatusId,
                 reservedStatusId, movementTypeId, actorId);
         updateStatus(workOrder, readyStatusId);
-        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus,
+        auditLogPort.recordStatusTransition(actorId, workOrderId, currentStatus.getName(),
                 WorkOrderStatusConstants.READY_TO_PRODUCE, "RESERVE_MATERIAL");
+        WorkOrderStatus readyStatus = repository.findStatusById(readyStatusId)
+                .orElseThrow(() -> new WorkOrderNotFoundException("READY_TO_PRODUCE status not configured"));
         return ReserveWorkOrderMaterialsResponse.builder()
                 .workOrderId(workOrderId)
-                .status(WorkOrderStatusConstants.READY_TO_PRODUCE)
+                .status(WorkOrderStatusResponse.builder()
+                        .id(readyStatus.getId())
+                        .name(readyStatus.getName())
+                        .description(readyStatus.getDescription())
+                        .isInitial(readyStatus.isInitial())
+                        .isFinal(readyStatus.isFinal())
+                        .build())
                 .allocations(allocations.stream().map(allocation -> ReservedMaterialAllocationResponse.builder()
                         .materialProductId(allocation.productId())
                         .lotId(allocation.lotId())
@@ -446,6 +468,12 @@ public class WorkOrderService implements WorkOrderUseCase {
             throw new InvalidWorkOrderStateException(
                     currentStatus + " to " + targetStatus + " transition is not active");
         }
+    }
+
+    private BigDecimal neededQuantity(WorkOrderMaterial material) {
+        BigDecimal required = material.getRequiredQuantity() == null ? BigDecimal.ZERO : material.getRequiredQuantity();
+        BigDecimal reserved = material.getReservedQuantity() == null ? BigDecimal.ZERO : material.getReservedQuantity();
+        return required.subtract(reserved);
     }
 
     private UUID requireReferenceId(UUID id, String message) {

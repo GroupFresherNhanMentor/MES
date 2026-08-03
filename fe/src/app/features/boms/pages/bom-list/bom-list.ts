@@ -69,10 +69,7 @@ export class BomList implements OnInit {
 
   // Computed signals
   currentUser = this.auth.getCurrentUser();
-  canCreate = computed(() => {
-    const role = this.currentUser?.role;
-    return role === 'PLANNER';
-  });
+  canCreate = computed(() => this.auth.hasAnyRole('PLANNER'));
 
   activeCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'ACTIVE').length);
   draftCount = computed(() => this.items().filter(i => i.bomStatus?.name === 'DRAFT').length);

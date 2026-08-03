@@ -89,9 +89,6 @@ public class ProductService implements ProductUseCase {
         if (productRepository.existsByCode(request.getCode())) {
             throw new ProductConflictException("Product code already exists: " + request.getCode());
         }
-        if (productRepository.existsByVersion(request.getVersion())) {
-            throw new ProductConflictException("Product version already exists: " + request.getVersion());
-        }
         if (!productTypeRepository.existsById(request.getProductTypeId())) {
             throw new ProductTypeNotFoundException("Product type not found: " + request.getProductTypeId());
         }

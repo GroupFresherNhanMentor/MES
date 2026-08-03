@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatDialogRef, MatDialogModule } from '@angular/material/dialog';
@@ -99,8 +99,19 @@ import type { LocationDto } from '../../../../core/models/location.model';
                 <mat-option [value]="lot.lotNumber">{{ lot.lotNumber }}</mat-option>
               }
             </mat-autocomplete>
+            @if (isNewLot()) {
+              <mat-hint>New lot — expiry date can be set below</mat-hint>
+            }
           </mat-form-field>
         </div>
+
+        @if (isNewLot()) {
+          <mat-form-field appearance="outline">
+            <mat-label>Expiry Date (optional)</mat-label>
+            <input matInput type="date" formControlName="expiryDate">
+            <mat-hint>Leave blank if this lot has no expiry</mat-hint>
+          </mat-form-field>
+        }
 
         <div style="display:flex; gap:12px;">
           <mat-form-field appearance="outline" style="flex:1">
@@ -136,6 +147,7 @@ export class StockInFormComponent implements OnInit {
   filteredLotNumbersList = signal<any[]>([]);
   selectedUnitName = signal<string | null>(null);
   selectedUnitDescription = signal<string | null>(null);
+  currentLotNumber = signal<string>('');
 
   form = this.fb.group({
     productId: ['', [Validators.required]],
@@ -143,13 +155,22 @@ export class StockInFormComponent implements OnInit {
     locationId: ['', [Validators.required]],
     quantity: [0, [Validators.required, Validators.min(0.0001)]],
     lotNumber: ['', [Validators.required]],
+    expiryDate: [''],
     referenceNo: ['', [Validators.required]],
     reason: [''],
   });
 
+  isNewLot = computed(() => {
+    const lotNumber = this.currentLotNumber();
+    if (!lotNumber) return false;
+    return !this.lotNumbersList().some(lot => lot.lotNumber === lotNumber);
+  });
+
   ngOnInit(): void {
     this.form.get('lotNumber')?.valueChanges.subscribe(val => {
-      const search = (val || '').toLowerCase();
+      const current = val || '';
+      this.currentLotNumber.set(current);
+      const search = current.toLowerCase();
       this.filteredLotNumbersList.set(
         this.lotNumbersList().filter(lot => lot.lotNumber?.toLowerCase().includes(search))
       );
@@ -255,12 +276,14 @@ export class StockInFormComponent implements OnInit {
     }
     this.submitting.set(true);
 
+    const expiryDateValue = this.form.value.expiryDate;
     const payload = {
       productId: this.form.value.productId,
       warehouseId: this.form.value.warehouseId,
       locationId: this.form.value.locationId,
       quantity: Number(this.form.value.quantity),
       lotNumber: this.form.value.lotNumber,
+      expiryDate: this.isNewLot() && expiryDateValue ? new Date(expiryDateValue).toISOString() : undefined,
       referenceNo: this.form.value.referenceNo,
       reason: this.form.value.reason || undefined,
     };

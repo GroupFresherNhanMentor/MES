@@ -6,6 +6,8 @@ import static fpt.qn.mes.jooq.Tables.BOMS;
 import static fpt.qn.mes.jooq.Tables.PRODUCTS;
 import static fpt.qn.mes.jooq.Tables.UNITS_OF_MEASURE;
 import static fpt.qn.mes.jooq.Tables.USERS;
+import static org.jooq.impl.DSL.multiset;
+import static org.jooq.impl.DSL.select;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +29,8 @@ import fpt.qn.mes.bom.infrastructure.persistence.bomitem.BomItemRecordMapper;
 import fpt.qn.mes.common.domainQuery.PaginationResult;
 import fpt.qn.mes.common.repository.BaseRepository;
 import fpt.qn.mes.common.repository.SortUtils;
+import fpt.qn.mes.jooq.tables.Products;
+import fpt.qn.mes.jooq.tables.UnitsOfMeasure;
 import fpt.qn.mes.jooq.tables.Users;
 import fpt.qn.mes.jooq.tables.records.BomsRecord;
 import lombok.AccessLevel;
@@ -37,6 +41,8 @@ import lombok.experimental.FieldDefaults;
 public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements BomRepository {
 
     private static final Users CREATOR = USERS.as("creator");
+    private static final Products MATERIAL_PRODUCT = PRODUCTS.as("material_product");
+    private static final UnitsOfMeasure MATERIAL_UNIT = UNITS_OF_MEASURE.as("material_unit");
 
     private static final Map<String, Field<?>> SORT_FIELDS = Map.of(
             "version",    BOMS.VERSION,
@@ -73,14 +79,25 @@ public class BomPersistenceAdapter extends BaseRepository<BomsRecord> implements
 
     @Override
     public Optional<Bom> findActiveByFinishedProductId(UUID finishedProductId) {
-        return ctx.select()
+        var itemsField = multiset(
+                select(BOM_ITEMS.asterisk(), MATERIAL_PRODUCT.asterisk(), MATERIAL_UNIT.asterisk())
+                        .from(BOM_ITEMS)
+                        .leftJoin(MATERIAL_PRODUCT).on(BOM_ITEMS.MATERIAL_PRODUCT_ID.eq(MATERIAL_PRODUCT.ID))
+                        .leftJoin(MATERIAL_UNIT).on(MATERIAL_PRODUCT.UNIT_ID.eq(MATERIAL_UNIT.ID))
+                        .where(BOM_ITEMS.BOM_ID.eq(BOMS.ID))
+        ).convertFrom(r -> r.map(ir -> itemMapper.toDomain(
+                ir.into(BOM_ITEMS), ir.into(MATERIAL_PRODUCT), ir.into(MATERIAL_UNIT))));
+
+        return ctx.select(BOMS.asterisk(), PRODUCTS.asterisk(), BOM_STATUSES.asterisk(), CREATOR.asterisk(), itemsField)
                 .from(BOMS)
                 .leftJoin(PRODUCTS).on(BOMS.FINISHED_PRODUCT_ID.eq(PRODUCTS.ID))
                 .leftJoin(BOM_STATUSES).on(BOMS.BOM_STATUS_ID.eq(BOM_STATUSES.ID))
                 .leftJoin(CREATOR).on(BOMS.CREATED_BY.eq(CREATOR.ID))
                 .where(BOMS.FINISHED_PRODUCT_ID.eq(finishedProductId))
                 .and(BOM_STATUSES.NAME.eq("ACTIVE"))
-                .fetchOptional(r -> mapper.toDomain(r.into(BOMS), r.into(PRODUCTS), r.into(BOM_STATUSES), r.into(CREATOR), List.of()));
+                .fetchOptional(r -> mapper.toDomain(
+                        r.into(BOMS), r.into(PRODUCTS), r.into(BOM_STATUSES), r.into(CREATOR),
+                        r.get(itemsField)));
     }
 
     @Override

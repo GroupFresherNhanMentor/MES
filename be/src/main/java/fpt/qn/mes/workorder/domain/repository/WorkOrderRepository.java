@@ -33,11 +33,13 @@ public interface WorkOrderRepository {
     java.util.List<WorkOrderEvent> findEventsByWorkOrderId(UUID workOrderId);
     Optional<String> findStatusNameById(UUID id);
     Optional<UUID> findStatusIdByName(String name);
+    Optional<WorkOrderStatus> findStatusById(UUID id);
     boolean hasActiveTransition(UUID fromStatusId, UUID toStatusId);
     boolean existsByCode(String code);
     boolean existsByCodeAndIdNot(String code, UUID excludeId);
 
-    List<WorkOrderStatus> findAllStatuses();
+    List<WorkOrderStatus> findAllStatuses(Boolean isInitial, Boolean isFinal);
+    boolean existsByIdAndIsInitial(UUID id);
     List<WorkOrderPriority> findAllPriorities();
     List<WorkOrderEventType> findAllEventTypes();
 }
